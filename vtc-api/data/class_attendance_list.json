@@ -1,0 +1,232 @@
+{
+  "isSuccess": true,
+  "errorCode": 0,
+  "errorMsg": null,
+  "payload": {
+    "courses": [
+      {
+        "id": "31FE9B2F-6650-4559-A389-D66F786A3599",
+        "name": {
+          "en": "Computer Systems and Communication Fundamentals",
+          "tc": "電腦系統及基礎傳訊",
+          "sc": "電腦系統及基礎傳訊"
+        },
+        "courseCode": "ITE3713",
+        "attendRate": -1,
+        "passRate": 0,
+        "orderNum": 1
+      },
+      {
+        "id": "C243383A-F2FF-45A2-B830-35910DBE6A24",
+        "name": {
+          "en": "Database Applications Development",
+          "tc": "資料庫應用",
+          "sc": "資料庫應用"
+        },
+        "courseCode": "ITE3712",
+        "attendRate": -1,
+        "passRate": 0,
+        "orderNum": 2
+      },
+      {
+        "id": "0E185B34-9E3F-43DB-90E4-A92A9FF3B69A",
+        "name": {
+          "en": "English Enhancement Programme (QF2) (A)",
+          "tc": "English Enhancement Programme (QF2) (A)",
+          "sc": "English Enhancement Programme (QF2) (A)"
+        },
+        "courseCode": "LAN2140A",
+        "attendRate": -1,
+        "passRate": 0,
+        "orderNum": 3
+      },
+      {
+        "id": "8474CAE7-1B71-47E2-B10C-8BCB08C1B375",
+        "name": {
+          "en": "English Enhancement Programme (QF3) (A)",
+          "tc": "English Enhancement Programme (QF3) (A)",
+          "sc": "English Enhancement Programme (QF3) (A)"
+        },
+        "courseCode": "LAN3140A",
+        "attendRate": -1,
+        "passRate": 0,
+        "orderNum": 4
+      },
+      {
+        "id": "6128A412-CE79-403C-B9F9-5251B49D0AF9",
+        "name": {
+          "en": "Essentials of Personal Development",
+          "tc": "個人發展要素",
+          "sc": "個人發展要素"
+        },
+        "courseCode": "SDD3004",
+        "attendRate": -1,
+        "passRate": 0,
+        "orderNum": 5
+      },
+      {
+        "id": "17B1D7C6-5FC3-4C1B-B742-BEF1A5A62D96",
+        "name": {
+          "en": "Foundation Mathematics I",
+          "tc": "基礎數學（一）",
+          "sc": "基礎數學（一）"
+        },
+        "courseCode": "ITE3705",
+        "attendRate": -1,
+        "passRate": 0,
+        "orderNum": 6
+      },
+      {
+        "id": "DED86D22-3220-4D65-AD6B-7A79921B7648",
+        "name": {
+          "en": "Foundation Mathematics II (B)",
+          "tc": "基礎數學（二）（乙）",
+          "sc": "基礎數學（二）（乙）"
+        },
+        "courseCode": "ITE3707",
+        "attendRate": -1,
+        "passRate": 0,
+        "orderNum": 7
+      },
+      {
+        "id": "4C060C48-E6FC-449C-A9EB-A414685D0D92",
+        "name": {
+          "en": "Information Technology Applications",
+          "tc": "資訊科技應用",
+          "sc": "資訊科技應用"
+        },
+        "courseCode": "ITE3709",
+        "attendRate": -1,
+        "passRate": 0,
+        "orderNum": 8
+      },
+      {
+        "id": "F058B473-4338-49DA-93DA-69FC2D92C136",
+        "name": {
+          "en": "Multimedia Website and Applications Design",
+          "tc": "多媒體網頁及應用設計",
+          "sc": "多媒體網頁及應用設計"
+        },
+        "courseCode": "ITE3715",
+        "attendRate": -1,
+        "passRate": 0,
+        "orderNum": 9
+      },
+      {
+        "id": "7F899FC9-299A-4561-A879-5386ACBCF801",
+        "name": {
+          "en": "Programming Concepts and Applications",
+          "tc": "程式編寫及應用",
+          "sc": "程式編寫及應用"
+        },
+        "courseCode": "ITE3711",
+        "attendRate": -1,
+        "passRate": 0,
+        "orderNum": 10
+      },
+      {
+        "id": "7A3821EF-4508-4C19-A9B6-70C63411CED2",
+        "name": {
+          "en": "Vocational Chinese: Discussion & Social Correspondence",
+          "tc": "職業中文：小組討論與禮儀文書",
+          "sc": "職業中文：小組討論與禮儀文書"
+        },
+        "courseCode": "LAN3007",
+        "attendRate": -1,
+        "passRate": 0,
+        "orderNum": 11
+      },
+      {
+        "id": "79EF0110-5087-4F0B-A1F4-6A1D60274540",
+        "name": {
+          "en": "Vocational Chinese: Putonghua Conversation & Discussion",
+          "tc": "職業中文：普通話對話與討論",
+          "sc": "職業中文：普通話對話與討論"
+        },
+        "courseCode": "LAN2002",
+        "attendRate": -1,
+        "passRate": 0,
+        "orderNum": 12
+      },
+      {
+        "id": "C7E62AAB-D5DB-4AB1-8125-A8CF1C5FA3C9",
+        "name": {
+          "en": "Vocational English I: Oral Interaction in the Workplace",
+          "tc": "職業英語 I",
+          "sc": "職業英語 I"
+        },
+        "courseCode": "LAN2102",
+        "attendRate": -1,
+        "passRate": 0,
+        "orderNum": 13
+      },
+      {
+        "id": "E6A2AB5C-C9DC-44ED-9B0B-5434F60CA5D0",
+        "name": {
+          "en": "Vocational English II: Responding to Written Correspondence",
+          "tc": "職業英語 II",
+          "sc": "職業英語 II"
+        },
+        "courseCode": "LAN2103",
+        "attendRate": -1,
+        "passRate": 0,
+        "orderNum": 14
+      },
+      {
+        "id": "5AA484FA-E816-447B-8EE3-4C5DEE4AA1A1",
+        "name": {
+          "en": "Vocational English III: Presenting Information and Ideas in Writing",
+          "tc": "職業英語 III",
+          "sc": "職業英語 III"
+        },
+        "courseCode": "LAN2104",
+        "attendRate": -1,
+        "passRate": 0,
+        "orderNum": 15
+      },
+      {
+        "id": "C9C73C49-130D-409B-A7BD-8B09855E4605",
+        "name": {
+          "en": "Vocational English IV: Oral Presentation",
+          "tc": "職業英語 IV",
+          "sc": "職業英語 IV"
+        },
+        "courseCode": "LAN3109",
+        "attendRate": -1,
+        "passRate": 0,
+        "orderNum": 16
+      },
+      {
+        "id": "358FD757-92E9-4483-B5D4-02326ACD7800",
+        "name": {
+          "en": "Vocational English V: Responding to Written Correspondence",
+          "tc": "職業英語 V",
+          "sc": "職業英語 V"
+        },
+        "courseCode": "LAN3110",
+        "attendRate": -1,
+        "passRate": 0,
+        "orderNum": 17
+      },
+      {
+        "id": "275E7115-61FB-4CED-B68F-07FC51A495E5",
+        "name": {
+          "en": "Wellness in Action",
+          "tc": "跳躍健樂",
+          "sc": "跳躍健樂"
+        },
+        "courseCode": "SDD3003",
+        "attendRate": -1,
+        "passRate": 0,
+        "orderNum": 18
+      }
+    ],
+    "isShowAttendanceRate": false,
+    "totalNumOfCourse": 18,
+    "emptyMsg": {
+      "en": null,
+      "tc": null,
+      "sc": null
+    }
+  }
+}

@@ -1,0 +1,731 @@
+@import "tailwindcss";
+
+:root {
+  /* Apple iCloud Color Palette */
+  --background: #ffffff;
+  --foreground: #1d1d1f;
+  --sidebar-bg: rgba(245, 245, 247, 0.8);
+  --sidebar-border: rgba(0, 0, 0, 0.08);
+  --calendar-border: #e5e5e7;
+  --calendar-today: #007aff;
+  --calendar-header-bg: #fafafa;
+  --text-secondary: #86868b;
+  --text-tertiary: #a1a1a6;
+
+  /* Pastel event colors */
+  --event-coral: #FF6B6B;
+  --event-teal: #4ECDC4;
+  --event-sky: #45B7D1;
+  --event-sage: #96CEB4;
+  --event-lemon: #FFEAA7;
+  --event-plum: #DDA0DD;
+  --event-mint: #98D8C8;
+  --event-gold: #F7DC6F;
+  --event-blue: #74B9FF;
+  --event-pink: #FD79A8;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+  --font-mono: "SF Mono", ui-monospace, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #1d1d1f;
+    --foreground: #f5f5f7;
+    --sidebar-bg: rgba(30, 30, 32, 0.9);
+    --sidebar-border: rgba(255, 255, 255, 0.1);
+    --calendar-border: #3a3a3c;
+    --calendar-header-bg: #2c2c2e;
+    --text-secondary: #a1a1a6;
+    --text-tertiary: #636366;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================
+   REACT-BIG-CALENDAR OVERRIDES (Apple iCloud Style)
+   ============================================ */
+
+.rbc-calendar {
+  background: var(--background);
+  font-family: inherit;
+}
+
+/* Hide default toolbar - we use custom */
+.rbc-toolbar {
+  display: none !important;
+}
+
+/* Month view */
+.rbc-month-view {
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.rbc-month-header {
+  background: var(--calendar-header-bg);
+  border-bottom: 1px solid var(--calendar-border);
+}
+
+.rbc-header {
+  padding: 12px 8px;
+  font-weight: 500;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  border-bottom: none;
+  background: transparent;
+}
+
+.rbc-header+.rbc-header {
+  border-left: none;
+}
+
+/* Day cells */
+.rbc-day-bg {
+  border-left: 1px solid var(--calendar-border) !important;
+}
+
+.rbc-day-bg:first-child {
+  border-left: none !important;
+}
+
+.rbc-day-bg+.rbc-day-bg {
+  border-left: 1px solid var(--calendar-border);
+}
+
+.rbc-off-range-bg {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.rbc-today {
+  background: rgba(0, 122, 255, 0.05) !important;
+}
+
+/* Date numbers */
+.rbc-date-cell {
+  padding: 8px;
+  text-align: center;
+}
+
+.rbc-date-cell>a {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--foreground);
+}
+
+.rbc-date-cell.rbc-now>a {
+  background: var(--calendar-today);
+  color: white;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+}
+
+.rbc-off-range>a {
+  color: var(--text-tertiary);
+}
+
+/* Week/Day view time grid */
+.rbc-time-view {
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.rbc-time-header {
+  border-bottom: 1px solid var(--calendar-border);
+}
+
+.rbc-time-header-content {
+  border-left: none;
+}
+
+.rbc-timeslot-group {
+  border-bottom: 1px solid var(--calendar-border);
+  min-height: 60px;
+}
+
+.rbc-time-slot {
+  border-top: none;
+}
+
+.rbc-time-gutter {
+  border-right: 1px solid var(--calendar-border);
+}
+
+.rbc-time-gutter .rbc-timeslot-group {
+  border-bottom: none;
+}
+
+.rbc-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 0 12px;
+}
+
+.rbc-day-slot .rbc-time-slot {
+  border-top: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+.rbc-day-slot .rbc-events-container {
+  margin-right: 4px;
+}
+
+/* Current time indicator */
+.rbc-current-time-indicator {
+  height: 2px;
+  background: #FF3B30;
+}
+
+.rbc-current-time-indicator::before {
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: -4px;
+  width: 10px;
+  height: 10px;
+  background: #FF3B30;
+  border-radius: 50%;
+}
+
+/* Events - Pill style */
+.rbc-event {
+  border: none !important;
+  border-radius: 6px !important;
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.rbc-event:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.rbc-event-label {
+  font-size: 10px;
+  font-weight: 400;
+  opacity: 0.9;
+}
+
+.rbc-event-content {
+  font-weight: 500;
+}
+
+/* Selected event */
+.rbc-selected {
+  box-shadow: 0 0 0 2px var(--calendar-today) !important;
+}
+
+/* All day events */
+.rbc-allday-cell {
+  display: none;
+}
+
+.rbc-row-segment {
+  padding: 2px 4px;
+}
+
+/* Agenda view */
+.rbc-agenda-view {
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.rbc-agenda-table {
+  border: none;
+}
+
+.rbc-agenda-date-cell,
+.rbc-agenda-time-cell,
+.rbc-agenda-event-cell {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--calendar-border);
+}
+
+/* Month row */
+.rbc-month-row {
+  border-bottom: 1px solid var(--calendar-border);
+}
+
+.rbc-month-row+.rbc-month-row {
+  border-top: none;
+}
+
+/* Show more link */
+.rbc-show-more {
+  color: var(--calendar-today);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px;
+}
+
+/* ============================================
+   GLASSMORPHISM UTILITIES
+   ============================================ */
+
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+  .glass {
+    background: rgba(30, 30, 32, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* ============================================
+   CUSTOM SCROLLBAR (Apple style)
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+}
+
+/* ============================================
+   ANIMATION UTILITIES
+   ============================================ */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slideIn {
+  animation: slideIn 0.3s ease-out;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.2s ease-out;
+}
+
+/* ============================================
+   BUTTON STYLES
+   ============================================ */
+
+.btn-primary {
+  background: var(--calendar-today);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-primary:hover {
+  background: #0066d6;
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--calendar-today);
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-secondary:hover {
+  background: rgba(0, 122, 255, 0.1);
+}
+
+.btn-icon {
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.15s ease;
+}
+
+.btn-icon:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--foreground);
+}
+
+@media (prefers-color-scheme: dark) {
+  .btn-icon:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* ============================================
+   INPUT STYLES
+   ============================================ */
+
+.input-apple {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 15px;
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  outline: none;
+  transition: all 0.2s ease;
+  color: var(--foreground);
+}
+
+.input-apple::placeholder {
+  color: var(--text-tertiary);
+}
+
+.input-apple:focus {
+  background: var(--background);
+  border-color: var(--calendar-today);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
+}
+
+@media (prefers-color-scheme: dark) {
+  .input-apple {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .input-apple:focus {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* ============================================
+   MODAL STYLES
+   ============================================ */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-content {
+  background: var(--background);
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 480px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: scaleIn 0.2s ease;
+}
+
+/* ============================================
+   PASTEL EVENT COLOR CLASSES
+   ============================================ */
+
+.event-color-0 {
+  background-color: var(--event-coral) !important;
+  color: white !important;
+}
+
+.event-color-1 {
+  background-color: var(--event-teal) !important;
+  color: white !important;
+}
+
+.event-color-2 {
+  background-color: var(--event-sky) !important;
+  color: white !important;
+}
+
+.event-color-3 {
+  background-color: var(--event-sage) !important;
+  color: #333 !important;
+}
+
+.event-color-4 {
+  background-color: var(--event-lemon) !important;
+  color: #333 !important;
+}
+
+.event-color-5 {
+  background-color: var(--event-plum) !important;
+  color: white !important;
+}
+
+.event-color-6 {
+  background-color: var(--event-mint) !important;
+  color: #333 !important;
+}
+
+.event-color-7 {
+  background-color: var(--event-gold) !important;
+  color: #333 !important;
+}
+
+.event-color-8 {
+  background-color: var(--event-blue) !important;
+  color: white !important;
+}
+
+.event-color-9 {
+  background-color: var(--event-pink) !important;
+  color: white !important;
+}
+
+/* Color dot indicators */
+.color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.color-dot-0 {
+  background-color: var(--event-coral);
+}
+
+.color-dot-1 {
+  background-color: var(--event-teal);
+}
+
+.color-dot-2 {
+  background-color: var(--event-sky);
+}
+
+.color-dot-3 {
+  background-color: var(--event-sage);
+}
+
+.color-dot-4 {
+  background-color: var(--event-lemon);
+}
+
+.color-dot-5 {
+  background-color: var(--event-plum);
+}
+
+.color-dot-6 {
+  background-color: var(--event-mint);
+}
+
+.color-dot-7 {
+  background-color: var(--event-gold);
+}
+
+.color-dot-8 {
+  background-color: var(--event-blue);
+}
+
+.color-dot-9 {
+  background-color: var(--event-pink);
+}
+
+/* ============================================
+   MOBILE RESPONSIVE STYLES
+   ============================================ */
+
+/* Mobile sidebar overlay */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 40;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.sidebar-overlay.active {
+  display: block;
+  opacity: 1;
+}
+
+/* Mobile menu button */
+.mobile-menu-btn {
+  display: none;
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 50;
+  padding: 8px;
+  background: var(--sidebar-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--sidebar-border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .mobile-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .glass {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 45;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+
+  .glass.sidebar-open {
+    transform: translateX(0);
+  }
+
+  main {
+    padding: 60px 16px 16px !important;
+  }
+
+  /* Calendar mobile adjustments */
+  .rbc-toolbar {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .rbc-toolbar-label {
+    order: -1;
+    font-size: 18px !important;
+  }
+
+  .rbc-btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .rbc-btn-group button {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+  }
+
+  /* Empty state mobile */
+  .empty-state-content {
+    padding: 20px;
+  }
+
+  .empty-state-content h2 {
+    font-size: 24px !important;
+  }
+
+  /* Modal mobile */
+  .modal-content {
+    width: 95%;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 480px) {
+
+  .btn-primary,
+  .btn-secondary {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+
+  .rbc-event {
+    font-size: 10px !important;
+    padding: 2px 4px !important;
+  }
+}
