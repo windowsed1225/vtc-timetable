@@ -30,7 +30,7 @@ export default function TimetableCalendar({
     const { defaultDate, minTime, maxTime } = useMemo(
         () => ({
             defaultDate: events.length > 0 ? events[0].start : new Date(),
-            minTime: new Date(1970, 0, 1, 7, 0, 0), // 7 AM
+            minTime: new Date(1970, 0, 1, 8, 0, 0), // 8 AM
             maxTime: new Date(1970, 0, 1, 22, 0, 0), // 10 PM
         }),
         [events]
@@ -119,6 +119,8 @@ export default function TimetableCalendar({
                     eventPropGetter={eventPropGetter}
                     onSelectEvent={onSelectEvent}
                     selectable
+                    step={30}
+                    timeslots={1}
                     tooltipAccessor={(event) => {
                         const parts = [event.title];
                         if (event.resource?.location) {
@@ -134,13 +136,33 @@ export default function TimetableCalendar({
                     }}
                     formats={{
                         eventTimeRangeFormat: () => "",
-                        timeGutterFormat: (date: Date) => dayjs(date).format("h A"),
+                        timeGutterFormat: (date: Date) => dayjs(date).format("h:mm"),
                         dayHeaderFormat: (date: Date) => dayjs(date).format("ddd D"),
                         dayRangeHeaderFormat: ({ start, end }) =>
                             `${dayjs(start).format("MMM D")} – ${dayjs(end).format("MMM D, YYYY")}`,
                     }}
                     components={{
                         toolbar: () => null, // Hide default toolbar
+                        event: ({ event }) => (
+                            <div className="h-full flex flex-col overflow-hidden">
+                                <div className="font-medium text-xs leading-tight">
+                                    {event.resource?.courseTitle || event.title}
+                                    {event.resource?.courseCode && (
+                                        <span className="opacity-70"> ({event.resource.courseCode})</span>
+                                    )}
+                                </div>
+                                {event.resource?.location && (
+                                    <div className="text-[10px] opacity-80 mt-0.5">
+                                        📍 {event.resource.location}
+                                    </div>
+                                )}
+                                {event.resource?.lecturer && (
+                                    <div className="text-[10px] opacity-70 truncate">
+                                        👤 {event.resource.lecturer}
+                                    </div>
+                                )}
+                            </div>
+                        ),
                     }}
                 />
             </div>
