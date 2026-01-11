@@ -1,5 +1,11 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
+// Semester type
+export type SemesterType = "SEM 1" | "SEM 2" | "SEM 3";
+
+// Attendance status type
+export type AttendanceStatusType = "ACTIVE" | "FINISHED";
+
 // Interface for individual class record
 export interface IClassRecord {
     id: string;
@@ -14,6 +20,8 @@ export interface IClassRecord {
 export interface IAttendance extends Document {
     discordId: string; // Foreign key - links to User
     vtcStudentId: string; // Foreign key - VTC student ID
+    semester: SemesterType; // Semester category
+    status: AttendanceStatusType; // Attendance status (ACTIVE/FINISHED)
     courseCode: string;
     courseName: string;
     attendRate: number;
@@ -41,6 +49,18 @@ const AttendanceSchema = new Schema<IAttendance>(
         vtcStudentId: {
             type: String,
             required: true,
+            index: true,
+        },
+        semester: {
+            type: String,
+            required: true,
+            enum: ["SEM 1", "SEM 2", "SEM 3"],
+            index: true,
+        },
+        status: {
+            type: String,
+            default: "ACTIVE",
+            enum: ["ACTIVE", "FINISHED"],
             index: true,
         },
         courseCode: {
@@ -107,8 +127,8 @@ const AttendanceSchema = new Schema<IAttendance>(
     }
 );
 
-// Unique compound index - one attendance record per course per user
-AttendanceSchema.index({ courseCode: 1, discordId: 1 }, { unique: true });
+// Unique compound index - one attendance record per course per user per semester
+AttendanceSchema.index({ courseCode: 1, discordId: 1, semester: 1 }, { unique: true });
 
 // Prevent model overwrite in development (hot reload)
 const Attendance: Model<IAttendance> =

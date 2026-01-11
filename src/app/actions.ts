@@ -93,9 +93,14 @@ export async function syncVtcData(vtcUrl: string, semesterNum: number = 2): Prom
             { upsert: true }
         );
 
-        // Step 5: Fetch and save Timetable with both IDs
-        const months = SEMESTER_MAP[semesterNum];
-        if (!months) {
+        // Step 5: Determine semester category
+        const SEMESTER_CATEGORY_MAP: Record<number, "SEM 1" | "SEM 2" | "SEM 3"> = {
+            1: "SEM 1",  // Fall
+            2: "SEM 2",  // Spring
+            3: "SEM 3",  // Summer
+        };
+        const primarySemester = SEMESTER_CATEGORY_MAP[semesterNum];
+        if (!primarySemester) {
             return {
                 success: false,
                 error: "Invalid semester number. Use 1 (Fall), 2 (Spring), or 3 (Summer).",
@@ -103,48 +108,123 @@ export async function syncVtcData(vtcUrl: string, semesterNum: number = 2): Prom
         }
 
         const currentYear = new Date().getFullYear();
+        const now = new Date();
         let newEventsCount = 0;
 
-        for (const month of months) {
-            // Determine year based on semester
-            const year = semesterNum === 1 && month >= 9 ? currentYear : currentYear;
+        // Helper function to fetch and save timetable for a specific semester/year
+        const fetchSemesterTimetable = async (
+            semNum: number,
+            semCategory: "SEM 1" | "SEM 2" | "SEM 3",
+            yearOverride?: number
+        ): Promise<number> => {
+            const months = SEMESTER_MAP[semNum];
+            if (!months) return 0;
 
-            const response = await api.getTimeTableAndReminderList(month, year);
+            let count = 0;
 
-            if (response.isSuccess && response.payload?.timetable?.add) {
-                const events = response.payload.timetable.add;
+            for (const month of months) {
+                // Determine year: use override if provided, otherwise calculate based on semester
+                let year = yearOverride ?? currentYear;
+                // For Fall semester (Sept-Dec), use the provided year
+                // For Spring/Summer, use current year unless overridden
 
-                // Prepare bulk operations with discordId and vtcStudentId
-                const bulkOps = events.map((event: TimetableEvent) => ({
-                    updateOne: {
-                        filter: { vtc_id: event.id, discordId },
-                        update: {
-                            $set: {
-                                discordId,
-                                vtcStudentId,
-                                vtc_id: event.id,
-                                courseCode: event.courseCode,
-                                courseTitle: event.courseTitle,
-                                lessonType: event.lessonType || "",
-                                startTime: new Date(event.startTime * 1000),
-                                endTime: new Date(event.endTime * 1000),
-                                location: `${event.campusCode || ""}-${event.roomNum || ""}`.replace(/^-|-$/g, ""),
-                                lecturerName: event.lecturerName || "",
-                                colorIndex: getColorIndex(event.courseCode),
+                const response = await api.getTimeTableAndReminderList(month, year);
+
+                if (response.isSuccess && response.payload?.timetable?.add) {
+                    const events = response.payload.timetable.add;
+
+                    const bulkOps = events.map((event: TimetableEvent) => {
+                        const eventEndTime = new Date(event.endTime * 1000);
+                        const status: "FINISHED" | "UPCOMING" = eventEndTime < now ? "FINISHED" : "UPCOMING";
+
+                        return {
+                            updateOne: {
+                                filter: { vtc_id: event.id, discordId, semester: semCategory },
+                                update: {
+                                    $set: {
+                                        discordId,
+                                        vtcStudentId,
+                                        semester: semCategory,
+                                        status,
+                                        vtc_id: event.id,
+                                        courseCode: event.courseCode,
+                                        courseTitle: event.courseTitle,
+                                        lessonType: event.lessonType || "",
+                                        startTime: new Date(event.startTime * 1000),
+                                        endTime: eventEndTime,
+                                        location: `${event.campusCode || ""}-${event.roomNum || ""}`.replace(/^-|-$/g, ""),
+                                        lecturerName: event.lecturerName || "",
+                                        colorIndex: getColorIndex(event.courseCode),
+                                    },
+                                },
+                                upsert: true,
                             },
-                        },
-                        upsert: true,
-                    },
-                }));
+                        };
+                    });
 
-                if (bulkOps.length > 0) {
-                    const result = await Event.bulkWrite(bulkOps);
-                    newEventsCount += result.upsertedCount;
+                    if (bulkOps.length > 0) {
+                        const result = await Event.bulkWrite(bulkOps);
+                        count += result.upsertedCount;
+                    }
                 }
+            }
+
+            return count;
+        };
+
+        // Step 6: Fetch timetables with backfill logic
+        // Semester 1 (Fall): Just fetch Fall
+        // Semester 2 (Spring): Fetch Spring (current year) + Fall (previous year)
+        // Semester 3 (Summer): Fetch Summer (current year) + Spring (current year)
+
+        const fetchPromises: Promise<number>[] = [];
+
+        switch (semesterNum) {
+            case 1: // Fall - no backfill
+                fetchPromises.push(fetchSemesterTimetable(1, "SEM 1", currentYear));
+                break;
+
+            case 2: // Spring - also fetch Fall from previous year
+                fetchPromises.push(
+                    fetchSemesterTimetable(2, "SEM 2", currentYear),  // Primary: Spring current year
+                    fetchSemesterTimetable(1, "SEM 1", currentYear - 1)  // Backfill: Fall previous year
+                );
+                break;
+
+            case 3: // Summer - also fetch Spring from current year
+                fetchPromises.push(
+                    fetchSemesterTimetable(3, "SEM 3", currentYear),  // Primary: Summer current year
+                    fetchSemesterTimetable(2, "SEM 2", currentYear)   // Backfill: Spring current year
+                );
+                break;
+        }
+
+        // Execute all fetches in parallel
+        const results = await Promise.all(fetchPromises);
+        newEventsCount = results.reduce((sum, count) => sum + count, 0);
+
+        // Use the primary semester as fallback for attendance tagging
+        const fallbackSemester = primarySemester;
+
+        // Step 6: Fetch and save Attendance with both IDs
+        // Semester order for comparison
+        const SEMESTER_ORDER_MAP: Record<string, number> = {
+            "SEM 1": 1,
+            "SEM 2": 2,
+            "SEM 3": 3,
+        };
+
+        // First, build a map of courseCode -> semester from Calendar events
+        const courseToSemesterMap: Record<string, string> = {};
+        const existingEvents = await Event.find({ discordId }).select('courseCode semester').lean();
+        for (const event of existingEvents) {
+            // Use the most recent semester for each course (in case of duplicates)
+            if (!courseToSemesterMap[event.courseCode] ||
+                (SEMESTER_ORDER_MAP[event.semester] || 0) > (SEMESTER_ORDER_MAP[courseToSemesterMap[event.courseCode]] || 0)) {
+                courseToSemesterMap[event.courseCode] = event.semester;
             }
         }
 
-        // Step 6: Fetch and save Attendance with both IDs
         const listResponse = await api.getClassAttendanceList();
         let newAttendanceCount = 0;
 
@@ -153,6 +233,9 @@ export async function syncVtcData(vtcUrl: string, semesterNum: number = 2): Prom
 
             const attendanceOps = await Promise.all(
                 courses.map(async (course) => {
+                    // Get semester from Calendar events, fallback to primary semester
+                    const courseSemester = (courseToSemesterMap[course.courseCode] || fallbackSemester) as "SEM 1" | "SEM 2" | "SEM 3";
+
                     const detailResponse = await api.getClassAttendanceDetail(course.courseCode);
 
                     let attended = 0;
@@ -201,13 +284,32 @@ export async function syncVtcData(vtcUrl: string, semesterNum: number = 2): Prom
                     const isFollowUp = /A$/.test(course.courseCode);
                     const baseCourseCode = isFollowUp ? course.courseCode.slice(0, -1) : course.courseCode;
 
+                    // Determine attendance status (ACTIVE or FINISHED)
+                    // Rule: FINISHED if semester is over AND course has > 10 classes conducted
+                    const SEMESTER_END_DATES: Record<string, { month: number; day: number }> = {
+                        "SEM 1": { month: 12, day: 31 },  // December 31st
+                        "SEM 2": { month: 5, day: 31 },   // May 31st
+                        "SEM 3": { month: 8, day: 31 },   // August 31st
+                    };
+
+                    const semesterEnd = SEMESTER_END_DATES[courseSemester];
+                    const semesterEndDate = new Date(currentYear, semesterEnd.month - 1, semesterEnd.day, 23, 59, 59);
+                    const isPastSemesterEnd = now > semesterEndDate;
+                    const meetsClassThreshold = totalConducted > 10;
+
+                    // Status is FINISHED only if both conditions are met
+                    const attendanceStatus: "ACTIVE" | "FINISHED" =
+                        (isPastSemesterEnd && meetsClassThreshold) ? "FINISHED" : "ACTIVE";
+
                     return {
                         updateOne: {
-                            filter: { courseCode: course.courseCode, discordId },
+                            filter: { courseCode: course.courseCode, discordId, semester: courseSemester },
                             update: {
                                 $set: {
                                     discordId,
                                     vtcStudentId,
+                                    semester: courseSemester,
+                                    status: attendanceStatus,
                                     courseCode: course.courseCode,
                                     courseName: course.name?.en || course.courseCode,
                                     attendRate: Math.round(attendRate * 10) / 10,
@@ -522,6 +624,8 @@ export async function getStoredEvents(): Promise<{
                 lessonType: event.lessonType,
                 lecturer: event.lecturerName,
                 colorIndex: event.colorIndex,
+                semester: event.semester,
+                status: event.status,
             },
         }));
 
@@ -540,7 +644,7 @@ export async function getStoredEvents(): Promise<{
  */
 export async function getUniqueCourses(): Promise<{
     success: boolean;
-    data?: Array<{ courseCode: string; courseTitle: string; colorIndex: number }>;
+    data?: Array<{ courseCode: string; courseTitle: string; colorIndex: number; semester: string; status: string }>;
     error?: string;
 }> {
     try {
@@ -555,20 +659,23 @@ export async function getUniqueCourses(): Promise<{
             { $match: { discordId: session.user.discordId } },
             {
                 $group: {
-                    _id: "$courseCode",
+                    _id: { courseCode: "$courseCode", semester: "$semester" },
                     courseTitle: { $first: "$courseTitle" },
                     colorIndex: { $first: "$colorIndex" },
+                    status: { $first: "$status" },
                 },
             },
             {
                 $project: {
                     _id: 0,
-                    courseCode: "$_id",
+                    courseCode: "$_id.courseCode",
+                    semester: "$_id.semester",
                     courseTitle: 1,
                     colorIndex: 1,
+                    status: 1,
                 },
             },
-            { $sort: { courseCode: 1 } },
+            { $sort: { semester: -1, courseCode: 1 } },
         ]);
 
         return { success: true, data: courses };
@@ -595,6 +702,8 @@ export interface ClassRecord {
 export interface AttendanceStats {
     courseCode: string;
     courseName: string;
+    semester: string; // "SEM 1", "SEM 2", "SEM 3"
+    status: string; // "ACTIVE", "FINISHED"
     attendRate: number;
     totalClasses: number;
     conductedClasses: number;
@@ -631,6 +740,8 @@ export async function getStoredAttendance(): Promise<{
         const stats: AttendanceStats[] = attendanceRecords.map((record) => ({
             courseCode: record.courseCode,
             courseName: record.courseName,
+            semester: record.semester || "SEM 2",
+            status: record.status || "ACTIVE",
             attendRate: record.attendRate,
             totalClasses: record.totalClasses,
             conductedClasses: record.conductedClasses,
@@ -772,6 +883,8 @@ export async function getAttendance(vtcUrl: string): Promise<{
                 return {
                     courseCode: course.courseCode,
                     courseName: course.name?.en || course.courseCode,
+                    semester: "SEM 2", // Default for real-time API fetch
+                    status: isFinished ? "FINISHED" : "ACTIVE",
                     attendRate: Math.round(finalRate * 10) / 10, // Round to 1 decimal
                     totalClasses: totalScheduled || 0,
                     conductedClasses: totalConducted || 0,

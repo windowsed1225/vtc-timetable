@@ -17,19 +17,21 @@ import { createEvents, EventAttributes } from "ics";
 import TimetableCalendar from "@/components/TimetableCalendar";
 import Sidebar from "@/components/Sidebar";
 import SyncModal from "@/components/SyncModal";
+import EventDetailsModal from "@/components/EventDetailsModal";
 
 export default function Home() {
   // Auth state
   const { data: session, status } = useSession();
 
   // Calendar state
-  const [view, setView] = useState<View>(Views.WEEK);
+  const [view, setView] = useState<View>(Views.WORK_WEEK);
   const [date, setDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [semesterFilter, setSemesterFilter] = useState<string>("all"); // "all", "SEM 1", "SEM 2", "SEM 3"
 
   // Data state
   const [courses, setCourses] = useState<
-    Array<{ courseCode: string; courseTitle: string; colorIndex: number }>
+    Array<{ courseCode: string; courseTitle: string; colorIndex: number; semester: string; status: string }>
   >([]);
   const [attendance, setAttendance] = useState<AttendanceStats[]>([]);
 
@@ -37,7 +39,9 @@ export default function Home() {
   const [vtcUrl, setVtcUrl] = useState("");
   const [isSyncing, setIsSyncing] = useState(false);
   const [isRefreshingAttendance, setIsRefreshingAttendance] = useState(false);
+  const [isRefreshingCalendar, setIsRefreshingCalendar] = useState(false);
   const [showSyncModal, setShowSyncModal] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [notification, setNotification] = useState<{
     type: "success" | "error";
     message: string;
@@ -65,10 +69,7 @@ export default function Home() {
 
       if (eventsResult.success && eventsResult.data) {
         setEvents(eventsResult.data);
-        // Navigate to first event if available
-        if (eventsResult.data.length > 0) {
-          setDate(eventsResult.data[0].start);
-        }
+        // Keep calendar on current month (don't navigate to first event)
       }
 
       if (coursesResult.success && coursesResult.data) {
@@ -125,7 +126,26 @@ export default function Home() {
     }
   };
 
-  // Handle sync
+  // Handle refresh calendar from database
+  const handleRefreshCalendar = async () => {
+    setIsRefreshingCalendar(true);
+    try {
+      await loadStoredData();
+      setNotification({
+        type: "success",
+        message: "Calendar refreshed",
+      });
+      setTimeout(() => setNotification(null), 2000);
+    } catch (error) {
+      setNotification({
+        type: "error",
+        message: "Failed to refresh calendar",
+      });
+      setTimeout(() => setNotification(null), 3000);
+    } finally {
+      setIsRefreshingCalendar(false);
+    }
+  };
   const handleSync = async (url: string, semester: number) => {
     setIsSyncing(true);
 
@@ -253,8 +273,10 @@ export default function Home() {
         onSignIn={() => signIn("discord")}
         onSignOut={() => signOut()}
         onRefreshAttendance={handleRefreshAttendance}
+        onRefreshCalendar={handleRefreshCalendar}
         isSyncing={isSyncing}
         isRefreshingAttendance={isRefreshingAttendance}
+        isRefreshingCalendar={isRefreshingCalendar}
         vtcUrl={vtcUrl}
         user={session?.user}
         sidebarOpen={sidebarOpen}
@@ -263,13 +285,33 @@ export default function Home() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col p-6 overflow-hidden relative">
         {events.length > 0 ? (
-          <TimetableCalendar
-            events={events}
-            view={view}
-            date={date}
-            onViewChange={setView}
-            onNavigate={setDate}
-          />
+          <>
+            {/* Semester Filter */}
+            <div className="flex items-center justify-end gap-3 mb-4">
+              <label className="text-sm text-[var(--text-secondary)]">Semester:</label>
+              <select
+                value={semesterFilter}
+                onChange={(e) => setSemesterFilter(e.target.value)}
+                className="px-3 py-1.5 rounded-lg bg-[var(--calendar-header-bg)] border border-[var(--calendar-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--calendar-today)]"
+              >
+                <option value="all">All Semesters</option>
+                <option value="SEM 1">Fall (SEM 1)</option>
+                <option value="SEM 2">Spring (SEM 2)</option>
+                <option value="SEM 3">Summer (SEM 3)</option>
+              </select>
+            </div>
+            <TimetableCalendar
+              events={semesterFilter === "all"
+                ? events
+                : events.filter(e => e.resource?.semester === semesterFilter)
+              }
+              view={view}
+              date={date}
+              onViewChange={setView}
+              onNavigate={setDate}
+              onSelectEvent={(event) => setSelectedEvent(event)}
+            />
+          </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center">
             <div className="text-center max-w-md animate-fadeIn">
@@ -369,6 +411,13 @@ export default function Home() {
         onClose={() => setShowSyncModal(false)}
         onSync={handleSync}
         initialUrl={vtcUrl}
+      />
+
+      {/* Event Details Modal */}
+      <EventDetailsModal
+        event={selectedEvent}
+        isOpen={selectedEvent !== null}
+        onClose={() => setSelectedEvent(null)}
       />
     </div>
   );

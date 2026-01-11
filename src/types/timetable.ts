@@ -11,6 +11,9 @@ export interface TimetableEvent {
   endTime: number;        // Unix timestamp (seconds)
 }
 
+export type SemesterType = "SEM 1" | "SEM 2" | "SEM 3";
+export type EventStatusType = "UPCOMING" | "FINISHED";
+
 export interface CalendarEvent {
   title: string;
   start: Date;
@@ -22,6 +25,7 @@ export interface CalendarEvent {
     lessonType?: string;
     lecturer?: string;
     colorIndex?: number;
+    semester?: SemesterType;
+    status?: EventStatusType;
   };
 }
-

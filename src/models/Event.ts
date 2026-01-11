@@ -1,9 +1,17 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
+// Semester type
+export type SemesterType = "SEM 1" | "SEM 2" | "SEM 3";
+
+// Status type
+export type EventStatusType = "UPCOMING" | "FINISHED";
+
 // Interface for the Event document
 export interface IEvent extends Document {
     discordId: string; // Foreign key - links to User
     vtcStudentId: string; // Foreign key - VTC student ID
+    semester: SemesterType; // Semester category
+    status: EventStatusType; // Event status based on endTime
     vtc_id: string;
     courseCode: string;
     courseTitle: string;
@@ -28,6 +36,18 @@ const EventSchema = new Schema<IEvent>(
         vtcStudentId: {
             type: String,
             required: true,
+            index: true,
+        },
+        semester: {
+            type: String,
+            required: true,
+            enum: ["SEM 1", "SEM 2", "SEM 3"],
+            index: true,
+        },
+        status: {
+            type: String,
+            default: "UPCOMING",
+            enum: ["UPCOMING", "FINISHED"],
             index: true,
         },
         vtc_id: {
@@ -74,8 +94,8 @@ const EventSchema = new Schema<IEvent>(
     }
 );
 
-// Unique compound index - same event for different users is allowed
-EventSchema.index({ vtc_id: 1, discordId: 1 }, { unique: true });
+// Unique compound index - same event for different users/semesters is allowed
+EventSchema.index({ vtc_id: 1, discordId: 1, semester: 1 }, { unique: true });
 
 // Prevent model overwrite in development (hot reload)
 const Event: Model<IEvent> =

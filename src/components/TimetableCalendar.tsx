@@ -16,6 +16,7 @@ interface TimetableCalendarProps {
     date: Date;
     onViewChange: (view: View) => void;
     onNavigate: (date: Date) => void;
+    onSelectEvent?: (event: CalendarEvent) => void;
 }
 
 export default function TimetableCalendar({
@@ -24,6 +25,7 @@ export default function TimetableCalendar({
     date,
     onViewChange,
     onNavigate,
+    onSelectEvent,
 }: TimetableCalendarProps) {
     const { defaultDate, minTime, maxTime } = useMemo(
         () => ({
@@ -41,7 +43,7 @@ export default function TimetableCalendar({
             case "PREV":
                 if (view === Views.MONTH) {
                     newDate = dayjs(date).subtract(1, "month").toDate();
-                } else if (view === Views.WEEK) {
+                } else if (view === Views.WEEK || view === Views.WORK_WEEK) {
                     newDate = dayjs(date).subtract(1, "week").toDate();
                 } else if (view === Views.DAY) {
                     newDate = dayjs(date).subtract(1, "day").toDate();
@@ -50,7 +52,7 @@ export default function TimetableCalendar({
             case "NEXT":
                 if (view === Views.MONTH) {
                     newDate = dayjs(date).add(1, "month").toDate();
-                } else if (view === Views.WEEK) {
+                } else if (view === Views.WEEK || view === Views.WORK_WEEK) {
                     newDate = dayjs(date).add(1, "week").toDate();
                 } else if (view === Views.DAY) {
                     newDate = dayjs(date).add(1, "day").toDate();
@@ -63,16 +65,17 @@ export default function TimetableCalendar({
         onNavigate(newDate);
     };
 
-    // Event styling with pastel colors
+    // Event styling with pastel colors and finished state
     const eventPropGetter = (event: CalendarEvent) => {
         const colorIndex = event.resource?.colorIndex ?? 0;
         const color = PASTEL_COLORS[colorIndex] || PASTEL_COLORS[0];
+        const isFinished = event.resource?.status === "FINISHED";
 
         // Determine text color based on background brightness
         const isDark = [0, 1, 2, 5, 8, 9].includes(colorIndex);
 
         return {
-            className: `event-color-${colorIndex}`,
+            className: `event-color-${colorIndex} ${isFinished ? "event-finished" : ""}`,
             style: {
                 backgroundColor: color,
                 color: isDark ? "white" : "#333",
@@ -81,6 +84,9 @@ export default function TimetableCalendar({
                 padding: "2px 8px",
                 fontSize: "12px",
                 fontWeight: 500,
+                // Apply grayscale and reduced opacity for finished events
+                opacity: isFinished ? 0.5 : 1,
+                filter: isFinished ? "grayscale(70%)" : "none",
             },
         };
     };
@@ -105,11 +111,14 @@ export default function TimetableCalendar({
                     date={date}
                     onNavigate={onNavigate}
                     defaultDate={defaultDate}
-                    views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
+                    views={[Views.MONTH, Views.WORK_WEEK, Views.DAY, Views.AGENDA]}
+                    defaultView={Views.WORK_WEEK}
                     style={{ height: "100%" }}
                     min={minTime}
                     max={maxTime}
                     eventPropGetter={eventPropGetter}
+                    onSelectEvent={onSelectEvent}
+                    selectable
                     tooltipAccessor={(event) => {
                         const parts = [event.title];
                         if (event.resource?.location) {

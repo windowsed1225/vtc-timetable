@@ -22,8 +22,16 @@ export default function CalendarHeader({
         view === Views.DAY ? "MMMM D, YYYY" : "MMMM YYYY"
     );
 
+    // View options: Month, Work Week (Mon-Fri), Day, Agenda
+    const viewOptions: { key: ViewType; label: string }[] = [
+        { key: "month", label: "Month" },
+        { key: "work_week", label: "Week" },
+        { key: "day", label: "Day" },
+        { key: "agenda", label: "Agenda" },
+    ];
+
     return (
-        <header className="flex items-center justify-between px-4 py-3 mb-4">
+        <header className="calendar-header flex items-center justify-between px-4 py-3 mb-4">
             {/* Left: Navigation */}
             <div className="flex items-center gap-1">
                 <button
@@ -75,22 +83,22 @@ export default function CalendarHeader({
             </div>
 
             {/* Center: Date */}
-            <h2 className="text-lg font-semibold absolute left-1/2 -translate-x-1/2">
+            <h2 className="calendar-title text-lg font-semibold absolute left-1/2 -translate-x-1/2">
                 {formattedDate}
             </h2>
 
             {/* Right: View Switcher */}
-            <div className="flex items-center bg-[var(--calendar-header-bg)] rounded-lg p-1">
-                {(["month", "week", "day", "agenda"] as ViewType[]).map((v) => (
+            <div className="view-switcher flex items-center bg-[var(--calendar-header-bg)] rounded-lg p-1">
+                {viewOptions.map((v) => (
                     <button
-                        key={v}
-                        onClick={() => onViewChange(v)}
-                        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${view === v
-                                ? "bg-white dark:bg-[var(--calendar-border)] text-[var(--foreground)] shadow-sm"
-                                : "text-[var(--text-secondary)] hover:text-[var(--foreground)]"
+                        key={v.key}
+                        onClick={() => onViewChange(v.key)}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${view === v.key
+                            ? "bg-white dark:bg-[var(--calendar-border)] text-[var(--foreground)] shadow-sm"
+                            : "text-[var(--text-secondary)] hover:text-[var(--foreground)]"
                             }`}
                     >
-                        {v.charAt(0).toUpperCase() + v.slice(1)}
+                        {v.label}
                     </button>
                 ))}
             </div>
