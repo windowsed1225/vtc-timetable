@@ -83,7 +83,7 @@ export default function CalendarHeader({
             </div>
 
             {/* Center: Date */}
-            <h2 className="calendar-title text-lg font-semibold absolute left-1/2 -translate-x-1/2">
+            <h2 className="calendar-title text-lg font-semibold md:absolute md:left-1/2 md:-translate-x-1/2">
                 {formattedDate}
             </h2>
 
