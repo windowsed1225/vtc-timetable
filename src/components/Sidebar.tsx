@@ -7,6 +7,8 @@ import { CalendarEvent } from "@/types/timetable";
 import AttendanceModal from "./AttendanceModal";
 import SemesterSummaryCard from "./SemesterSummaryCard";
 import CourseDetailsModal from "./CourseDetailsModal";
+import SubscribeButton from "./SubscribeButton";
+import ExportSemesterButton from "./ExportSemesterButton";
 
 // Semester display names
 const SEMESTER_LABELS: Record<string, string> = {
@@ -47,6 +49,7 @@ interface SidebarProps {
     user?: {
         name?: string | null;
         image?: string | null;
+        discordId?: string | null;
     } | null;
     sidebarOpen?: boolean;
 }
@@ -479,26 +482,22 @@ export default function Sidebar({
                         )}
                     </button>
 
-                    <button
-                        onClick={onExportClick}
-                        className="btn-secondary w-full flex items-center justify-center gap-2"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            strokeWidth={1.5}
-                            stroke="currentColor"
-                            className="w-4 h-4"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"
-                            />
-                        </svg>
-                        Export ICS
-                    </button>
+                    {/* Export Semester ICS - show for each semester with courses */}
+                    {groupedCourses.length > 0 && (
+                        <div className="space-y-2">
+                            {groupedCourses.map(([semester]) => (
+                                <ExportSemesterButton
+                                    key={`export-${semester}`}
+                                    semester={semester}
+                                />
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Calendar Subscription - auto-detects current semester */}
+                    {user?.discordId && (
+                        <SubscribeButton discordId={user.discordId} />
+                    )}
                 </div>
             </aside>
 
