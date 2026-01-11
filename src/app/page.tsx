@@ -267,6 +267,7 @@ export default function Home() {
       {/* Sidebar */}
       <Sidebar
         courses={courses}
+        events={events}
         attendance={attendance}
         onSyncClick={() => { setShowSyncModal(true); setSidebarOpen(false); }}
         onExportClick={() => { handleExport(); setSidebarOpen(false); }}

@@ -3,7 +3,10 @@
 import { useState, useMemo } from "react";
 import { AttendanceStats } from "@/app/actions";
 import { PASTEL_COLORS } from "@/lib/colors";
+import { CalendarEvent } from "@/types/timetable";
 import AttendanceModal from "./AttendanceModal";
+import SemesterSummaryCard from "./SemesterSummaryCard";
+import CourseDetailsModal from "./CourseDetailsModal";
 
 // Semester display names
 const SEMESTER_LABELS: Record<string, string> = {
@@ -29,6 +32,7 @@ interface CourseInfo {
 
 interface SidebarProps {
     courses: CourseInfo[];
+    events: CalendarEvent[];
     attendance: AttendanceStats[];
     onSyncClick: () => void;
     onExportClick: () => void;
@@ -49,6 +53,7 @@ interface SidebarProps {
 
 export default function Sidebar({
     courses,
+    events,
     attendance,
     onSyncClick,
     onExportClick,
@@ -63,6 +68,7 @@ export default function Sidebar({
     sidebarOpen,
 }: SidebarProps) {
     const [selectedCourse, setSelectedCourse] = useState<AttendanceStats | null>(null);
+    const [selectedCourseInfo, setSelectedCourseInfo] = useState<CourseInfo | null>(null);
 
     // Group courses by semester and determine initial expand state
     const groupedCourses = useMemo(() => {
@@ -103,6 +109,21 @@ export default function Sidebar({
         return Object.entries(groups)
             .sort(([a], [b]) => (SEMESTER_ORDER[b] || 0) - (SEMESTER_ORDER[a] || 0));
     }, [attendance]);
+
+    // Group events by semester for summary cards
+    const eventsBySemester = useMemo(() => {
+        const groups: Record<string, CalendarEvent[]> = {};
+
+        for (const event of events) {
+            const sem = event.resource?.semester || "SEM 2";
+            if (!groups[sem]) {
+                groups[sem] = [];
+            }
+            groups[sem].push(event);
+        }
+
+        return groups;
+    }, [events]);
 
     // Track expanded state for each semester accordion
     const [expandedCalendars, setExpandedCalendars] = useState<Record<string, boolean>>(() => {
@@ -212,6 +233,7 @@ export default function Sidebar({
                             </p>
                         ) : (
                             <div className="space-y-2">
+                                {/* Semester Course Lists */}
                                 {groupedCourses.map(([semester, data]) => {
                                     const isExpanded = expandedCalendars[`cal-${semester}`] ?? data.hasActive;
                                     const isFinishedSemester = !data.hasActive;
@@ -232,13 +254,22 @@ export default function Sidebar({
                                                 </span>
                                             </button>
 
-                                            {/* Semester Courses */}
+                                            {/* Semester Courses & Summary */}
                                             {isExpanded && (
-                                                <div className="ml-5 mt-1 space-y-1 animate-fadeIn">
+                                                <div className="ml-5 mt-1 space-y-2 animate-fadeIn">
+                                                    {/* Semester Summary Card */}
+                                                    {(eventsBySemester[semester] || []).length > 0 && (
+                                                        <SemesterSummaryCard
+                                                            events={eventsBySemester[semester] || []}
+                                                            semesterLabel={SEMESTER_LABELS[semester] || semester}
+                                                        />
+                                                    )}
+                                                    {/* Course List */}
                                                     {data.courses.map((course) => (
-                                                        <div
+                                                        <button
                                                             key={`${course.courseCode}-${course.semester}`}
-                                                            className={`flex items-center gap-3 py-1.5 px-2 rounded-lg hover:bg-[rgba(0,0,0,0.03)] dark:hover:bg-[rgba(255,255,255,0.05)] transition-colors cursor-pointer ${course.status === "FINISHED" ? "opacity-60" : ""}`}
+                                                            onClick={() => setSelectedCourseInfo(course)}
+                                                            className={`w-full flex items-center gap-3 py-1.5 px-2 rounded-lg hover:bg-[rgba(0,0,0,0.03)] dark:hover:bg-[rgba(255,255,255,0.05)] transition-colors cursor-pointer text-left ${course.status === "FINISHED" ? "opacity-60" : ""}`}
                                                         >
                                                             <div
                                                                 className="color-dot"
@@ -255,7 +286,7 @@ export default function Sidebar({
                                                                     {course.courseTitle}
                                                                 </p>
                                                             </div>
-                                                        </div>
+                                                        </button>
                                                     ))}
                                                 </div>
                                             )}
@@ -476,6 +507,17 @@ export default function Sidebar({
                 <AttendanceModal
                     course={selectedCourse}
                     onClose={() => setSelectedCourse(null)}
+                />
+            )}
+
+            {/* Course Details Modal */}
+            {selectedCourseInfo && (
+                <CourseDetailsModal
+                    courseCode={selectedCourseInfo.courseCode}
+                    courseTitle={selectedCourseInfo.courseTitle}
+                    colorIndex={selectedCourseInfo.colorIndex}
+                    events={events}
+                    onClose={() => setSelectedCourseInfo(null)}
                 />
             )}
         </>
