@@ -7,9 +7,9 @@ import {
   syncVtcData,
   getStoredEvents,
   getUniqueCourses,
-  getStoredAttendance,
+  getHybridAttendanceStats,
   refreshAttendance,
-  AttendanceStats,
+  HybridAttendanceStats,
 } from "./actions";
 import { CalendarEvent } from "@/types/timetable";
 import { getDateArray } from "@/lib/utils";
@@ -33,7 +33,7 @@ export default function Home() {
   const [courses, setCourses] = useState<
     Array<{ courseCode: string; courseTitle: string; colorIndex: number; semester: string; status: string }>
   >([]);
-  const [attendance, setAttendance] = useState<AttendanceStats[]>([]);
+  const [attendance, setAttendance] = useState<HybridAttendanceStats[]>([]);
 
   // UI state
   const [vtcUrl, setVtcUrl] = useState("");
@@ -87,7 +87,7 @@ export default function Home() {
 
   const fetchAttendance = async () => {
     try {
-      const result = await getStoredAttendance();
+      const result = await getHybridAttendanceStats();
       if (result.success && result.data) {
         setAttendance(result.data);
       }

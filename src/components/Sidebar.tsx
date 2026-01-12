@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { AttendanceStats } from "@/app/actions";
+import { HybridAttendanceStats } from "@/app/actions";
 import { PASTEL_COLORS } from "@/lib/colors";
 import { CalendarEvent } from "@/types/timetable";
 import AttendanceModal from "./AttendanceModal";
@@ -37,7 +37,7 @@ interface CourseInfo {
 interface SidebarProps {
     courses: CourseInfo[];
     events: CalendarEvent[];
-    attendance: AttendanceStats[];
+    attendance: HybridAttendanceStats[];
     onSyncClick: () => void;
     onExportClick: () => void;
     onSignIn: () => void;
@@ -72,28 +72,36 @@ export default function Sidebar({
     user,
     sidebarOpen,
 }: SidebarProps) {
-    const [selectedCourse, setSelectedCourse] = useState<AttendanceStats | null>(null);
+    const [selectedCourse, setSelectedCourse] = useState<HybridAttendanceStats | null>(null);
     const [selectedCourseInfo, setSelectedCourseInfo] = useState<CourseInfo | null>(null);
-    const [calculatingCourse, setCalculatingCourse] = useState<AttendanceStats | null>(null);
+    const [calculatingCourse, setCalculatingCourse] = useState<HybridAttendanceStats | null>(null);
 
-    // Global Attendance Stats (Current Semester only)
+
+    // Global Attendance Stats (Current Semester only) - Using Calendar-based totals
     const globalStats = useMemo(() => {
         let totalAttendedHours = 0;
-        let totalRequiredHours = 0;
+        let totalConductedHours = 0;
+        let totalRequiredHours80 = 0;
         let hasActive = false;
 
         attendance.forEach(course => {
             if (course.status === "ACTIVE") {
-                const stats = calculateSkippingStats(course);
-                totalAttendedHours += stats.totalAttendedHours;
-                totalRequiredHours += stats.totalRequiredHours80;
+                // Use calendar-based hours for accurate totals
+                const attendRate = course.calendarConductedClasses > 0
+                    ? (course.attended / course.calendarConductedClasses)
+                    : 0;
+                const attendedHours = course.calendarConductedHours * attendRate;
+
+                totalAttendedHours += attendedHours;
+                totalConductedHours += course.calendarConductedHours;
+                totalRequiredHours80 += course.calendarTotalHours * 0.8;
                 hasActive = true;
             }
         });
 
         return {
             attended: Math.round(totalAttendedHours * 10) / 10,
-            required: Math.round(totalRequiredHours * 10) / 10,
+            required: Math.round(totalRequiredHours80 * 10) / 10,
             hasActive
         };
     }, [attendance]);
@@ -120,7 +128,7 @@ export default function Sidebar({
 
     // Group attendance by semester and determine initial expand state
     const groupedAttendance = useMemo(() => {
-        const groups: Record<string, { items: AttendanceStats[]; hasActive: boolean }> = {};
+        const groups: Record<string, { items: HybridAttendanceStats[]; hasActive: boolean }> = {};
 
         for (const item of attendance) {
             const sem = item.semester || "SEM 2";
@@ -135,7 +143,7 @@ export default function Sidebar({
 
         // Sort by semester order (newest first)
         return Object.entries(groups)
-            .sort(([a], [b]) => (SEMESTER_ORDER[b] || 0) - (SEMESTER_ORDER[a] || 0)) as [string, { items: AttendanceStats[]; hasActive: boolean }][];
+            .sort(([a], [b]) => (SEMESTER_ORDER[b] || 0) - (SEMESTER_ORDER[a] || 0)) as [string, { items: HybridAttendanceStats[]; hasActive: boolean }][];
     }, [attendance]);
 
     // Group events by semester for summary cards
@@ -164,7 +172,7 @@ export default function Sidebar({
 
     const [expandedAttendance, setExpandedAttendance] = useState<Record<string, boolean>>(() => {
         const initial: Record<string, boolean> = {};
-        groupedAttendance.forEach(([sem, data]: [string, { items: AttendanceStats[]; hasActive: boolean }]) => {
+        groupedAttendance.forEach(([sem, data]: [string, { items: HybridAttendanceStats[]; hasActive: boolean }]) => {
             initial[`att-${sem}`] = data.hasActive;
         });
         return initial;
@@ -407,13 +415,15 @@ export default function Sidebar({
                                                 {isExpanded && (
                                                     <div className="ml-5 mt-1 space-y-1 animate-fadeIn">
                                                         {data.items.map((course) => {
-                                                            const rate = course.attendRate ?? 0;
+                                                            const rate = course.currentAttendanceRate ?? 0;
                                                             const attended = course.attended ?? 0;
                                                             const late = course.late ?? 0;
                                                             const absent = course.absent ?? 0;
                                                             const onTime = attended - late;
-                                                            const conducted = course.conductedClasses ?? 0;
-                                                            const total = course.totalClasses ?? 0;
+                                                            // Use calendar total if available, fallback to API total
+                                                            const total = course.calendarTotalClasses > 0
+                                                                ? course.calendarTotalClasses
+                                                                : (course.totalClasses ?? 0);
                                                             const isFinished = course.status === "FINISHED";
 
                                                             return (
@@ -461,7 +471,7 @@ export default function Sidebar({
                                                                         {absent > 0 && (
                                                                             <span className="text-red-500">✗ {absent}</span>
                                                                         )}
-                                                                        <span className="ml-auto">{conducted}/{total} classes</span>
+                                                                        <span className="ml-auto">{attended}/{total} classes</span>
                                                                     </div>
                                                                 </button>
                                                             );

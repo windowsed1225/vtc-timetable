@@ -1,7 +1,7 @@
 "use client";
 
 import { CalendarEvent } from "@/types/timetable";
-import { AttendanceStats } from "@/app/actions";
+import { HybridAttendanceStats } from "@/app/actions";
 import { PASTEL_COLORS } from "@/lib/colors";
 import SkippingCalculator from "./SkippingCalculator";
 import dayjs from "dayjs";
@@ -11,7 +11,7 @@ interface CourseDetailsModalProps {
     courseTitle: string;
     colorIndex: number;
     events: CalendarEvent[];
-    attendance: AttendanceStats | null;
+    attendance: HybridAttendanceStats | null;
     onClose: () => void;
 }
 
@@ -151,10 +151,7 @@ export default function CourseDetailsModal({
                 {/* Skipping Calculator - Show if we have attendance data AND it's not finished OR there are still calendar classes */}
                 {attendance && (!attendance.isFinished || futureClasses.length > 0) && (
                     <div className="mt-6 pt-6 border-t border-[var(--sidebar-border)]">
-                        <SkippingCalculator
-                            course={attendance}
-                            calendarFutureCount={futureClasses.length}
-                        />
+                        <SkippingCalculator course={attendance} />
                     </div>
                 )}
             </div>

@@ -1,13 +1,43 @@
 "use client";
 
-import { AttendanceStats } from "@/app/actions";
+import { useState, useEffect } from "react";
+import { HybridAttendanceStats } from "@/app/actions";
+import {
+    saveManualAttendanceMark,
+    getManualAttendanceMark
+} from "@/lib/manual-attendance";
 
 interface AttendanceModalProps {
-    course: AttendanceStats | null;
+    course: HybridAttendanceStats | null;
     onClose: () => void;
 }
 
 export default function AttendanceModal({ course, onClose }: AttendanceModalProps) {
+    const [manualMarks, setManualMarks] = useState<Record<string, "attended" | "late" | "absent">>({});
+
+    // Load manual marks on mount and when course changes
+    useEffect(() => {
+        if (!course) return;
+
+        const marks: Record<string, "attended" | "late" | "absent"> = {};
+        course.classes.forEach(cls => {
+            if (cls.attendTime === "MANUAL") {
+                const mark = getManualAttendanceMark(course.courseCode, cls.id);
+                if (mark) marks[cls.id] = mark;
+                else marks[cls.id] = cls.status;
+            }
+        });
+        setManualMarks(marks);
+    }, [course]);
+
+    // Handle manual attendance mark
+    const handleManualMark = (classId: string, status: "attended" | "late" | "absent") => {
+        if (!course) return;
+
+        saveManualAttendanceMark(course.courseCode, classId, status);
+        setManualMarks(prev => ({ ...prev, [classId]: status }));
+    };
+
     if (!course) return null;
 
     const rate = course.attendRate ?? 0;
@@ -72,7 +102,7 @@ export default function AttendanceModal({ course, onClose }: AttendanceModalProp
                     </button>
                 </div>
 
-                {/* Stats Bar */}
+                {/* Stats Bar - Using Calendar-based totals */}
                 <div className="px-4 py-3 bg-[rgba(0,0,0,0.02)] dark:bg-[rgba(255,255,255,0.02)] border-b border-[var(--sidebar-border)]">
                     <div className="flex items-center justify-between text-sm mb-2">
                         <div className="flex items-center gap-4">
@@ -81,13 +111,13 @@ export default function AttendanceModal({ course, onClose }: AttendanceModalProp
                             {course.absent > 0 && <span className="text-red-500">✗ {course.absent} absent</span>}
                         </div>
                         <span className="text-[var(--text-tertiary)]">
-                            {course.conductedClasses}/{course.totalClasses} classes
+                            {attended}/{course.calendarConductedClasses} conducted ({course.calendarRemainingClasses} remaining)
                         </span>
                     </div>
                     <div className="w-full h-2 bg-[var(--calendar-border)] rounded-full overflow-hidden">
                         <div
-                            className={`h-full rounded-full transition-all duration-500 ${course.isLow ? "bg-red-500" : "bg-green-500"}`}
-                            style={{ width: `${Math.min(rate, 100)}%` }}
+                            className={`h-full rounded-full transition-all duration-500 ${course.currentAttendanceRate < 80 ? "bg-red-500" : "bg-green-500"}`}
+                            style={{ width: `${Math.min(course.currentAttendanceRate, 100)}%` }}
                         />
                     </div>
                 </div>
@@ -103,14 +133,18 @@ export default function AttendanceModal({ course, onClose }: AttendanceModalProp
                                 >
                                     {/* Status Icon */}
                                     <div
-                                        className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs ${cls.status === "attended"
-                                            ? "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
-                                            : cls.status === "late"
-                                                ? "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400"
-                                                : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+                                        className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs ${(cls.attendTime === "MANUAL" ? (manualMarks[cls.id] || cls.status) : cls.status) === "attended"
+                                                ? "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
+                                                : (cls.attendTime === "MANUAL" ? (manualMarks[cls.id] || cls.status) : cls.status) === "late"
+                                                    ? "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                                    : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
                                             }`}
                                     >
-                                        {cls.status === "attended" ? "✓" : cls.status === "late" ? "⏱" : "✗"}
+                                        {(cls.attendTime === "MANUAL" ? (manualMarks[cls.id] || cls.status) : cls.status) === "attended"
+                                            ? "✓"
+                                            : (cls.attendTime === "MANUAL" ? (manualMarks[cls.id] || cls.status) : cls.status) === "late"
+                                                ? "⏱"
+                                                : "✗"}
                                     </div>
 
                                     {/* Info */}
@@ -123,9 +157,51 @@ export default function AttendanceModal({ course, onClose }: AttendanceModalProp
                                         </div>
                                     </div>
 
-                                    {/* Attend Time */}
+                                    {/* Attend Time or Manual Buttons */}
                                     <div className="text-right flex-shrink-0">
-                                        {cls.attendTime !== "-" ? (
+                                        {cls.attendTime === "MANUAL" ? (
+                                            <div className="flex gap-1">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleManualMark(cls.id, "attended");
+                                                    }}
+                                                    className={`w-7 h-7 rounded flex items-center justify-center text-xs transition-all ${(manualMarks[cls.id] || cls.status) === "attended"
+                                                        ? "bg-green-500 text-white"
+                                                        : "bg-gray-100 text-gray-400 hover:bg-green-100 hover:text-green-600 dark:bg-gray-700 dark:hover:bg-green-900/30"
+                                                        }`}
+                                                    title="Mark as attended"
+                                                >
+                                                    ✓
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleManualMark(cls.id, "late");
+                                                    }}
+                                                    className={`w-7 h-7 rounded flex items-center justify-center text-xs transition-all ${(manualMarks[cls.id] || cls.status) === "late"
+                                                        ? "bg-yellow-500 text-white"
+                                                        : "bg-gray-100 text-gray-400 hover:bg-yellow-100 hover:text-yellow-600 dark:bg-gray-700 dark:hover:bg-yellow-900/30"
+                                                        }`}
+                                                    title="Mark as late"
+                                                >
+                                                    ⏱
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleManualMark(cls.id, "absent");
+                                                    }}
+                                                    className={`w-7 h-7 rounded flex items-center justify-center text-xs transition-all ${(manualMarks[cls.id] || cls.status) === "absent"
+                                                        ? "bg-red-500 text-white"
+                                                        : "bg-gray-100 text-gray-400 hover:bg-red-100 hover:text-red-600 dark:bg-gray-700 dark:hover:bg-red-900/30"
+                                                        }`}
+                                                    title="Mark as absent"
+                                                >
+                                                    ✗
+                                                </button>
+                                            </div>
+                                        ) : cls.attendTime !== "-" ? (
                                             <div className="text-xs text-[var(--text-secondary)]">
                                                 {cls.attendTime}
                                             </div>

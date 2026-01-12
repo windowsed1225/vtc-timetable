@@ -1,28 +1,27 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { AttendanceStats } from "@/app/actions";
-import { calculateSkippingStats } from "@/lib/attendance-logic";
+import { HybridAttendanceStats } from "@/app/actions";
 
 interface SkippingCalculatorProps {
-    course: AttendanceStats;
-    calendarFutureCount?: number;
+    course: HybridAttendanceStats;
 }
 
-export default function SkippingCalculator({ course, calendarFutureCount = 0 }: SkippingCalculatorProps) {
+export default function SkippingCalculator({ course }: SkippingCalculatorProps) {
     const [skipsInput, setSkipsInput] = useState<string>("0");
     const skips = parseInt(skipsInput) || 0;
 
-    const stats = useMemo(() => calculateSkippingStats(course), [course]);
-    const projectedRate = useMemo(() => stats.getProjectedRate(skips), [stats, skips]);
+    // Calculate projected rate based on calendar data
+    const projectedRate = useMemo(() => {
+        if (course.calendarTotalClasses === 0) return 0;
+        const potentialAttendance = course.attended + Math.max(0, course.calendarRemainingClasses - skips);
+        return (potentialAttendance / course.calendarTotalClasses) * 100;
+    }, [course, skips]);
 
     const isSafe = projectedRate >= 80;
+    const futureClasses = course.calendarRemainingClasses;
 
-    // Use the maximum of official VTC stats and the local calendar events
-    const apiFuture = Math.max(0, course.totalClasses - course.conductedClasses);
-    const futureClasses = Math.max(apiFuture, calendarFutureCount);
-
-    // Slider max: at least 1, up to the real future count
+    // Slider max: at least 5 for usability
     const sliderMax = Math.max(futureClasses, 5);
 
     const handleSkipsChange = (val: string) => {
@@ -42,8 +41,8 @@ export default function SkippingCalculator({ course, calendarFutureCount = 0 }: 
                 <h3 className="font-semibold text-sm flex items-center gap-2">
                     <span className="text-lg">🧮</span> Skipping Calculator
                 </h3>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${stats.currentRate < 80 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
-                    Current: {stats.currentRate.toFixed(1)}%
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${course.currentAttendanceRate < 80 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                    Current: {course.currentAttendanceRate.toFixed(1)}%
                 </span>
             </div>
 
@@ -108,20 +107,20 @@ export default function SkippingCalculator({ course, calendarFutureCount = 0 }: 
 
                 <div className="grid grid-cols-2 gap-3 pt-2">
                     <div className="p-3 bg-[var(--background)] rounded-md border border-[var(--calendar-border)]">
-                        <p className="text-[10px] text-[var(--text-tertiary)] mb-0.5">Safety Buffer</p>
-                        <p className="text-xs font-bold">{stats.safetyBuffer} classes</p>
+                        <p className="text-[10px] text-[var(--text-tertiary)] mb-0.5">Safe to Skip</p>
+                        <p className="text-xs font-bold">{course.safeToSkipCount} classes</p>
                     </div>
                     <div className="p-3 bg-[var(--background)] rounded-md border border-[var(--calendar-border)]">
                         <p className="text-[10px] text-[var(--text-tertiary)] mb-0.5">Attended Hours</p>
-                        <p className="text-xs font-bold">{stats.totalAttendedHours} hrs</p>
+                        <p className="text-xs font-bold">{Math.round((course.calendarConductedHours * course.attended / Math.max(1, course.calendarConductedClasses)) * 10) / 10} hrs</p>
                     </div>
                     <div className="p-3 bg-[var(--background)] rounded-md border border-[var(--calendar-border)]">
                         <p className="text-[10px] text-[var(--text-tertiary)] mb-0.5">Required (80%)</p>
-                        <p className="text-xs font-bold">{stats.totalRequiredHours80} hrs</p>
+                        <p className="text-xs font-bold">{Math.round(course.calendarTotalHours * 0.8 * 10) / 10} hrs</p>
                     </div>
                     <div className="p-3 bg-[var(--background)] rounded-md border border-[var(--calendar-border)]">
                         <p className="text-[10px] text-[var(--text-tertiary)] mb-0.5">Max Skip</p>
-                        <p className="text-xs font-bold">{Math.floor(course.totalClasses * 0.2)} classes</p>
+                        <p className="text-xs font-bold">{Math.floor(course.calendarTotalClasses * 0.2)} classes</p>
                     </div>
                 </div>
             </div>

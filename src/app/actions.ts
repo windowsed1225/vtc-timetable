@@ -732,6 +732,22 @@ export interface AttendanceStats {
     classes: ClassRecord[]; // detailed class records
 }
 
+// Hybrid attendance stats - combines Attendance API (what you DID) with Calendar DB (what is POSSIBLE)
+export interface HybridAttendanceStats extends AttendanceStats {
+    // Calendar-based counts (source of truth for totals)
+    calendarTotalClasses: number;      // All scheduled classes (non-canceled)
+    calendarConductedClasses: number;  // Past classes (endTime < now)
+    calendarRemainingClasses: number;  // Future classes (endTime >= now)
+    calendarTotalHours: number;        // Total scheduled hours
+    calendarConductedHours: number;    // Past hours
+    calendarRemainingHours: number;    // Future hours
+
+    // Derived calculations
+    currentAttendanceRate: number;     // (attended / calendarConductedClasses) * 100
+    maxPossibleRate: number;           // ((attended + calendarRemaining) / calendarTotal) * 100
+    safeToSkipCount: number;           // How many can skip and stay above 80%
+}
+
 /**
  * Get stored attendance from MongoDB for the authenticated user
  */
@@ -783,6 +799,158 @@ export async function getStoredAttendance(): Promise<{
         return {
             success: false,
             error: error instanceof Error ? error.message : "Failed to fetch attendance",
+        };
+    }
+}
+
+/**
+ * Get hybrid attendance stats - combines Attendance API data with Calendar DB data
+ * This gives us accurate totals including future classes
+ */
+export async function getHybridAttendanceStats(): Promise<{
+    success: boolean;
+    data?: HybridAttendanceStats[];
+    error?: string;
+}> {
+    try {
+        const session = await auth();
+        if (!session?.user?.discordId) {
+            return { success: true, data: [] }; // Not logged in, return empty
+        }
+
+        await connectDB();
+        const discordId = session.user.discordId;
+        const now = new Date();
+
+        // Step 1: Fetch attendance records from Attendance DB
+        const attendanceRecords = await Attendance.find({ discordId })
+            .sort({ courseCode: 1 })
+            .lean();
+
+        // Step 2: For each course, get calendar-based counts from Event DB
+        const hybridStats: HybridAttendanceStats[] = await Promise.all(
+            attendanceRecords.map(async (record: any) => {
+                const courseCode = record.courseCode;
+                const baseCourseCode = record.baseCourseCode || courseCode;
+
+                // Query calendar events for this course (match both courseCode and baseCourseCode)
+                const calendarEvents = await Event.find({
+                    discordId,
+                    $or: [
+                        { courseCode: courseCode },
+                        { courseCode: baseCourseCode },
+                    ],
+                    status: { $ne: "CANCELED" } // Exclude canceled events
+                }).lean();
+
+                // Calculate calendar-based counts
+                let calendarTotalClasses = 0;
+                let calendarConductedClasses = 0;
+                let calendarRemainingClasses = 0;
+                let calendarTotalHours = 0;
+                let calendarConductedHours = 0;
+                let calendarRemainingHours = 0;
+
+                for (const event of calendarEvents) {
+                    const startTime = new Date(event.startTime);
+                    const endTime = new Date(event.endTime);
+                    const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+
+                    // Count all non-canceled events
+                    calendarTotalClasses++;
+                    calendarTotalHours += durationHours;
+
+                    // Separate conducted (past) vs remaining (future)
+                    if (endTime < now) {
+                        calendarConductedClasses++;
+                        calendarConductedHours += durationHours;
+                    } else {
+                        calendarRemainingClasses++;
+                        calendarRemainingHours += durationHours;
+                    }
+                }
+
+                // Step 3: Calculate derived stats
+                const attended = record.attended || 0;
+
+                // Current rate based on conducted classes from calendar
+                const currentAttendanceRate = calendarConductedClasses > 0
+                    ? (attended / calendarConductedClasses) * 100
+                    : 0;
+
+                // Max possible rate if attend all remaining classes
+                const maxPossibleRate = calendarTotalClasses > 0
+                    ? ((attended + calendarRemainingClasses) / calendarTotalClasses) * 100
+                    : 0;
+
+                // Calculate safe to skip count
+                // Formula: How many remaining classes can skip and stay >= 80%?
+                // (attended + (remaining - x)) / total >= 0.80
+                // x <= attended + remaining - (0.80 * total)
+                let safeToSkipCount = 0;
+                if (calendarTotalClasses > 0) {
+                    const requiredAttendance = Math.ceil(calendarTotalClasses * 0.8);
+                    const potentialTotal = attended + calendarRemainingClasses;
+                    safeToSkipCount = Math.max(0, potentialTotal - requiredAttendance);
+                }
+
+                // Step 4: Handle class records - generate from calendar if no API data
+                let classes: ClassRecord[];
+
+                // Has API data - use it
+                classes = record.classes.map((cls: any) => ({
+                    id: cls.id,
+                    date: cls.date,
+                    lessonTime: cls.lessonTime,
+                    attendTime: cls.attendTime,
+                    roomName: cls.roomName,
+                    status: cls.status as "attended" | "late" | "absent",
+                }));
+
+
+                // Build hybrid stats object
+                const hybridStat: HybridAttendanceStats = {
+                    // Original attendance fields
+                    courseCode: record.courseCode,
+                    courseName: record.courseName,
+                    semester: record.semester || "SEM 2",
+                    status: record.status || "ACTIVE",
+                    attendRate: record.attendRate,
+                    totalClasses: record.totalClasses,
+                    conductedClasses: record.conductedClasses,
+                    attended,
+                    late: record.late || 0,
+                    absent: record.absent || 0,
+                    isLow: currentAttendanceRate < 80,
+                    isFinished: record.isFinished,
+                    isFollowUp: record.isFollowUp,
+                    baseCourseCode: record.baseCourseCode || courseCode,
+                    classes,
+
+                    // New calendar-based fields
+                    calendarTotalClasses,
+                    calendarConductedClasses,
+                    calendarRemainingClasses,
+                    calendarTotalHours: Math.round(calendarTotalHours * 10) / 10,
+                    calendarConductedHours: Math.round(calendarConductedHours * 10) / 10,
+                    calendarRemainingHours: Math.round(calendarRemainingHours * 10) / 10,
+
+                    // Derived calculations
+                    currentAttendanceRate: Math.round(currentAttendanceRate * 10) / 10,
+                    maxPossibleRate: Math.round(maxPossibleRate * 10) / 10,
+                    safeToSkipCount,
+                };
+
+                return hybridStat;
+            })
+        );
+
+        return { success: true, data: hybridStats };
+    } catch (error) {
+        console.error("Error fetching hybrid attendance stats:", error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "Failed to fetch hybrid attendance",
         };
     }
 }
