@@ -69,7 +69,9 @@ export default function TimetableCalendar({
     const eventPropGetter = (event: CalendarEvent) => {
         const colorIndex = event.resource?.colorIndex ?? 0;
         const color = PASTEL_COLORS[colorIndex] || PASTEL_COLORS[0];
-        const isFinished = event.resource?.status === "FINISHED";
+        const now = new Date();
+        // Event is finished if status says so OR if end time has passed
+        const isFinished = event.resource?.status === "FINISHED" || (event.resource?.status === "UPCOMING" && event.end < now);
         const isCanceled = event.resource?.status === "CANCELED";
         const isDark = [0, 1, 2, 5, 8, 9].includes(colorIndex);
 

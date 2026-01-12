@@ -33,7 +33,11 @@ export default function EventDetailsModal({
 
     const startTime = formatTime(event.start);
     const endTime = formatTime(event.end);
-    const status = event.resource?.status || "UPCOMING";
+
+    // Compute effective status based on current time
+    const storedStatus = event.resource?.status || "UPCOMING";
+    const now = new Date();
+    const status = storedStatus === "UPCOMING" && event.end < now ? "FINISHED" : storedStatus;
 
     const handleEditTime = async () => {
         if (!editStartTime || !editEndTime) return;
