@@ -1146,7 +1146,13 @@ export async function finishCourseEarly(courseCode: string, semester: string) {
 /**
  * Check if a background sync is needed (more than 24h since last sync)
  */
-export async function checkAndSyncBackground() {
+export async function checkAndSyncBackground(): Promise<{
+    success: boolean;
+    error?: string;
+    message?: string;
+    newEvents?: number;
+    newAttendance?: number;
+}> {
     try {
         const session = await auth();
         if (!session?.user?.discordId) return { success: false, error: "Not logged in" };
