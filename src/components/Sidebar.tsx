@@ -9,6 +9,8 @@ import SemesterSummaryCard from "./SemesterSummaryCard";
 import CourseDetailsModal from "./CourseDetailsModal";
 import SubscribeButton from "./SubscribeButton";
 import ExportSemesterButton from "./ExportSemesterButton";
+import SkippingCalculator from "./SkippingCalculator";
+import { calculateSkippingStats } from "@/lib/attendance-logic";
 
 // Semester display names
 const SEMESTER_LABELS: Record<string, string> = {
@@ -72,6 +74,29 @@ export default function Sidebar({
 }: SidebarProps) {
     const [selectedCourse, setSelectedCourse] = useState<AttendanceStats | null>(null);
     const [selectedCourseInfo, setSelectedCourseInfo] = useState<CourseInfo | null>(null);
+    const [calculatingCourse, setCalculatingCourse] = useState<AttendanceStats | null>(null);
+
+    // Global Attendance Stats (Current Semester only)
+    const globalStats = useMemo(() => {
+        let totalAttendedHours = 0;
+        let totalRequiredHours = 0;
+        let hasActive = false;
+
+        attendance.forEach(course => {
+            if (course.status === "ACTIVE") {
+                const stats = calculateSkippingStats(course);
+                totalAttendedHours += stats.totalAttendedHours;
+                totalRequiredHours += stats.totalRequiredHours80;
+                hasActive = true;
+            }
+        });
+
+        return {
+            attended: Math.round(totalAttendedHours * 10) / 10,
+            required: Math.round(totalRequiredHours * 10) / 10,
+            hasActive
+        };
+    }, [attendance]);
 
     // Group courses by semester and determine initial expand state
     const groupedCourses = useMemo(() => {
@@ -90,7 +115,7 @@ export default function Sidebar({
 
         // Sort by semester order (newest first)
         return Object.entries(groups)
-            .sort(([a], [b]) => (SEMESTER_ORDER[b] || 0) - (SEMESTER_ORDER[a] || 0));
+            .sort(([a], [b]) => (SEMESTER_ORDER[b] || 0) - (SEMESTER_ORDER[a] || 0)) as [string, { courses: CourseInfo[]; hasActive: boolean }][];
     }, [courses]);
 
     // Group attendance by semester and determine initial expand state
@@ -110,7 +135,7 @@ export default function Sidebar({
 
         // Sort by semester order (newest first)
         return Object.entries(groups)
-            .sort(([a], [b]) => (SEMESTER_ORDER[b] || 0) - (SEMESTER_ORDER[a] || 0));
+            .sort(([a], [b]) => (SEMESTER_ORDER[b] || 0) - (SEMESTER_ORDER[a] || 0)) as [string, { items: AttendanceStats[]; hasActive: boolean }][];
     }, [attendance]);
 
     // Group events by semester for summary cards
@@ -131,7 +156,7 @@ export default function Sidebar({
     // Track expanded state for each semester accordion
     const [expandedCalendars, setExpandedCalendars] = useState<Record<string, boolean>>(() => {
         const initial: Record<string, boolean> = {};
-        groupedCourses.forEach(([sem, data]) => {
+        groupedCourses.forEach(([sem, data]: [string, { courses: CourseInfo[]; hasActive: boolean }]) => {
             initial[`cal-${sem}`] = data.hasActive;
         });
         return initial;
@@ -139,18 +164,18 @@ export default function Sidebar({
 
     const [expandedAttendance, setExpandedAttendance] = useState<Record<string, boolean>>(() => {
         const initial: Record<string, boolean> = {};
-        groupedAttendance.forEach(([sem, data]) => {
+        groupedAttendance.forEach(([sem, data]: [string, { items: AttendanceStats[]; hasActive: boolean }]) => {
             initial[`att-${sem}`] = data.hasActive;
         });
         return initial;
     });
 
     const toggleCalendar = (sem: string) => {
-        setExpandedCalendars(prev => ({ ...prev, [`cal-${sem}`]: !prev[`cal-${sem}`] }));
+        setExpandedCalendars((prev: Record<string, boolean>) => ({ ...prev, [`cal-${sem}`]: !prev[`cal-${sem}`] }));
     };
 
     const toggleAttendance = (sem: string) => {
-        setExpandedAttendance(prev => ({ ...prev, [`att-${sem}`]: !prev[`att-${sem}`] }));
+        setExpandedAttendance((prev: Record<string, boolean>) => ({ ...prev, [`att-${sem}`]: !prev[`att-${sem}`] }));
     };
 
     // Chevron icon component
@@ -329,6 +354,28 @@ export default function Sidebar({
                                     </svg>
                                 </button>
                             </div>
+
+                            {/* Global Stats Header */}
+                            {globalStats.hasActive && (
+                                <div className="mb-4 p-3 bg-[var(--calendar-header-bg)] rounded-xl border border-[var(--calendar-border)]">
+                                    <div className="flex flex-col gap-1">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs text-[var(--text-secondary)]">Current Semester Attended</span>
+                                            <span className="text-sm font-bold">{globalStats.attended} hrs</span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs text-[var(--text-secondary)]">Min Required (80%)</span>
+                                            <span className="text-sm font-medium text-[var(--text-tertiary)]">{globalStats.required} hrs</span>
+                                        </div>
+                                        <div className="mt-2 w-full h-1.5 bg-[var(--calendar-border)] rounded-full overflow-hidden">
+                                            <div
+                                                className={`h-full rounded-full transition-all duration-500 ${globalStats.attended < globalStats.required ? 'bg-red-500' : 'bg-green-500'}`}
+                                                style={{ width: `${Math.min((globalStats.attended / Math.max(1, globalStats.required)) * 100, 100)}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {attendance.length === 0 ? (
                                 <p className="text-sm text-[var(--text-tertiary)]">
@@ -516,9 +563,16 @@ export default function Sidebar({
                     courseTitle={selectedCourseInfo.courseTitle}
                     colorIndex={selectedCourseInfo.colorIndex}
                     events={events}
+                    attendance={attendance.find(a =>
+                        a.courseCode === selectedCourseInfo.courseCode ||
+                        a.baseCourseCode === selectedCourseInfo.courseCode ||
+                        selectedCourseInfo.courseCode.startsWith(a.courseCode) ||
+                        a.courseCode.startsWith(selectedCourseInfo.courseCode)
+                    ) || null}
                     onClose={() => setSelectedCourseInfo(null)}
                 />
             )}
+
         </>
     );
 }

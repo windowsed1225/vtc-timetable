@@ -70,23 +70,22 @@ export default function TimetableCalendar({
         const colorIndex = event.resource?.colorIndex ?? 0;
         const color = PASTEL_COLORS[colorIndex] || PASTEL_COLORS[0];
         const isFinished = event.resource?.status === "FINISHED";
-
-        // Determine text color based on background brightness
+        const isCanceled = event.resource?.status === "CANCELED";
         const isDark = [0, 1, 2, 5, 8, 9].includes(colorIndex);
 
         return {
-            className: `event-color-${colorIndex} ${isFinished ? "event-finished" : ""}`,
+            className: `event-color-${colorIndex} ${isFinished ? "event-finished" : ""} ${isCanceled ? "event-canceled" : ""}`,
             style: {
-                backgroundColor: color,
-                color: isDark ? "white" : "#333",
-                border: "none",
+                backgroundColor: isCanceled ? "#fecaca" : color, // light red
+                color: isCanceled ? "#991b1b" : (isDark ? "white" : "#1f2937"),
+                border: isCanceled ? "1px solid #f87171" : "none",
                 borderRadius: "6px",
                 padding: "2px 8px",
                 fontSize: "12px",
                 fontWeight: 500,
-                // Apply grayscale and reduced opacity for finished events
-                opacity: isFinished ? 0.5 : 1,
+                opacity: (isFinished || isCanceled) ? 0.6 : 1,
                 filter: isFinished ? "grayscale(70%)" : "none",
+                textDecoration: isCanceled ? "line-through" : "none",
             },
         };
     };
@@ -121,7 +120,7 @@ export default function TimetableCalendar({
                     selectable
                     step={30}
                     timeslots={1}
-                    tooltipAccessor={(event) => {
+                    tooltipAccessor={(event: CalendarEvent) => {
                         const parts = [event.title];
                         if (event.resource?.location) {
                             parts.push(`📍 ${event.resource.location}`);
@@ -138,14 +137,15 @@ export default function TimetableCalendar({
                         eventTimeRangeFormat: () => "",
                         timeGutterFormat: (date: Date) => dayjs(date).format("h:mm"),
                         dayHeaderFormat: (date: Date) => dayjs(date).format("ddd D"),
-                        dayRangeHeaderFormat: ({ start, end }) =>
+                        dayRangeHeaderFormat: ({ start, end }: { start: Date; end: Date }) =>
                             `${dayjs(start).format("MMM D")} – ${dayjs(end).format("MMM D, YYYY")}`,
                     }}
                     components={{
                         toolbar: () => null, // Hide default toolbar
-                        event: ({ event }) => (
+                        event: ({ event }: { event: CalendarEvent }) => (
                             <div className="h-full flex flex-col overflow-hidden">
                                 <div className="font-medium text-xs leading-tight">
+                                    {event.resource?.status === "CANCELED" && <span className="mr-1">🚫</span>}
                                     {event.resource?.courseTitle || event.title}
                                     {event.resource?.courseCode && (
                                         <span className="opacity-70"> ({event.resource.courseCode})</span>

@@ -6,6 +6,7 @@ export interface IUser extends Document {
     discordAvatar?: string;
     vtcToken?: string;
     vtcStudentId?: string;
+    lastSync?: Date;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -30,6 +31,9 @@ const UserSchema = new Schema<IUser>(
         vtcStudentId: {
             type: String,
             index: true,
+        },
+        lastSync: {
+            type: Date,
         },
     },
     {

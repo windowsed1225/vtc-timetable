@@ -1,6 +1,8 @@
 "use client";
 
 import { CalendarEvent } from "@/types/timetable";
+import { useState } from "react";
+import { updateEventDetails, setEventStatus, finishCourseEarly } from "@/app/actions";
 
 interface EventDetailsModalProps {
     event: CalendarEvent | null;
@@ -13,6 +15,11 @@ export default function EventDetailsModal({
     isOpen,
     onClose,
 }: EventDetailsModalProps) {
+    const [isEditing, setIsEditing] = useState(false);
+    const [editStartTime, setEditStartTime] = useState("");
+    const [editEndTime, setEditEndTime] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+
     if (!isOpen || !event) return null;
 
     // Format time to "10:30 AM" format
@@ -26,7 +33,58 @@ export default function EventDetailsModal({
 
     const startTime = formatTime(event.start);
     const endTime = formatTime(event.end);
-    const isFinished = event.resource?.status === "FINISHED";
+    const status = event.resource?.status || "UPCOMING";
+
+    const handleEditTime = async () => {
+        if (!editStartTime || !editEndTime) return;
+        setIsLoading(true);
+
+        const newStart = new Date(event.start);
+        const [sh, sm] = editStartTime.split(":").map(Number);
+        newStart.setHours(sh, sm);
+
+        const newEnd = new Date(event.end);
+        const [eh, em] = editEndTime.split(":").map(Number);
+        newEnd.setHours(eh, em);
+
+        const vtc_id = (event.resource as any).vtc_id;
+        if (!vtc_id) {
+            alert("Unexpected error: missing event ID");
+            setIsLoading(false);
+            return;
+        }
+
+        const result = await updateEventDetails(vtc_id, newStart, newEnd);
+        // Actually Event model has vtc_id. vtc_id is not exposed in CalendarEvent yet?
+        // Wait, vtc_id is unique. Let's send it.
+        // I need to add vtc_id to CalendarEvent resource in actions.ts
+
+        setIsLoading(false);
+        setIsEditing(false);
+        onClose();
+    };
+
+    const handleCancelClass = async () => {
+        setIsLoading(true);
+        // I'll need the vtc_id here. Let's assume I added it to resource.
+        const vtc_id = (event.resource as any).vtc_id;
+        if (vtc_id) {
+            await setEventStatus(vtc_id, "CANCELED");
+        }
+        setIsLoading(false);
+        onClose();
+    };
+
+    const handleFinishEarly = async () => {
+        if (!confirm("Are you sure you want to finish this course early? All future classes will be marked as FINISHED.")) return;
+        setIsLoading(true);
+        await finishCourseEarly(event.resource?.courseCode!, event.resource?.semester!);
+        setIsLoading(false);
+        onClose();
+    };
+
+    const startInputVal = `${event.start.getHours().toString().padStart(2, '0')}:${event.start.getMinutes().toString().padStart(2, '0')}`;
+    const endInputVal = `${event.end.getHours().toString().padStart(2, '0')}:${event.end.getMinutes().toString().padStart(2, '0')}`;
 
     return (
         <div className="modal-overlay" onClick={onClose}>
@@ -86,9 +144,27 @@ export default function EventDetailsModal({
                             <p className="text-xs text-[var(--text-tertiary)] uppercase tracking-wider">
                                 Time
                             </p>
-                            <p className="text-sm font-medium">
-                                {startTime} - {endTime}
-                            </p>
+                            {isEditing ? (
+                                <div className="flex items-center gap-2 mt-1">
+                                    <input
+                                        type="time"
+                                        defaultValue={startInputVal}
+                                        onChange={(e) => setEditStartTime(e.target.value)}
+                                        className="px-2 py-1 bg-[var(--background)] border border-[var(--calendar-border)] rounded-md text-sm"
+                                    />
+                                    <span>-</span>
+                                    <input
+                                        type="time"
+                                        defaultValue={endInputVal}
+                                        onChange={(e) => setEditEndTime(e.target.value)}
+                                        className="px-2 py-1 bg-[var(--background)] border border-[var(--calendar-border)] rounded-md text-sm"
+                                    />
+                                </div>
+                            ) : (
+                                <p className="text-sm font-medium">
+                                    {startTime} - {endTime}
+                                </p>
+                            )}
                         </div>
                     </div>
 
@@ -210,22 +286,73 @@ export default function EventDetailsModal({
                                 Status
                             </p>
                             <span
-                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${isFinished
-                                        ? "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
-                                        : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${status === "FINISHED"
+                                    ? "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+                                    : status === "CANCELED"
+                                        ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                                        : status === "RESCHEDULED"
+                                            ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                                            : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                                     }`}
                             >
-                                {isFinished ? "Finished" : "Upcoming"}
+                                {status.charAt(0) + status.slice(1).toLowerCase()}
                             </span>
                         </div>
                     </div>
                 </div>
 
                 {/* Footer */}
-                <div className="flex justify-end">
-                    <button onClick={onClose} className="btn-secondary">
-                        Close
-                    </button>
+                <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                        {isEditing ? (
+                            <>
+                                <button onClick={handleEditTime} disabled={isLoading} className="btn-primary flex-1">
+                                    Save
+                                </button>
+                                <button onClick={() => setIsEditing(false)} className="btn-secondary flex-1">
+                                    Cancel
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={() => {
+                                        setEditStartTime(startInputVal);
+                                        setEditEndTime(endInputVal);
+                                        setIsEditing(true);
+                                    }}
+                                    className="btn-secondary flex-1 text-sm py-2"
+                                >
+                                    Edit Time
+                                </button>
+                                <button
+                                    onClick={handleCancelClass}
+                                    disabled={isLoading || status === "CANCELED"}
+                                    className={`flex-1 text-sm py-2 rounded-xl font-medium border transition-colors ${status === "CANCELED" ? 'bg-red-50 text-red-500 border-red-200' : 'bg-white text-red-600 border-red-200 hover:bg-red-50'}`}
+                                >
+                                    {status === "CANCELED" ? "Canceled" : "Class Canceled"}
+                                </button>
+                            </>
+                        )}
+                    </div>
+
+                    {!isEditing && (
+                        <div className="pt-3 border-t border-[var(--sidebar-border)]">
+                            <button
+                                onClick={handleFinishEarly}
+                                disabled={isLoading}
+                                className="w-full py-2.5 px-4 rounded-xl text-sm font-semibold text-red-600 border border-red-200 hover:bg-red-50 transition-all flex items-center justify-center gap-2"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                                </svg>
+                                Finish Course Early
+                            </button>
+                            <p className="text-[10px] text-[var(--text-tertiary)] text-center mt-2 px-4 leading-tight">
+                                This will mark ALL future sessions of this course as finished and remove them from attendance prediction.
+                            </p>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

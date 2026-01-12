@@ -12,7 +12,7 @@ export interface TimetableEvent {
 }
 
 export type SemesterType = "SEM 1" | "SEM 2" | "SEM 3";
-export type EventStatusType = "UPCOMING" | "FINISHED";
+export type EventStatusType = "UPCOMING" | "FINISHED" | "CANCELED" | "RESCHEDULED";
 
 export interface CalendarEvent {
   title: string;
@@ -27,5 +27,6 @@ export interface CalendarEvent {
     colorIndex?: number;
     semester?: SemesterType;
     status?: EventStatusType;
+    vtc_id?: string;
   };
 }

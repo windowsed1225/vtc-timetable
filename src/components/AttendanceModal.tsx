@@ -93,21 +93,21 @@ export default function AttendanceModal({ course, onClose }: AttendanceModalProp
                 </div>
 
                 {/* Class List */}
-                <div className="overflow-y-auto max-h-[50vh] p-2">
+                <div className="overflow-y-auto max-h-[40vh] p-2 border-b border-[var(--sidebar-border)]">
                     {course.classes && course.classes.length > 0 ? (
                         <div className="space-y-1">
                             {course.classes.map((cls, index) => (
                                 <div
                                     key={cls.id || index}
-                                    className="flex items-center gap-3 py-2.5 px-3 rounded-lg bg-[rgba(0,0,0,0.02)] dark:bg-[rgba(255,255,255,0.03)] hover:bg-[rgba(0,0,0,0.04)] dark:hover:bg-[rgba(255,255,255,0.05)] transition-colors"
+                                    className="flex items-center gap-3 py-2 px-3 rounded-lg bg-[rgba(0,0,0,0.02)] dark:bg-[rgba(255,255,255,0.03)] hover:bg-[rgba(0,0,0,0.04)] dark:hover:bg-[rgba(255,255,255,0.05)] transition-colors"
                                 >
                                     {/* Status Icon */}
                                     <div
-                                        className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${cls.status === "attended"
-                                                ? "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
-                                                : cls.status === "late"
-                                                    ? "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400"
-                                                    : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+                                        className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs ${cls.status === "attended"
+                                            ? "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
+                                            : cls.status === "late"
+                                                ? "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                                : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
                                             }`}
                                     >
                                         {cls.status === "attended" ? "✓" : cls.status === "late" ? "⏱" : "✗"}
@@ -115,10 +115,10 @@ export default function AttendanceModal({ course, onClose }: AttendanceModalProp
 
                                     {/* Info */}
                                     <div className="flex-1 min-w-0">
-                                        <div className="text-sm font-medium">
+                                        <div className="text-xs font-medium">
                                             {cls.date}
                                         </div>
-                                        <div className="text-xs text-[var(--text-tertiary)]">
+                                        <div className="text-[10px] text-[var(--text-tertiary)]">
                                             {cls.lessonTime} • {cls.roomName}
                                         </div>
                                     </div>
@@ -126,12 +126,12 @@ export default function AttendanceModal({ course, onClose }: AttendanceModalProp
                                     {/* Attend Time */}
                                     <div className="text-right flex-shrink-0">
                                         {cls.attendTime !== "-" ? (
-                                            <div className="text-sm text-[var(--text-secondary)]">
+                                            <div className="text-xs text-[var(--text-secondary)]">
                                                 {cls.attendTime}
                                             </div>
                                         ) : (
-                                            <div className="text-sm text-red-500">
-                                                —
+                                            <div className="text-xs text-red-500 font-bold">
+                                                ABSENT
                                             </div>
                                         )}
                                     </div>

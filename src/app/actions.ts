@@ -70,9 +70,15 @@ export async function syncVtcData(vtcUrl: string, semesterNum: number = 2): Prom
         const discordId = session.user.discordId;
 
         // Step 2: Token Check
-        const token = extractToken(vtcUrl);
+        let token: string | null = null;
+        if (vtcUrl.startsWith("http")) {
+            token = extractToken(vtcUrl);
+        } else {
+            token = vtcUrl; // Direct token pass
+        }
+
         if (!token) {
-            return { success: false, error: "Invalid VTC URL. No token found." };
+            return { success: false, error: "Invalid VTC URL or token." };
         }
 
         const api = new API({ token });
@@ -89,7 +95,7 @@ export async function syncVtcData(vtcUrl: string, semesterNum: number = 2): Prom
         await connectDB();
         await User.findOneAndUpdate(
             { discordId },
-            { vtcToken: token, vtcStudentId },
+            { vtcToken: token, vtcStudentId, lastSync: new Date() },
             { upsert: true }
         );
 
@@ -135,28 +141,36 @@ export async function syncVtcData(vtcUrl: string, semesterNum: number = 2): Prom
 
                     const bulkOps = events.map((event: TimetableEvent) => {
                         const eventEndTime = new Date(event.endTime * 1000);
-                        const status: "FINISHED" | "UPCOMING" = eventEndTime < now ? "FINISHED" : "UPCOMING";
+                        const calculatedStatus: "FINISHED" | "UPCOMING" = eventEndTime < now ? "FINISHED" : "UPCOMING";
 
                         return {
                             updateOne: {
                                 filter: { vtc_id: event.id, discordId, semester: semCategory },
-                                update: {
-                                    $set: {
-                                        discordId,
-                                        vtcStudentId,
-                                        semester: semCategory,
-                                        status,
-                                        vtc_id: event.id,
-                                        courseCode: event.courseCode,
-                                        courseTitle: event.courseTitle,
-                                        lessonType: event.lessonType || "",
-                                        startTime: new Date(event.startTime * 1000),
-                                        endTime: eventEndTime,
-                                        location: `${event.campusCode || ""}-${event.roomNum || ""}`.replace(/^-|-$/g, ""),
-                                        lecturerName: event.lecturerName || "",
-                                        colorIndex: getColorIndex(event.courseCode),
-                                    },
-                                },
+                                update: [
+                                    {
+                                        $set: {
+                                            discordId: discordId,
+                                            vtcStudentId: vtcStudentId,
+                                            semester: semCategory,
+                                            status: {
+                                                $cond: {
+                                                    if: { $in: ["$status", ["CANCELED", "RESCHEDULED"]] },
+                                                    then: "$status",
+                                                    else: calculatedStatus
+                                                }
+                                            },
+                                            vtc_id: event.id,
+                                            courseCode: event.courseCode,
+                                            courseTitle: event.courseTitle,
+                                            lessonType: event.lessonType || "",
+                                            startTime: new Date(event.startTime * 1000),
+                                            endTime: eventEndTime,
+                                            location: `${event.campusCode || ""}-${event.roomNum || ""}`.replace(/^-|-$/g, ""),
+                                            lecturerName: event.lecturerName || "",
+                                            colorIndex: getColorIndex(event.courseCode),
+                                        },
+                                    }
+                                ],
                                 upsert: true,
                             },
                         };
@@ -613,7 +627,7 @@ export async function getStoredEvents(): Promise<{
             .sort({ startTime: 1 })
             .lean();
 
-        const calendarEvents: CalendarEvent[] = events.map((event) => ({
+        const calendarEvents: CalendarEvent[] = events.map((event: any) => ({
             title: `${event.courseTitle}`,
             start: new Date(event.startTime),
             end: new Date(event.endTime),
@@ -626,6 +640,7 @@ export async function getStoredEvents(): Promise<{
                 colorIndex: event.colorIndex,
                 semester: event.semester,
                 status: event.status,
+                vtc_id: event.vtc_id,
             },
         }));
 
@@ -737,7 +752,7 @@ export async function getStoredAttendance(): Promise<{
             .sort({ courseCode: 1 })
             .lean();
 
-        const stats: AttendanceStats[] = attendanceRecords.map((record) => ({
+        const stats: AttendanceStats[] = attendanceRecords.map((record: any) => ({
             courseCode: record.courseCode,
             courseName: record.courseName,
             semester: record.semester || "SEM 2",
@@ -752,7 +767,7 @@ export async function getStoredAttendance(): Promise<{
             isFinished: record.isFinished,
             isFollowUp: record.isFollowUp,
             baseCourseCode: record.baseCourseCode,
-            classes: record.classes.map((cls) => ({
+            classes: record.classes.map((cls: any) => ({
                 id: cls.id,
                 date: cls.date,
                 lessonTime: cls.lessonTime,
@@ -1023,7 +1038,7 @@ export async function exportSemesterIcs(semester: string): Promise<{
             date.getMinutes(),
         ];
 
-        const icsEvents: EventAttributes[] = events.map((event) => ({
+        const icsEvents: EventAttributes[] = events.map((event: any) => ({
             uid: `${event.vtc_id}@vtc-timetable`,
             title: `${event.courseTitle} (${event.courseCode})`,
             start: getDateArray(new Date(event.startTime)),
@@ -1053,5 +1068,106 @@ export async function exportSemesterIcs(semester: string): Promise<{
             success: false,
             error: error instanceof Error ? error.message : "Failed to export calendar",
         };
+    }
+}
+
+/**
+ * Update start/end time of a specific event
+ */
+export async function updateEventDetails(eventId: string, newStart: Date, newEnd: Date) {
+    try {
+        const session = await auth();
+        if (!session?.user?.discordId) return { success: false, error: "Unauthorized" };
+
+        await connectDB();
+        await Event.findOneAndUpdate(
+            { vtc_id: eventId, discordId: session.user.discordId },
+            { startTime: newStart, endTime: newEnd },
+            { new: true }
+        );
+
+        revalidatePath("/");
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : "Failed to update event" };
+    }
+}
+
+/**
+ * Update status of a specific event (NORMAL, CANCELED, RESCHEDULED, FINISHED)
+ */
+export async function setEventStatus(eventId: string, status: string) {
+    try {
+        const session = await auth();
+        if (!session?.user?.discordId) return { success: false, error: "Unauthorized" };
+
+        await connectDB();
+        await Event.findOneAndUpdate(
+            { vtc_id: eventId, discordId: session.user.discordId },
+            { status },
+            { new: true }
+        );
+
+        revalidatePath("/");
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : "Failed to set status" };
+    }
+}
+
+/**
+ * Mark all future events of a course as FINISHED
+ */
+export async function finishCourseEarly(courseCode: string, semester: string) {
+    try {
+        const session = await auth();
+        if (!session?.user?.discordId) return { success: false, error: "Unauthorized" };
+
+        await connectDB();
+        const now = new Date();
+
+        await Event.updateMany(
+            {
+                courseCode,
+                discordId: session.user.discordId,
+                semester,
+                startTime: { $gt: now }
+            },
+            { status: "FINISHED" }
+        );
+
+        revalidatePath("/");
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : "Failed to finish course" };
+    }
+}
+
+/**
+ * Check if a background sync is needed (more than 24h since last sync)
+ */
+export async function checkAndSyncBackground() {
+    try {
+        const session = await auth();
+        if (!session?.user?.discordId) return { success: false, error: "Not logged in" };
+
+        await connectDB();
+        const user = await User.findOne({ discordId: session.user.discordId }).lean();
+
+        if (!user?.vtcToken) return { success: false, error: "No token stored" };
+
+        const lastSync = user.lastSync ? new Date(user.lastSync) : new Date(0);
+        const now = new Date();
+        const diffHours = (now.getTime() - lastSync.getTime()) / (1000 * 60 * 60);
+
+        if (diffHours >= 24) {
+            console.log("Background sync triggered for user:", session.user.discordId);
+            // Default to Spring semester (2) if not specified
+            return await syncVtcData(user.vtcToken, 2);
+        }
+
+        return { success: true, message: "Sync not needed yet" };
+    } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : "Background sync failed" };
     }
 }
