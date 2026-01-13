@@ -96,8 +96,8 @@ const EventSchema = new Schema<IEvent>(
     }
 );
 
-// Unique compound index - same event for different users/semesters is allowed
-EventSchema.index({ vtc_id: 1, discordId: 1, semester: 1 }, { unique: true });
+// Unique compound index - ensures no duplicate events per user/student/semester
+EventSchema.index({ vtc_id: 1, discordId: 1, vtcStudentId: 1, semester: 1 }, { unique: true });
 
 // Prevent model overwrite in development (hot reload)
 const Event: Model<IEvent> =

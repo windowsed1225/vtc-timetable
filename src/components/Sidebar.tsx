@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { HybridAttendanceStats } from "@/app/actions";
+import { HybridAttendanceStats, deduplicateData } from "@/app/actions";
 import { PASTEL_COLORS } from "@/lib/colors";
 import { CalendarEvent } from "@/types/timetable";
 import AttendanceModal from "./AttendanceModal";
@@ -77,34 +77,56 @@ export default function Sidebar({
     const [calculatingCourse, setCalculatingCourse] = useState<HybridAttendanceStats | null>(null);
 
 
-    // Global Attendance Stats (Current Semester only) - Using Calendar-based totals
+    // Global Attendance Stats (Current Semester only) - Using class counts
     const globalStats = useMemo(() => {
-        let totalAttendedHours = 0;
-        let totalConductedHours = 0;
-        let totalRequiredHours80 = 0;
+        let totalAttended = 0;
+        let totalConducted = 0;
+        let totalClasses = 0;
+        let totalRemaining = 0;
         let hasActive = false;
 
         attendance.forEach(course => {
             if (course.status === "ACTIVE") {
-                // Use calendar-based hours for accurate totals
-                const attendRate = course.calendarConductedClasses > 0
-                    ? (course.attended / course.calendarConductedClasses)
-                    : 0;
-                const attendedHours = course.calendarConductedHours * attendRate;
-
-                totalAttendedHours += attendedHours;
-                totalConductedHours += course.calendarConductedHours;
-                totalRequiredHours80 += course.calendarTotalHours * 0.8;
+                totalAttended += course.attended || 0;
+                totalConducted += course.calendarConductedClasses || 0;
+                totalClasses += course.calendarTotalClasses || 0;
+                totalRemaining += course.calendarRemainingClasses || 0;
                 hasActive = true;
             }
         });
 
+        // Calculate rates
+        const currentRate = totalConducted > 0
+            ? (totalAttended / totalConducted) * 100
+            : 100;
+        const maxPossibleRate = totalClasses > 0
+            ? ((totalAttended + totalRemaining) / totalClasses) * 100
+            : 100;
+
+        // Color coding
+        let colorClass = "text-green-500";
+        let bgClass = "bg-green-500";
+        if (currentRate < 80) {
+            colorClass = "text-red-500";
+            bgClass = "bg-red-500";
+        } else if (currentRate < 90) {
+            colorClass = "text-yellow-500";
+            bgClass = "bg-yellow-500";
+        }
+
         return {
-            attended: Math.round(totalAttendedHours * 10) / 10,
-            required: Math.round(totalRequiredHours80 * 10) / 10,
+            attended: totalAttended,
+            conducted: totalConducted,
+            total: totalClasses,
+            remaining: totalRemaining,
+            currentRate: Math.round(currentRate * 10) / 10,
+            maxPossibleRate: Math.round(maxPossibleRate * 10) / 10,
+            colorClass,
+            bgClass,
             hasActive
         };
     }, [attendance]);
+
 
     // Group courses by semester and determine initial expand state
     const groupedCourses = useMemo(() => {
@@ -363,25 +385,32 @@ export default function Sidebar({
                                 </button>
                             </div>
 
-                            {/* Global Stats Header */}
+                            {/* Current Status Dashboard - Hero Card */}
                             {globalStats.hasActive && (
-                                <div className="mb-4 p-3 bg-[var(--calendar-header-bg)] rounded-xl border border-[var(--calendar-border)]">
-                                    <div className="flex flex-col gap-1">
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-xs text-[var(--text-secondary)]">Current Semester Attended</span>
-                                            <span className="text-sm font-bold">{globalStats.attended} hrs</span>
-                                        </div>
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-xs text-[var(--text-secondary)]">Min Required (80%)</span>
-                                            <span className="text-sm font-medium text-[var(--text-tertiary)]">{globalStats.required} hrs</span>
-                                        </div>
-                                        <div className="mt-2 w-full h-1.5 bg-[var(--calendar-border)] rounded-full overflow-hidden">
-                                            <div
-                                                className={`h-full rounded-full transition-all duration-500 ${globalStats.attended < globalStats.required ? 'bg-red-500' : 'bg-green-500'}`}
-                                                style={{ width: `${Math.min((globalStats.attended / Math.max(1, globalStats.required)) * 100, 100)}%` }}
-                                            />
-                                        </div>
+                                <div className="mb-4 p-4 bg-[var(--calendar-header-bg)] rounded-xl border border-[var(--calendar-border)]">
+                                    {/* Big Percentage Number */}
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">Current Standing</span>
+                                        <span className={`text-3xl font-bold ${globalStats.colorClass}`}>
+                                            {globalStats.currentRate.toFixed(1)}%
+                                        </span>
                                     </div>
+
+                                    {/* Progress Bar */}
+                                    <div className="w-full h-2 bg-[var(--calendar-border)] rounded-full overflow-hidden mb-2">
+                                        <div
+                                            className={`h-full rounded-full transition-all duration-500 ${globalStats.bgClass}`}
+                                            style={{ width: `${Math.min(globalStats.currentRate, 100)}%` }}
+                                        />
+                                    </div>
+
+                                    {/* Sub-text */}
+                                    <p className="text-xs text-[var(--text-secondary)]">
+                                        Attended <span className="font-medium">{globalStats.attended}</span> out of <span className="font-medium">{globalStats.conducted}</span> classes conducted
+                                    </p>
+                                    <p className="text-[10px] text-[var(--text-tertiary)] mt-1">
+                                        Max possible: {globalStats.maxPossibleRate.toFixed(1)}% • {globalStats.remaining} classes remaining
+                                    </p>
                                 </div>
                             )}
 
@@ -415,15 +444,10 @@ export default function Sidebar({
                                                 {isExpanded && (
                                                     <div className="ml-5 mt-1 space-y-1 animate-fadeIn">
                                                         {data.items.map((course) => {
-                                                            const rate = course.currentAttendanceRate ?? 0;
-                                                            const attended = course.attended ?? 0;
-                                                            const late = course.late ?? 0;
-                                                            const absent = course.absent ?? 0;
-                                                            const onTime = attended - late;
-                                                            // Use calendar total if available, fallback to API total
-                                                            const total = course.calendarTotalClasses > 0
-                                                                ? course.calendarTotalClasses
-                                                                : (course.totalClasses ?? 0);
+                                                            const rate = course.minutesAttendanceRate ?? course.currentAttendanceRate ?? 0;
+                                                            const maxRate = course.maxPossibleMinutesRate ?? course.maxPossibleRate ?? 100;
+                                                            const attended = course.attended || 0;
+                                                            const totalClasses = course.calendarTotalClasses || 0;
                                                             const isFinished = course.status === "FINISHED";
 
                                                             return (
@@ -437,41 +461,55 @@ export default function Sidebar({
                                                                             {course.courseCode}
                                                                         </span>
                                                                         <div className="flex items-center gap-1">
+                                                                            {/* Recovery Status Badge */}
+                                                                            {!isFinished && course.recoveryStatus === "recoverable" && (
+                                                                                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">
+                                                                                    Recoverable ⚠️
+                                                                                </span>
+                                                                            )}
+                                                                            {!isFinished && course.recoveryStatus === "failed" && (
+                                                                                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                                                                                    Failed ❌
+                                                                                </span>
+                                                                            )}
                                                                             {course.isFollowUp && (
-                                                                                <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
+                                                                                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
                                                                                     Follow-up
                                                                                 </span>
                                                                             )}
                                                                             {isFinished && (
-                                                                                <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+                                                                                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
                                                                                     Finished
                                                                                 </span>
                                                                             )}
                                                                         </div>
                                                                         <span
-                                                                            className={`text-sm font-semibold ml-2 ${course.isLow ? "text-red-500" : "text-green-500"}`}
+                                                                            className={`text-sm font-semibold ml-2 ${
+                                                                                // Grace period: use neutral yellow instead of alarming red
+                                                                                course.recoveryStatus === "grace"
+                                                                                    ? "text-yellow-500"
+                                                                                    : rate < 80
+                                                                                        ? "text-red-500"
+                                                                                        : rate < 90
+                                                                                            ? "text-yellow-500"
+                                                                                            : "text-green-500"
+                                                                                }`}
                                                                         >
                                                                             {rate.toFixed(1)}%
                                                                         </span>
                                                                     </div>
                                                                     <div className="w-full h-1.5 bg-[var(--calendar-border)] rounded-full overflow-hidden mb-1.5">
                                                                         <div
-                                                                            className={`h-full rounded-full transition-all duration-500 ${course.isLow ? "bg-red-500" : "bg-green-500"}`}
+                                                                            className={`h-full rounded-full transition-all duration-500 ${rate < 80 ? "bg-red-500" : rate < 90 ? "bg-yellow-500" : "bg-green-500"}`}
                                                                             style={{
                                                                                 width: `${Math.min(rate, 100)}%`,
                                                                                 filter: isFinished ? "grayscale(50%)" : "none",
                                                                             }}
                                                                         />
                                                                     </div>
-                                                                    <div className="flex items-center gap-3 text-xs text-[var(--text-tertiary)]">
-                                                                        <span className="text-green-600">✓ {onTime}</span>
-                                                                        {late > 0 && (
-                                                                            <span className="text-yellow-600">⏱ {late}</span>
-                                                                        )}
-                                                                        {absent > 0 && (
-                                                                            <span className="text-red-500">✗ {absent}</span>
-                                                                        )}
-                                                                        <span className="ml-auto">{attended}/{total} classes</span>
+                                                                    <div className="flex items-center justify-between text-[10px] text-[var(--text-tertiary)]">
+                                                                        <span>{attended} / {totalClasses} classes</span>
+                                                                        <span className="text-gray-400">Max: {maxRate.toFixed(0)}%</span>
                                                                     </div>
                                                                 </button>
                                                             );

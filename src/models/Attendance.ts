@@ -127,8 +127,8 @@ const AttendanceSchema = new Schema<IAttendance>(
     }
 );
 
-// Unique compound index - one attendance record per course per user per semester
-AttendanceSchema.index({ courseCode: 1, discordId: 1, semester: 1 }, { unique: true });
+// Unique compound index - one attendance record per course per user per student per semester
+AttendanceSchema.index({ courseCode: 1, discordId: 1, vtcStudentId: 1, semester: 1 }, { unique: true });
 
 // Prevent model overwrite in development (hot reload)
 const Attendance: Model<IAttendance> =

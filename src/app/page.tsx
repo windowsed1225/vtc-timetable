@@ -419,6 +419,10 @@ export default function Home() {
         event={selectedEvent}
         isOpen={selectedEvent !== null}
         onClose={() => setSelectedEvent(null)}
+        onRefresh={() => {
+          loadStoredData();
+          fetchAttendance();
+        }}
       />
     </div>
   );

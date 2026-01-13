@@ -40,7 +40,7 @@ export default function AttendanceModal({ course, onClose }: AttendanceModalProp
 
     if (!course) return null;
 
-    const rate = course.attendRate ?? 0;
+    const rate = course.minutesAttendanceRate ?? course.attendRate ?? 0;
     const attended = course.attended ?? 0;
     const late = course.late ?? 0;
     const onTime = attended - late;
@@ -102,23 +102,59 @@ export default function AttendanceModal({ course, onClose }: AttendanceModalProp
                     </button>
                 </div>
 
-                {/* Stats Bar - Using Calendar-based totals */}
+                {/* Stats Bar - Detailed Breakdown */}
                 <div className="px-4 py-3 bg-[rgba(0,0,0,0.02)] dark:bg-[rgba(255,255,255,0.02)] border-b border-[var(--sidebar-border)]">
-                    <div className="flex items-center justify-between text-sm mb-2">
-                        <div className="flex items-center gap-4">
-                            <span className="text-green-600">✓ {onTime} on time</span>
-                            {late > 0 && <span className="text-yellow-600">⏱ {late} late</span>}
-                            {course.absent > 0 && <span className="text-red-500">✗ {course.absent} absent</span>}
+                    {/* Detailed Stats Row */}
+                    <div className="flex items-center justify-between text-xs mb-2 flex-wrap gap-x-3 gap-y-1">
+                        <div className="flex items-center gap-1 text-green-600">
+                            <span>✓</span>
+                            <span className="font-medium">{(course.attended || 0) - (course.late || 0)} on time</span>
                         </div>
-                        <span className="text-[var(--text-tertiary)]">
-                            {attended}/{course.calendarConductedClasses} conducted ({course.calendarRemainingClasses} remaining)
+                        <div className="flex items-center gap-1 text-yellow-600">
+                            <span>🕐</span>
+                            <span className="font-medium">{course.late || 0} late</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-red-600">
+                            <span>✗</span>
+                            <span className="font-medium">{course.absent || 0} absent</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-[var(--text-tertiary)] ml-auto">
+                            <span className="font-medium">
+                                {course.calendarConductedClasses || 0}/{course.calendarTotalClasses || 0} conducted
+                            </span>
+                            <span>({course.calendarRemainingClasses || 0} remaining)</span>
+                        </div>
+                    </div>
+
+                    {/* Centered Percentage Display */}
+                    <div className="flex justify-center mb-2">
+                        <span className={`text-2xl font-bold ${(course.minutesAttendanceRate ?? course.currentAttendanceRate) < 80 ? "text-red-500" : "text-green-500"}`}>
+                            {(course.minutesAttendanceRate ?? course.currentAttendanceRate).toFixed(1)}%
                         </span>
                     </div>
-                    <div className="w-full h-2 bg-[var(--calendar-border)] rounded-full overflow-hidden">
+
+                    {/* Progress Bar */}
+                    <div className="w-full h-2 bg-[var(--calendar-border)] rounded-full overflow-hidden mb-2">
                         <div
-                            className={`h-full rounded-full transition-all duration-500 ${course.currentAttendanceRate < 80 ? "bg-red-500" : "bg-green-500"}`}
-                            style={{ width: `${Math.min(course.currentAttendanceRate, 100)}%` }}
+                            className={`h-full rounded-full transition-all duration-500 ${(course.minutesAttendanceRate ?? course.currentAttendanceRate) < 80 ? "bg-red-500" : "bg-green-500"}`}
+                            style={{ width: `${Math.min(course.minutesAttendanceRate ?? course.currentAttendanceRate, 100)}%` }}
                         />
+                    </div>
+
+                    {/* Max Possible & Status */}
+                    <div className="flex items-center justify-between text-xs text-[var(--text-tertiary)]">
+                        <span>
+                            Max Possible: <span className="font-medium">{(course.maxPossibleMinutesRate ?? course.maxPossibleRate).toFixed(1)}%</span>
+                        </span>
+                        {course.recoveryStatus === "safe" && (
+                            <span className="text-green-600 font-medium">✓ Safe</span>
+                        )}
+                        {course.recoveryStatus === "recoverable" && (
+                            <span className="text-yellow-600 font-medium">⚠️ Recoverable</span>
+                        )}
+                        {course.recoveryStatus === "failed" && (
+                            <span className="text-red-600 font-medium">❌ Failed</span>
+                        )}
                     </div>
                 </div>
 
@@ -134,10 +170,10 @@ export default function AttendanceModal({ course, onClose }: AttendanceModalProp
                                     {/* Status Icon */}
                                     <div
                                         className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs ${(cls.attendTime === "MANUAL" ? (manualMarks[cls.id] || cls.status) : cls.status) === "attended"
-                                                ? "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
-                                                : (cls.attendTime === "MANUAL" ? (manualMarks[cls.id] || cls.status) : cls.status) === "late"
-                                                    ? "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400"
-                                                    : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+                                            ? "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
+                                            : (cls.attendTime === "MANUAL" ? (manualMarks[cls.id] || cls.status) : cls.status) === "late"
+                                                ? "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                                : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
                                             }`}
                                     >
                                         {(cls.attendTime === "MANUAL" ? (manualMarks[cls.id] || cls.status) : cls.status) === "attended"

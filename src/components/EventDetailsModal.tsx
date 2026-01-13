@@ -8,12 +8,14 @@ interface EventDetailsModalProps {
     event: CalendarEvent | null;
     isOpen: boolean;
     onClose: () => void;
+    onRefresh?: () => void;
 }
 
 export default function EventDetailsModal({
     event,
     isOpen,
     onClose,
+    onRefresh,
 }: EventDetailsModalProps) {
     const [isEditing, setIsEditing] = useState(false);
     const [editStartTime, setEditStartTime] = useState("");
@@ -66,6 +68,7 @@ export default function EventDetailsModal({
 
         setIsLoading(false);
         setIsEditing(false);
+        if (onRefresh) onRefresh();
         onClose();
     };
 
@@ -77,6 +80,7 @@ export default function EventDetailsModal({
             await setEventStatus(vtc_id, "CANCELED");
         }
         setIsLoading(false);
+        if (onRefresh) onRefresh();
         onClose();
     };
 
@@ -85,6 +89,7 @@ export default function EventDetailsModal({
         setIsLoading(true);
         await finishCourseEarly(event.resource?.courseCode!, event.resource?.semester!);
         setIsLoading(false);
+        if (onRefresh) onRefresh();
         onClose();
     };
 
@@ -104,6 +109,7 @@ export default function EventDetailsModal({
         const result = await toggleEventAttendance(vtc_id, newStatus);
         console.log("Toggle result:", result);
         setIsLoading(false);
+        if (onRefresh) onRefresh();
         onClose();
     };
 

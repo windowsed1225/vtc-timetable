@@ -17,6 +17,36 @@ const SEMESTER_MAP: Record<number, number[]> = {
     3: [5, 6, 7, 8], // May-Aug (Summer)
 };
 
+/**
+ * Calculate duration in minutes between two dates
+ */
+function getDurationInMinutes(start: Date, end: Date): number {
+    return (new Date(end).getTime() - new Date(start).getTime()) / 1000 / 60;
+}
+
+/**
+ * Normalize a date string to ISO format (YYYY-MM-DD)
+ * Handles DD/MM/YYYY (VTC API format) and YYYY-MM-DD (ISO format)
+ */
+function normalizeToISODate(dateStr: string): string {
+    if (!dateStr) return "";
+    // Check if already in ISO format (YYYY-MM-DD)
+    if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+        return dateStr.split("T")[0]; // Remove time portion if present
+    }
+    // Handle DD/MM/YYYY format (VTC API)
+    const parts = dateStr.split("/");
+    if (parts.length === 3) {
+        const [day, month, year] = parts;
+        return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    }
+    // Handle D/M/YYYY format (VTC API with single digits)
+    if (dateStr.includes("/")) {
+        const [day, month, year] = dateStr.split("/");
+        return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    }
+    return dateStr;
+}
 
 // Define the expected response structure from vtc-api
 interface TimetableData {
@@ -145,7 +175,7 @@ export async function syncVtcData(vtcUrl: string, semesterNum: number = 2): Prom
 
                         return {
                             updateOne: {
-                                filter: { vtc_id: event.id, discordId, semester: semCategory },
+                                filter: { vtc_id: event.id, discordId, vtcStudentId, semester: semCategory },
                                 update: [
                                     {
                                         $set: {
@@ -317,7 +347,7 @@ export async function syncVtcData(vtcUrl: string, semesterNum: number = 2): Prom
 
                     return {
                         updateOne: {
-                            filter: { courseCode: course.courseCode, discordId, semester: courseSemester },
+                            filter: { courseCode: course.courseCode, discordId, vtcStudentId, semester: courseSemester },
                             update: {
                                 $set: {
                                     discordId,
@@ -365,6 +395,88 @@ export async function syncVtcData(vtcUrl: string, semesterNum: number = 2): Prom
         };
     }
 }
+
+/**
+ * Deduplicate events and attendance data
+ * Removes duplicate records keeping only the most recently updated version
+ */
+export async function deduplicateData(): Promise<{
+    success: boolean;
+    error?: string;
+    deletedEvents?: number;
+    deletedAttendance?: number;
+}> {
+    try {
+        const session = await auth();
+        if (!session?.user?.discordId) {
+            return { success: false, error: "Please sign in first." };
+        }
+
+        await connectDB();
+        const discordId = session.user.discordId;
+
+        // Deduplicate Events - group by unique key and keep the newest
+        const eventDuplicates = await Event.aggregate([
+            { $match: { discordId } },
+            {
+                $group: {
+                    _id: { vtc_id: "$vtc_id", discordId: "$discordId", semester: "$semester" },
+                    docs: { $push: { _id: "$_id", updatedAt: "$updatedAt" } },
+                    count: { $sum: 1 }
+                }
+            },
+            { $match: { count: { $gt: 1 } } }
+        ]);
+
+        let deletedEvents = 0;
+        for (const group of eventDuplicates) {
+            // Sort by updatedAt descending and keep the first (newest)
+            const sorted = group.docs.sort((a: any, b: any) =>
+                new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+            );
+            const idsToDelete = sorted.slice(1).map((d: any) => d._id);
+            if (idsToDelete.length > 0) {
+                const result = await Event.deleteMany({ _id: { $in: idsToDelete } });
+                deletedEvents += result.deletedCount;
+            }
+        }
+
+        // Deduplicate Attendance - group by unique key and keep the newest
+        const attendanceDuplicates = await Attendance.aggregate([
+            { $match: { discordId } },
+            {
+                $group: {
+                    _id: { courseCode: "$courseCode", discordId: "$discordId", semester: "$semester" },
+                    docs: { $push: { _id: "$_id", updatedAt: "$updatedAt" } },
+                    count: { $sum: 1 }
+                }
+            },
+            { $match: { count: { $gt: 1 } } }
+        ]);
+
+        let deletedAttendance = 0;
+        for (const group of attendanceDuplicates) {
+            const sorted = group.docs.sort((a: any, b: any) =>
+                new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+            );
+            const idsToDelete = sorted.slice(1).map((d: any) => d._id);
+            if (idsToDelete.length > 0) {
+                const result = await Attendance.deleteMany({ _id: { $in: idsToDelete } });
+                deletedAttendance += result.deletedCount;
+            }
+        }
+
+        revalidatePath("/");
+        return { success: true, deletedEvents, deletedAttendance };
+    } catch (error) {
+        console.error("Error deduplicating data:", error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "Failed to deduplicate data",
+        };
+    }
+}
+
 
 /**
  * Refresh attendance from VTC API using stored token
@@ -862,11 +974,24 @@ export interface HybridAttendanceStats extends AttendanceStats {
     calendarConductedHours: number;    // Past hours
     calendarRemainingHours: number;    // Future hours
 
+    // Minute-based calculations (more accurate than class counts)
+    totalAttendedMinutes: number;      // Sum of attended class durations
+    totalConductedMinutes: number;     // Sum of past class durations
+    totalSemesterMinutes: number;      // Sum of all class durations (past + future)
+    totalRemainingMinutes: number;     // Sum of future class durations
+
     // Derived calculations
     currentAttendanceRate: number;     // (attended / calendarConductedClasses) * 100
     maxPossibleRate: number;           // ((attended + calendarRemaining) / calendarTotal) * 100
+    minutesAttendanceRate: number;     // (totalAttendedMinutes / totalConductedMinutes) * 100
+    maxPossibleMinutesRate: number;    // ((totalAttendedMinutes + totalRemainingMinutes) / totalSemesterMinutes) * 100
     safeToSkipCount: number;           // How many can skip and stay above 80%
+    safeToSkipMinutes: number;         // How many minutes can skip and stay above 80%
+
+    // Recovery status (grace = early semester, no warning shown)
+    recoveryStatus: "safe" | "recoverable" | "failed" | "grace";  // Current standing
 }
+
 
 /**
  * Get stored attendance from MongoDB for the authenticated user
@@ -947,6 +1072,7 @@ export async function getHybridAttendanceStats(): Promise<{
             .sort({ courseCode: 1 })
             .lean();
 
+
         // Step 2: For each course, get calendar-based counts from Event DB
         const hybridStats: HybridAttendanceStats[] = await Promise.all(
             attendanceRecords.map(async (record: any) => {
@@ -963,7 +1089,8 @@ export async function getHybridAttendanceStats(): Promise<{
                     status: { $ne: "CANCELED" } // Exclude canceled events
                 }).lean();
 
-                // Calculate calendar-based counts
+                // Calculate calendar-based counts - use simple counts for display
+                // But keep minute tracking for accurate percentage calculations
                 let calendarTotalClasses = 0;
                 let calendarConductedClasses = 0;
                 let calendarRemainingClasses = 0;
@@ -971,42 +1098,66 @@ export async function getHybridAttendanceStats(): Promise<{
                 let calendarConductedHours = 0;
                 let calendarRemainingHours = 0;
 
+                // Minute-based tracking (for hybrid accuracy)
+                let totalSemesterMinutes = 0;
+                let totalConductedMinutes = 0;
+                let totalRemainingMinutes = 0;
+                let totalAttendedMinutes = 0;
+
+
                 for (const event of calendarEvents) {
                     const startTime = new Date(event.startTime);
                     const endTime = new Date(event.endTime);
-                    const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+                    const durationMinutes = getDurationInMinutes(startTime, endTime);
+                    const durationHours = durationMinutes / 60;
 
                     // Count all non-canceled events
                     calendarTotalClasses++;
                     calendarTotalHours += durationHours;
+                    totalSemesterMinutes += durationMinutes;
 
                     // Separate conducted (past) vs remaining (future)
                     if (endTime < now) {
                         calendarConductedClasses++;
                         calendarConductedHours += durationHours;
+                        totalConductedMinutes += durationMinutes;
                     } else {
                         calendarRemainingClasses++;
                         calendarRemainingHours += durationHours;
+                        totalRemainingMinutes += durationMinutes;
                     }
                 }
 
-                // Step 3: Calculate derived stats
+                // Calculate attended minutes using proportional method
+                // Use the attendance ratio from VTC API applied to calendar hours
                 const attended = record.attended || 0;
+                const attendanceRatio = calendarConductedClasses > 0
+                    ? attended / calendarConductedClasses
+                    : 0;
+                totalAttendedMinutes = totalConductedMinutes * attendanceRatio;
 
+                // Step 3: Calculate derived stats
                 // Current rate based on conducted classes from calendar
                 const currentAttendanceRate = calendarConductedClasses > 0
                     ? (attended / calendarConductedClasses) * 100
                     : 0;
+
 
                 // Max possible rate if attend all remaining classes
                 const maxPossibleRate = calendarTotalClasses > 0
                     ? ((attended + calendarRemainingClasses) / calendarTotalClasses) * 100
                     : 0;
 
-                // Calculate safe to skip count
-                // Formula: How many remaining classes can skip and stay >= 80%?
-                // (attended + (remaining - x)) / total >= 0.80
-                // x <= attended + remaining - (0.80 * total)
+                // Minute-based attendance rates
+                const minutesAttendanceRate = totalConductedMinutes > 0
+                    ? (totalAttendedMinutes / totalConductedMinutes) * 100
+                    : 0;
+
+                const maxPossibleMinutesRate = totalSemesterMinutes > 0
+                    ? ((totalAttendedMinutes + totalRemainingMinutes) / totalSemesterMinutes) * 100
+                    : 0;
+
+                // Calculate safe to skip count (classes)
                 let safeToSkipCount = 0;
                 if (calendarTotalClasses > 0) {
                     const requiredAttendance = Math.ceil(calendarTotalClasses * 0.8);
@@ -1014,11 +1165,40 @@ export async function getHybridAttendanceStats(): Promise<{
                     safeToSkipCount = Math.max(0, potentialTotal - requiredAttendance);
                 }
 
-                // Step 4: Handle class records - generate from calendar if no API data
-                let classes: ClassRecord[];
+                // Calculate safe to skip minutes
+                let safeToSkipMinutes = 0;
+                if (totalSemesterMinutes > 0) {
+                    const requiredMinutes = totalSemesterMinutes * 0.8;
+                    const potentialMinutes = totalAttendedMinutes + totalRemainingMinutes;
+                    safeToSkipMinutes = Math.max(0, Math.floor(potentialMinutes - requiredMinutes));
+                }
 
-                // Has API data - use it
-                classes = record.classes.map((cls: any) => ({
+                // Determine recovery status with grace period
+                // Course progress = conducted / total (0 to 1)
+                const courseProgress = totalSemesterMinutes > 0
+                    ? totalConductedMinutes / totalSemesterMinutes
+                    : 0;
+                const GRACE_PERIOD_THRESHOLD = 0.15; // 15% of semester must pass before showing warnings
+
+                let recoveryStatus: "safe" | "recoverable" | "failed" | "grace" = "safe";
+                if (maxPossibleMinutesRate < 80) {
+                    // Mathematically impossible to reach 80% - always show failed
+                    recoveryStatus = "failed";
+                } else if (minutesAttendanceRate >= 80) {
+                    recoveryStatus = "safe";
+                } else {
+                    // Current rate < 80% but still recoverable
+                    if (courseProgress < GRACE_PERIOD_THRESHOLD) {
+                        // Early semester - don't show alarming badge
+                        recoveryStatus = "grace";
+                    } else {
+                        recoveryStatus = "recoverable";
+                    }
+                }
+
+
+                // Step 4: Handle class records
+                const classes: ClassRecord[] = record.classes.map((cls: any) => ({
                     id: cls.id,
                     date: cls.date,
                     lessonTime: cls.lessonTime,
@@ -1026,7 +1206,6 @@ export async function getHybridAttendanceStats(): Promise<{
                     roomName: cls.roomName,
                     status: cls.status as "attended" | "late" | "absent",
                 }));
-
 
                 // Build hybrid stats object
                 const hybridStat: HybridAttendanceStats = {
@@ -1041,13 +1220,13 @@ export async function getHybridAttendanceStats(): Promise<{
                     attended,
                     late: record.late || 0,
                     absent: record.absent || 0,
-                    isLow: currentAttendanceRate < 80,
+                    isLow: minutesAttendanceRate < 80,
                     isFinished: record.isFinished,
                     isFollowUp: record.isFollowUp,
                     baseCourseCode: record.baseCourseCode || courseCode,
                     classes,
 
-                    // New calendar-based fields
+                    // Calendar-based fields
                     calendarTotalClasses,
                     calendarConductedClasses,
                     calendarRemainingClasses,
@@ -1055,10 +1234,20 @@ export async function getHybridAttendanceStats(): Promise<{
                     calendarConductedHours: Math.round(calendarConductedHours * 10) / 10,
                     calendarRemainingHours: Math.round(calendarRemainingHours * 10) / 10,
 
+                    // Minute-based fields
+                    totalAttendedMinutes: Math.round(totalAttendedMinutes),
+                    totalConductedMinutes: Math.round(totalConductedMinutes),
+                    totalSemesterMinutes: Math.round(totalSemesterMinutes),
+                    totalRemainingMinutes: Math.round(totalRemainingMinutes),
+
                     // Derived calculations
                     currentAttendanceRate: Math.round(currentAttendanceRate * 10) / 10,
                     maxPossibleRate: Math.round(maxPossibleRate * 10) / 10,
+                    minutesAttendanceRate: Math.round(minutesAttendanceRate * 10) / 10,
+                    maxPossibleMinutesRate: Math.round(maxPossibleMinutesRate * 10) / 10,
                     safeToSkipCount,
+                    safeToSkipMinutes,
+                    recoveryStatus,
                 };
 
                 return hybridStat;
@@ -1066,6 +1255,7 @@ export async function getHybridAttendanceStats(): Promise<{
         );
 
         return { success: true, data: hybridStats };
+
     } catch (error) {
         console.error("Error fetching hybrid attendance stats:", error);
         return {
