@@ -386,33 +386,7 @@ export default function Sidebar({
                             </div>
 
                             {/* Current Status Dashboard - Hero Card */}
-                            {globalStats.hasActive && (
-                                <div className="mb-4 p-4 bg-[var(--calendar-header-bg)] rounded-xl border border-[var(--calendar-border)]">
-                                    {/* Big Percentage Number */}
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">Current Standing</span>
-                                        <span className={`text-3xl font-bold ${globalStats.colorClass}`}>
-                                            {globalStats.currentRate.toFixed(1)}%
-                                        </span>
-                                    </div>
 
-                                    {/* Progress Bar */}
-                                    <div className="w-full h-2 bg-[var(--calendar-border)] rounded-full overflow-hidden mb-2">
-                                        <div
-                                            className={`h-full rounded-full transition-all duration-500 ${globalStats.bgClass}`}
-                                            style={{ width: `${Math.min(globalStats.currentRate, 100)}%` }}
-                                        />
-                                    </div>
-
-                                    {/* Sub-text */}
-                                    <p className="text-xs text-[var(--text-secondary)]">
-                                        Attended <span className="font-medium">{globalStats.attended}</span> out of <span className="font-medium">{globalStats.conducted}</span> classes conducted
-                                    </p>
-                                    <p className="text-[10px] text-[var(--text-tertiary)] mt-1">
-                                        Max possible: {globalStats.maxPossibleRate.toFixed(1)}% • {globalStats.remaining} classes remaining
-                                    </p>
-                                </div>
-                            )}
 
                             {attendance.length === 0 ? (
                                 <p className="text-sm text-[var(--text-tertiary)]">
