@@ -12,7 +12,7 @@ export interface TimetableEvent {
 }
 
 export type SemesterType = "SEM 1" | "SEM 2" | "SEM 3";
-export type EventStatusType = "UPCOMING" | "FINISHED" | "CANCELED" | "RESCHEDULED";
+export type EventStatusType = "UPCOMING" | "FINISHED" | "CANCELED" | "RESCHEDULED" | "ABSENT";
 
 export interface CalendarEvent {
   title: string;

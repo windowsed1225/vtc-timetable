@@ -4,7 +4,9 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 export type SemesterType = "SEM 1" | "SEM 2" | "SEM 3";
 
 // Status type
-export type EventStatusType = "UPCOMING" | "FINISHED" | "CANCELED" | "RESCHEDULED";
+export type EventStatusType = "UPCOMING" | "FINISHED" | "CANCELED" | "RESCHEDULED" | "ABSENT";
+
+// Interface for the Event document
 
 // Interface for the Event document
 export interface IEvent extends Document {
@@ -47,7 +49,7 @@ const EventSchema = new Schema<IEvent>(
         status: {
             type: String,
             default: "UPCOMING",
-            enum: ["UPCOMING", "FINISHED", "CANCELED", "RESCHEDULED"],
+            enum: ["UPCOMING", "FINISHED", "CANCELED", "RESCHEDULED", "ABSENT"],
             index: true,
         },
         vtc_id: {

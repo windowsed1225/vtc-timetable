@@ -73,14 +73,26 @@ export default function TimetableCalendar({
         // Event is finished if status says so OR if end time has passed
         const isFinished = event.resource?.status === "FINISHED" || (event.resource?.status === "UPCOMING" && event.end < now);
         const isCanceled = event.resource?.status === "CANCELED";
+        const isMarkedAbsent = event.resource?.status === "ABSENT";
         const isDark = [0, 1, 2, 5, 8, 9].includes(colorIndex);
 
+        // Determine background - red stripes for manually marked absent
+        let backgroundColor = color;
+        if (isCanceled) {
+            backgroundColor = "#fecaca";
+        } else if (isMarkedAbsent) {
+            backgroundColor = color; // Keep color, we'll add stripes via gradient
+        }
+
         return {
-            className: `event-color-${colorIndex} ${isFinished ? "event-finished" : ""} ${isCanceled ? "event-canceled" : ""}`,
+            className: `event-color-${colorIndex} ${isFinished ? "event-finished" : ""} ${isCanceled ? "event-canceled" : ""} ${isMarkedAbsent ? "event-absent" : ""}`,
             style: {
-                backgroundColor: isCanceled ? "#fecaca" : color, // light red
+                backgroundColor,
+                backgroundImage: isMarkedAbsent
+                    ? `repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(220, 38, 38, 0.3) 3px, rgba(220, 38, 38, 0.3) 6px)`
+                    : "none",
                 color: isCanceled ? "#991b1b" : (isDark ? "white" : "#1f2937"),
-                border: isCanceled ? "1px solid #f87171" : "none",
+                border: isMarkedAbsent ? "2px solid #dc2626" : (isCanceled ? "1px solid #f87171" : "none"),
                 borderRadius: "6px",
                 padding: "2px 8px",
                 fontSize: "12px",

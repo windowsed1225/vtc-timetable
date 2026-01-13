@@ -2,7 +2,7 @@
 
 import { CalendarEvent } from "@/types/timetable";
 import { useState } from "react";
-import { updateEventDetails, setEventStatus, finishCourseEarly } from "@/app/actions";
+import { updateEventDetails, setEventStatus, finishCourseEarly, toggleEventAttendance } from "@/app/actions";
 
 interface EventDetailsModalProps {
     event: CalendarEvent | null;
@@ -37,7 +37,8 @@ export default function EventDetailsModal({
     // Compute effective status based on current time
     const storedStatus = event.resource?.status || "UPCOMING";
     const now = new Date();
-    const status = storedStatus === "UPCOMING" && event.end < now ? "FINISHED" : storedStatus;
+    const isPast = event.end < now; // Has the event ended?
+    const status = storedStatus === "UPCOMING" && isPast ? "FINISHED" : storedStatus;
 
     const handleEditTime = async () => {
         if (!editStartTime || !editEndTime) return;
@@ -87,6 +88,25 @@ export default function EventDetailsModal({
         onClose();
     };
 
+    const isMarkedAbsent = event.resource?.status === "ABSENT";
+
+    const handleToggleAttendance = async () => {
+        const vtc_id = event.resource?.vtc_id;
+        console.log("Toggle attendance:", { vtc_id, isMarkedAbsent, storedStatus: event.resource?.status });
+        if (!vtc_id) {
+            console.error("No vtc_id found!");
+            return;
+        }
+        setIsLoading(true);
+        // Toggle between ABSENT and UPCOMING
+        const newStatus = isMarkedAbsent ? "UPCOMING" : "ABSENT";
+        console.log("Setting status to:", newStatus);
+        const result = await toggleEventAttendance(vtc_id, newStatus);
+        console.log("Toggle result:", result);
+        setIsLoading(false);
+        onClose();
+    };
+
     const startInputVal = `${event.start.getHours().toString().padStart(2, '0')}:${event.start.getMinutes().toString().padStart(2, '0')}`;
     const endInputVal = `${event.end.getHours().toString().padStart(2, '0')}:${event.end.getMinutes().toString().padStart(2, '0')}`;
 
@@ -99,9 +119,16 @@ export default function EventDetailsModal({
                 {/* Header */}
                 <div className="flex items-start justify-between mb-4">
                     <div className="flex-1 pr-4">
-                        <h2 className="text-lg font-semibold text-[var(--foreground)]">
-                            {event.resource?.courseCode}
-                        </h2>
+                        <div className="flex items-center gap-2">
+                            <h2 className="text-lg font-semibold text-[var(--foreground)]">
+                                {event.resource?.courseCode}
+                            </h2>
+                            {isMarkedAbsent && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                                    ❌ Absent
+                                </span>
+                            )}
+                        </div>
                         <p className="text-sm text-[var(--text-secondary)] mt-1">
                             {event.resource?.courseTitle}
                         </p>
@@ -305,57 +332,105 @@ export default function EventDetailsModal({
                     </div>
                 </div>
 
-                {/* Footer */}
+                {/* Footer - Conditional based on FINISHED vs UPCOMING */}
                 <div className="flex flex-col gap-3">
-                    <div className="flex items-center gap-2">
-                        {isEditing ? (
-                            <>
-                                <button onClick={handleEditTime} disabled={isLoading} className="btn-primary flex-1">
-                                    Save
+                    {isEditing ? (
+                        /* Edit Mode */
+                        <div className="flex items-center gap-2">
+                            <button onClick={handleEditTime} disabled={isLoading} className="btn-primary flex-1">
+                                Save
+                            </button>
+                            <button onClick={() => setIsEditing(false)} className="btn-secondary flex-1">
+                                Cancel
+                            </button>
+                        </div>
+                    ) : isPast ? (
+                        /* FINISHED (Past) Event Actions */
+                        <>
+                            <div className="flex items-center gap-2">
+                                {/* Mark as Absent Toggle */}
+                                <button
+                                    onClick={handleToggleAttendance}
+                                    disabled={isLoading || status === "CANCELED"}
+                                    className={`flex-1 text-sm py-2.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-1.5 ${isMarkedAbsent
+                                        ? 'bg-green-50 text-green-600 border border-green-200 hover:bg-green-100'
+                                        : 'bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100'
+                                        }`}
+                                >
+                                    {isMarkedAbsent ? '✅ Present' : '❌ Absent'}
                                 </button>
-                                <button onClick={() => setIsEditing(false)} className="btn-secondary flex-1">
-                                    Cancel
+
+                                {/* Void Class (Cancel for past) */}
+                                <button
+                                    onClick={handleCancelClass}
+                                    disabled={isLoading || status === "CANCELED"}
+                                    className={`flex-1 text-sm py-2.5 rounded-xl font-semibold border transition-colors ${status === "CANCELED"
+                                        ? 'bg-gray-100 text-gray-500 border-gray-200'
+                                        : 'bg-purple-50 text-purple-600 border-purple-200 hover:bg-purple-100'
+                                        }`}
+                                >
+                                    {status === "CANCELED" ? "🚫 Voided" : "🚫 Void Class"}
                                 </button>
-                            </>
-                        ) : (
-                            <>
+                            </div>
+
+                            {/* Edit Time */}
+                            <button
+                                onClick={() => {
+                                    setEditStartTime(startInputVal);
+                                    setEditEndTime(endInputVal);
+                                    setIsEditing(true);
+                                }}
+                                className="w-full py-2 px-4 rounded-xl text-sm font-medium text-[var(--text-secondary)] border border-[var(--calendar-border)] hover:bg-[rgba(0,0,0,0.03)] dark:hover:bg-[rgba(255,255,255,0.05)] transition-colors"
+                            >
+                                ✏️ Edit Time
+                            </button>
+                        </>
+                    ) : (
+                        /* UPCOMING (Future) Event Actions */
+                        <>
+                            <div className="flex items-center gap-2">
+                                {/* Cancel Class */}
+                                <button
+                                    onClick={handleCancelClass}
+                                    disabled={isLoading || status === "CANCELED"}
+                                    className={`flex-1 text-sm py-2.5 rounded-xl font-semibold border transition-colors ${status === "CANCELED"
+                                        ? 'bg-red-50 text-red-500 border-red-200'
+                                        : 'bg-white text-red-600 border-red-200 hover:bg-red-50'
+                                        }`}
+                                >
+                                    {status === "CANCELED" ? "🚫 Canceled" : "🚫 Cancel Class"}
+                                </button>
+
+                                {/* Edit Time */}
                                 <button
                                     onClick={() => {
                                         setEditStartTime(startInputVal);
                                         setEditEndTime(endInputVal);
                                         setIsEditing(true);
                                     }}
-                                    className="btn-secondary flex-1 text-sm py-2"
+                                    className="flex-1 text-sm py-2.5 rounded-xl font-medium text-[var(--text-secondary)] border border-[var(--calendar-border)] hover:bg-[rgba(0,0,0,0.03)] dark:hover:bg-[rgba(255,255,255,0.05)] transition-colors"
                                 >
-                                    Edit Time
+                                    ✏️ Edit Time
                                 </button>
-                                <button
-                                    onClick={handleCancelClass}
-                                    disabled={isLoading || status === "CANCELED"}
-                                    className={`flex-1 text-sm py-2 rounded-xl font-medium border transition-colors ${status === "CANCELED" ? 'bg-red-50 text-red-500 border-red-200' : 'bg-white text-red-600 border-red-200 hover:bg-red-50'}`}
-                                >
-                                    {status === "CANCELED" ? "Canceled" : "Class Canceled"}
-                                </button>
-                            </>
-                        )}
-                    </div>
+                            </div>
 
-                    {!isEditing && (
-                        <div className="pt-3 border-t border-[var(--sidebar-border)]">
-                            <button
-                                onClick={handleFinishEarly}
-                                disabled={isLoading}
-                                className="w-full py-2.5 px-4 rounded-xl text-sm font-semibold text-red-600 border border-red-200 hover:bg-red-50 transition-all flex items-center justify-center gap-2"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-                                </svg>
-                                Finish Course Early
-                            </button>
-                            <p className="text-[10px] text-[var(--text-tertiary)] text-center mt-2 px-4 leading-tight">
-                                This will mark ALL future sessions of this course as finished and remove them from attendance prediction.
-                            </p>
-                        </div>
+                            {/* Finish Course Early */}
+                            <div className="pt-3 border-t border-[var(--sidebar-border)]">
+                                <button
+                                    onClick={handleFinishEarly}
+                                    disabled={isLoading}
+                                    className="w-full py-2.5 px-4 rounded-xl text-sm font-semibold text-red-600 border border-red-200 hover:bg-red-50 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                                    </svg>
+                                    Finish Course Early
+                                </button>
+                                <p className="text-[10px] text-[var(--text-tertiary)] text-center mt-2 px-4 leading-tight">
+                                    This will mark ALL future sessions of this course as finished.
+                                </p>
+                            </div>
+                        </>
                     )}
                 </div>
             </div>

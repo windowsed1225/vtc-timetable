@@ -608,6 +608,126 @@ export async function syncTimetable(
 }
 
 /**
+ * Toggle manual attendance status for an event
+ * Sets status to ABSENT or restores to UPCOMING
+ * For follow-up courses (ending with A), also syncs to Attendance.classes
+ */
+export async function toggleEventAttendance(
+    vtcId: string,
+    status: "UPCOMING" | "ABSENT"
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const session = await auth();
+        if (!session?.user?.discordId) {
+            return { success: false, error: "Please sign in first." };
+        }
+
+        await connectDB();
+
+        // Update Event model status field
+        const event = await Event.findOneAndUpdate(
+            { vtc_id: vtcId, discordId: session.user.discordId },
+            { status: status },
+            { new: true }
+        );
+
+        if (!event) {
+            return { success: false, error: "Event not found." };
+        }
+
+        // For follow-up courses (ending with A), also sync to Attendance
+        const isFollowUp = /A$/.test(event.courseCode);
+        if (isFollowUp) {
+            const attendanceStatus = status === "ABSENT" ? "absent" : "attended";
+            const eventDate = new Date(event.startTime);
+            const dateStr = eventDate.toISOString().split("T")[0]; // YYYY-MM-DD
+            const startHour = eventDate.getHours().toString().padStart(2, "0");
+            const startMin = eventDate.getMinutes().toString().padStart(2, "0");
+            const endDate = new Date(event.endTime);
+            const endHour = endDate.getHours().toString().padStart(2, "0");
+            const endMin = endDate.getMinutes().toString().padStart(2, "0");
+            const lessonTime = `${startHour}:${startMin} - ${endHour}:${endMin}`;
+
+            // Check if Attendance record exists
+            let attendance = await Attendance.findOne({
+                courseCode: event.courseCode,
+                discordId: session.user.discordId,
+            });
+
+            // If no Attendance record exists, create one (for courses without VTC data)
+            if (!attendance) {
+                attendance = new Attendance({
+                    discordId: session.user.discordId,
+                    vtcStudentId: event.vtcStudentId || "",
+                    semester: event.semester,
+                    status: "ACTIVE",
+                    courseCode: event.courseCode,
+                    courseName: event.courseTitle,
+                    attendRate: 0,
+                    totalClasses: 0,
+                    conductedClasses: 0,
+                    attended: 0,
+                    late: 0,
+                    absent: 0,
+                    isFinished: false,
+                    isFollowUp: true,
+                    baseCourseCode: event.courseCode.slice(0, -1),
+                    classes: [],
+                });
+            }
+
+            // Check if this class already exists in the array
+            const existingClassIndex = attendance.classes.findIndex(
+                (cls: any) => cls.id === vtcId
+            );
+
+            if (existingClassIndex >= 0) {
+                // Update existing class record
+                attendance.classes[existingClassIndex].status = attendanceStatus;
+                attendance.classes[existingClassIndex].attendTime = "MANUAL";
+            } else {
+                // Add new class record
+                attendance.classes.push({
+                    id: vtcId,
+                    date: dateStr,
+                    lessonTime,
+                    attendTime: "MANUAL",
+                    roomName: event.location || "",
+                    status: attendanceStatus,
+                });
+            }
+
+            // Recalculate counts
+            let attended = 0, late = 0, absent = 0;
+            for (const cls of attendance.classes) {
+                if (cls.status === "attended") attended++;
+                else if (cls.status === "late") { late++; attended++; }
+                else if (cls.status === "absent") absent++;
+            }
+
+            attendance.attended = attended;
+            attendance.late = late;
+            attendance.absent = absent;
+            attendance.conductedClasses = attendance.classes.length;
+            attendance.attendRate = attendance.conductedClasses > 0
+                ? Math.round((attended / attendance.conductedClasses) * 1000) / 10
+                : 0;
+
+            await attendance.save();
+        }
+
+        revalidatePath("/");
+        return { success: true };
+    } catch (error) {
+        console.error("Error toggling attendance:", error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "Failed to update attendance",
+        };
+    }
+}
+
+/**
  * Get stored events from MongoDB for the authenticated user
  */
 export async function getStoredEvents(): Promise<{
