@@ -49,8 +49,34 @@ export async function GET(
         // Connect to MongoDB
         await connectDB();
 
+        // Fetch user to get vtcStudentId
+        const User = (await import("@/models/User")).default;
+        const user = await User.findOne({ discordId }).lean();
+        if (!user?.vtcStudentId) {
+            // Return empty calendar if user not found or no VTC data
+            const emptyCalendar = [
+                "BEGIN:VCALENDAR",
+                "VERSION:2.0",
+                "PRODID:-//VTC Timetable//EN",
+                "CALSCALE:GREGORIAN",
+                "METHOD:PUBLISH",
+                "X-WR-CALNAME:VTC Timetable",
+                "END:VCALENDAR",
+            ].join("\r\n");
+
+            return new NextResponse(emptyCalendar, {
+                status: 200,
+                headers: {
+                    "Content-Type": "text/calendar; charset=utf-8",
+                    "Content-Disposition": 'attachment; filename="vtc-schedule.ics"',
+                    "Cache-Control": "s-maxage=3600, stale-while-revalidate",
+                },
+            });
+        }
+        const vtcStudentId = user.vtcStudentId;
+
         // Build query - optionally filter by semester
-        const query: { discordId: string; semester?: string } = { discordId };
+        const query: { vtcStudentId: string; semester?: string } = { vtcStudentId };
         if (semesterFilter && ["SEM 1", "SEM 2", "SEM 3"].includes(semesterFilter)) {
             query.semester = semesterFilter;
         }

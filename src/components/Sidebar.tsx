@@ -11,6 +11,7 @@ import SubscribeButton from "./SubscribeButton";
 import ExportSemesterButton from "./ExportSemesterButton";
 import SkippingCalculator from "./SkippingCalculator";
 import { calculateSkippingStats } from "@/lib/attendance-logic";
+import UserDropdown from "./UserDropdown";
 
 // Semester display names
 const SEMESTER_LABELS: Record<string, string> = {
@@ -230,19 +231,7 @@ export default function Sidebar({
                     <div className="flex items-center justify-between">
                         <h1 className="text-xl font-semibold tracking-tight">Calendar</h1>
                         {user ? (
-                            <button
-                                onClick={onSignOut}
-                                className="flex items-center gap-2 text-sm text-[var(--text-secondary)] hover:text-[var(--foreground)] transition-colors"
-                                title="Sign out"
-                            >
-                                {user.image && (
-                                    <img
-                                        src={user.image}
-                                        alt={user.name || "User"}
-                                        className="w-6 h-6 rounded-full"
-                                    />
-                                )}
-                            </button>
+                            <UserDropdown user={user} />
                         ) : (
                             <button
                                 onClick={onSignIn}
@@ -384,8 +373,6 @@ export default function Sidebar({
                                     </svg>
                                 </button>
                             </div>
-
-                            {/* Current Status Dashboard - Hero Card */}
 
 
                             {attendance.length === 0 ? (

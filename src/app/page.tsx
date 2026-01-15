@@ -10,7 +10,7 @@ import {
   getHybridAttendanceStats,
   refreshAttendance,
   HybridAttendanceStats,
-} from "./actions";
+} from "@/app/actions";
 import { CalendarEvent } from "@/types/timetable";
 import { getDateArray } from "@/lib/utils";
 import { createEvents, EventAttributes } from "ics";
@@ -18,6 +18,7 @@ import TimetableCalendar from "@/components/TimetableCalendar";
 import Sidebar from "@/components/Sidebar";
 import SyncModal from "@/components/SyncModal";
 import EventDetailsModal from "@/components/EventDetailsModal";
+import SignInModal from "@/components/SignInModal";
 
 export default function Home() {
   // Auth state
@@ -41,6 +42,7 @@ export default function Home() {
   const [isRefreshingAttendance, setIsRefreshingAttendance] = useState(false);
   const [isRefreshingCalendar, setIsRefreshingCalendar] = useState(false);
   const [showSyncModal, setShowSyncModal] = useState(false);
+  const [showSignInModal, setShowSignInModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [notification, setNotification] = useState<{
     type: "success" | "error";
@@ -271,7 +273,7 @@ export default function Home() {
         attendance={attendance}
         onSyncClick={() => { setShowSyncModal(true); setSidebarOpen(false); }}
         onExportClick={() => { handleExport(); setSidebarOpen(false); }}
-        onSignIn={() => signIn("discord")}
+        onSignIn={() => { setShowSignInModal(true); setSidebarOpen(false); }}
         onSignOut={() => signOut()}
         onRefreshAttendance={handleRefreshAttendance}
         onRefreshCalendar={handleRefreshCalendar}
@@ -423,6 +425,12 @@ export default function Home() {
           loadStoredData();
           fetchAttendance();
         }}
+      />
+
+      {/* Sign In Modal */}
+      <SignInModal
+        isOpen={showSignInModal}
+        onClose={() => setShowSignInModal(false)}
       />
     </div>
   );

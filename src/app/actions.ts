@@ -170,16 +170,20 @@ export async function syncVtcData(vtcUrl: string, semesterNum: number = 2): Prom
                     const events = response.payload.timetable.add;
 
                     const bulkOps = events.map((event: TimetableEvent) => {
+                        // Validate vtc_id before inserting
+                        if (!event.id) {
+                            console.warn("Skipping event without vtc_id", event);
+                            return null;
+                        }
                         const eventEndTime = new Date(event.endTime * 1000);
                         const calculatedStatus: "FINISHED" | "UPCOMING" = eventEndTime < now ? "FINISHED" : "UPCOMING";
 
                         return {
                             updateOne: {
-                                filter: { vtc_id: event.id, discordId, vtcStudentId, semester: semCategory },
+                                filter: { vtc_id: event.id, vtcStudentId, semester: semCategory },
                                 update: [
                                     {
                                         $set: {
-                                            discordId: discordId,
                                             vtcStudentId: vtcStudentId,
                                             semester: semCategory,
                                             status: {
@@ -204,7 +208,7 @@ export async function syncVtcData(vtcUrl: string, semesterNum: number = 2): Prom
                                 upsert: true,
                             },
                         };
-                    });
+                    }).filter((op): op is NonNullable<typeof op> => op !== null); // Remove null entries from events without vtc_id
 
                     if (bulkOps.length > 0) {
                         const result = await Event.bulkWrite(bulkOps);
@@ -260,7 +264,7 @@ export async function syncVtcData(vtcUrl: string, semesterNum: number = 2): Prom
 
         // First, build a map of courseCode -> semester from Calendar events
         const courseToSemesterMap: Record<string, string> = {};
-        const existingEvents = await Event.find({ discordId }).select('courseCode semester').lean();
+        const existingEvents = await Event.find({ vtcStudentId }).select('courseCode semester').lean();
         for (const event of existingEvents) {
             // Use the most recent semester for each course (in case of duplicates)
             if (!courseToSemesterMap[event.courseCode] ||
@@ -347,10 +351,9 @@ export async function syncVtcData(vtcUrl: string, semesterNum: number = 2): Prom
 
                     return {
                         updateOne: {
-                            filter: { courseCode: course.courseCode, discordId, vtcStudentId, semester: courseSemester },
+                            filter: { courseCode: course.courseCode, vtcStudentId, semester: courseSemester },
                             update: {
                                 $set: {
-                                    discordId,
                                     vtcStudentId,
                                     semester: courseSemester,
                                     status: attendanceStatus,
@@ -415,12 +418,19 @@ export async function deduplicateData(): Promise<{
         await connectDB();
         const discordId = session.user.discordId;
 
+        // Fetch user to get vtcStudentId
+        const user = await User.findOne({ discordId }).lean();
+        if (!user?.vtcStudentId) {
+            return { success: false, error: "No VTC student ID found. Please sync your schedule first." };
+        }
+        const vtcStudentId = user.vtcStudentId;
+
         // Deduplicate Events - group by unique key and keep the newest
         const eventDuplicates = await Event.aggregate([
-            { $match: { discordId } },
+            { $match: { vtcStudentId } },
             {
                 $group: {
-                    _id: { vtc_id: "$vtc_id", discordId: "$discordId", semester: "$semester" },
+                    _id: { vtc_id: "$vtc_id", vtcStudentId: "$vtcStudentId", semester: "$semester" },
                     docs: { $push: { _id: "$_id", updatedAt: "$updatedAt" } },
                     count: { $sum: 1 }
                 }
@@ -443,10 +453,10 @@ export async function deduplicateData(): Promise<{
 
         // Deduplicate Attendance - group by unique key and keep the newest
         const attendanceDuplicates = await Attendance.aggregate([
-            { $match: { discordId } },
+            { $match: { vtcStudentId } },
             {
                 $group: {
-                    _id: { courseCode: "$courseCode", discordId: "$discordId", semester: "$semester" },
+                    _id: { courseCode: "$courseCode", vtcStudentId: "$vtcStudentId", semester: "$semester" },
                     docs: { $push: { _id: "$_id", updatedAt: "$updatedAt" } },
                     count: { $sum: 1 }
                 }
@@ -568,10 +578,9 @@ export async function refreshAttendance(): Promise<{
 
                 return {
                     updateOne: {
-                        filter: { courseCode: course.courseCode, discordId },
+                        filter: { courseCode: course.courseCode, vtcStudentId },
                         update: {
                             $set: {
-                                discordId,
                                 vtcStudentId,
                                 courseCode: course.courseCode,
                                 courseName: course.name?.en || course.courseCode,
@@ -736,9 +745,16 @@ export async function toggleEventAttendance(
 
         await connectDB();
 
+        // Fetch user to get vtcStudentId
+        const user = await User.findOne({ discordId: session.user.discordId }).lean();
+        if (!user?.vtcStudentId) {
+            return { success: false, error: "No VTC student ID found. Please sync your schedule first." };
+        }
+        const vtcStudentId = user.vtcStudentId;
+
         // Update Event model status field
         const event = await Event.findOneAndUpdate(
-            { vtc_id: vtcId, discordId: session.user.discordId },
+            { vtc_id: vtcId, vtcStudentId },
             { status: status },
             { new: true }
         );
@@ -763,14 +779,13 @@ export async function toggleEventAttendance(
             // Check if Attendance record exists
             let attendance = await Attendance.findOne({
                 courseCode: event.courseCode,
-                discordId: session.user.discordId,
+                vtcStudentId,
             });
 
             // If no Attendance record exists, create one (for courses without VTC data)
             if (!attendance) {
                 attendance = new Attendance({
-                    discordId: session.user.discordId,
-                    vtcStudentId: event.vtcStudentId || "",
+                    vtcStudentId,
                     semester: event.semester,
                     status: "ACTIVE",
                     courseCode: event.courseCode,
@@ -855,7 +870,14 @@ export async function getStoredEvents(): Promise<{
 
         await connectDB();
 
-        const events = await Event.find({ discordId: session.user.discordId })
+        // Fetch user to get vtcStudentId
+        const user = await User.findOne({ discordId: session.user.discordId }).lean();
+        if (!user?.vtcStudentId) {
+            return { success: true, data: [] }; // No vtcStudentId yet, return empty
+        }
+        const vtcStudentId = user.vtcStudentId;
+
+        const events = await Event.find({ vtcStudentId })
             .sort({ startTime: 1 })
             .lean();
 
@@ -902,8 +924,15 @@ export async function getUniqueCourses(): Promise<{
 
         await connectDB();
 
+        // Fetch user to get vtcStudentId
+        const user = await User.findOne({ discordId: session.user.discordId }).lean();
+        if (!user?.vtcStudentId) {
+            return { success: true, data: [] }; // No vtcStudentId yet, return empty
+        }
+        const vtcStudentId = user.vtcStudentId;
+
         const courses = await Event.aggregate([
-            { $match: { discordId: session.user.discordId } },
+            { $match: { vtcStudentId } },
             {
                 $group: {
                     _id: { courseCode: "$courseCode", semester: "$semester" },

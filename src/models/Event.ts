@@ -10,7 +10,6 @@ export type EventStatusType = "UPCOMING" | "FINISHED" | "CANCELED" | "RESCHEDULE
 
 // Interface for the Event document
 export interface IEvent extends Document {
-    discordId: string; // Foreign key - links to User
     vtcStudentId: string; // Foreign key - VTC student ID
     semester: SemesterType; // Semester category
     status: EventStatusType; // Event status
@@ -30,11 +29,6 @@ export interface IEvent extends Document {
 // Schema definition
 const EventSchema = new Schema<IEvent>(
     {
-        discordId: {
-            type: String,
-            required: true,
-            index: true,
-        },
         vtcStudentId: {
             type: String,
             required: true,
@@ -96,8 +90,8 @@ const EventSchema = new Schema<IEvent>(
     }
 );
 
-// Unique compound index - ensures no duplicate events per user/student/semester
-EventSchema.index({ vtc_id: 1, discordId: 1, vtcStudentId: 1, semester: 1 }, { unique: true });
+// Unique compound index - ensures no duplicate events per student/semester
+EventSchema.index({ vtc_id: 1, vtcStudentId: 1, semester: 1 }, { unique: true });
 
 // Prevent model overwrite in development (hot reload)
 const Event: Model<IEvent> =

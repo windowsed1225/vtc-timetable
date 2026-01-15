@@ -18,7 +18,6 @@ export interface IClassRecord {
 
 // Interface for the Attendance document
 export interface IAttendance extends Document {
-    discordId: string; // Foreign key - links to User
     vtcStudentId: string; // Foreign key - VTC student ID
     semester: SemesterType; // Semester category
     status: AttendanceStatusType; // Attendance status (ACTIVE/FINISHED)
@@ -41,11 +40,6 @@ export interface IAttendance extends Document {
 // Schema definition
 const AttendanceSchema = new Schema<IAttendance>(
     {
-        discordId: {
-            type: String,
-            required: true,
-            index: true,
-        },
         vtcStudentId: {
             type: String,
             required: true,
@@ -127,8 +121,8 @@ const AttendanceSchema = new Schema<IAttendance>(
     }
 );
 
-// Unique compound index - one attendance record per course per user per student per semester
-AttendanceSchema.index({ courseCode: 1, discordId: 1, vtcStudentId: 1, semester: 1 }, { unique: true });
+// Unique compound index - one attendance record per course per student per semester
+AttendanceSchema.index({ courseCode: 1, vtcStudentId: 1, semester: 1 }, { unique: true });
 
 // Prevent model overwrite in development (hot reload)
 const Attendance: Model<IAttendance> =
