@@ -66,45 +66,6 @@ export async function updateEmailPassword(
     }
 }
 
-/**
- * Update user's attendance grace period (in minutes)
- */
-export async function updateGracePeriod(
-    gracePeriod: number
-): Promise<{ success: boolean; error?: string }> {
-    try {
-        const session = await auth();
-        if (!session?.user?.discordId) {
-            return { success: false, error: "Please sign in first." };
-        }
-
-        await connectDB();
-
-        // Validate grace period range (0-60 minutes)
-        if (gracePeriod < 0 || gracePeriod > 60) {
-            return { success: false, error: "Grace period must be between 0 and 60 minutes." };
-        }
-
-        // Update user
-        const user = await User.findOneAndUpdate(
-            { discordId: session.user.discordId },
-            { attendanceGracePeriod: gracePeriod },
-            { new: true }
-        );
-
-        if (!user) {
-            return { success: false, error: "User not found." };
-        }
-
-        return { success: true };
-    } catch (error) {
-        console.error("Error updating grace period:", error);
-        return {
-            success: false,
-            error: error instanceof Error ? error.message : "Failed to update grace period",
-        };
-    }
-}
 
 /**
  * Get current user settings
@@ -115,7 +76,6 @@ export async function getUserSettings(): Promise<{
         email?: string;
         hasPassword: boolean;
         authProviders: string[];
-        attendanceGracePeriod: number;
         discordUsername?: string;
         vtcStudentId?: string;
     };
@@ -140,7 +100,6 @@ export async function getUserSettings(): Promise<{
                 email: user.email,
                 hasPassword: !!user.password,
                 authProviders: user.authProvider || ["discord"],
-                attendanceGracePeriod: user.attendanceGracePeriod || 10,
                 discordUsername: user.discordUsername,
                 vtcStudentId: user.vtcStudentId,
             },

@@ -353,43 +353,47 @@ export default function EventDetailsModal({
                     ) : isPast ? (
                         /* FINISHED (Past) Event Actions */
                         <>
-                            <div className="flex items-center gap-2">
-                                {/* Mark as Absent Toggle */}
-                                <button
-                                    onClick={handleToggleAttendance}
-                                    disabled={isLoading || status === "CANCELED"}
-                                    className={`flex-1 text-sm py-2.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-1.5 ${isMarkedAbsent
-                                        ? 'bg-green-50 text-green-600 border border-green-200 hover:bg-green-100'
-                                        : 'bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100'
-                                        }`}
-                                >
-                                    {isMarkedAbsent ? '✅ Present' : '❌ Absent'}
-                                </button>
+                            {status !== "FINISHED" && (
+                                <>
+                                    <div className="flex items-center gap-2">
+                                        {/* Mark as Absent Toggle */}
+                                        <button
+                                            onClick={handleToggleAttendance}
+                                            disabled={isLoading || status === "CANCELED"}
+                                            className={`flex-1 text-sm py-2.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-1.5 ${isMarkedAbsent
+                                                ? 'bg-green-50 text-green-600 border border-green-200 hover:bg-green-100'
+                                                : 'bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100'
+                                                }`}
+                                        >
+                                            {isMarkedAbsent ? '✅ Present' : '❌ Absent'}
+                                        </button>
 
-                                {/* Void Class (Cancel for past) */}
-                                <button
-                                    onClick={handleCancelClass}
-                                    disabled={isLoading || status === "CANCELED"}
-                                    className={`flex-1 text-sm py-2.5 rounded-xl font-semibold border transition-colors ${status === "CANCELED"
-                                        ? 'bg-gray-100 text-gray-500 border-gray-200'
-                                        : 'bg-purple-50 text-purple-600 border-purple-200 hover:bg-purple-100'
-                                        }`}
-                                >
-                                    {status === "CANCELED" ? "🚫 Voided" : "🚫 Void Class"}
-                                </button>
-                            </div>
+                                        {/* Void Class (Cancel for past) */}
+                                        <button
+                                            onClick={handleCancelClass}
+                                            disabled={isLoading || status === "CANCELED"}
+                                            className={`flex-1 text-sm py-2.5 rounded-xl font-semibold border transition-colors ${status === "CANCELED"
+                                                ? 'bg-gray-100 text-gray-500 border-gray-200'
+                                                : 'bg-purple-50 text-purple-600 border-purple-200 hover:bg-purple-100'
+                                                }`}
+                                        >
+                                            {status === "CANCELED" ? "🚫 Voided" : "🚫 Void Class"}
+                                        </button>
+                                    </div>
 
-                            {/* Edit Time */}
-                            <button
-                                onClick={() => {
-                                    setEditStartTime(startInputVal);
-                                    setEditEndTime(endInputVal);
-                                    setIsEditing(true);
-                                }}
-                                className="w-full py-2 px-4 rounded-xl text-sm font-medium text-[var(--text-secondary)] border border-[var(--calendar-border)] hover:bg-[rgba(0,0,0,0.03)] dark:hover:bg-[rgba(255,255,255,0.05)] transition-colors"
-                            >
-                                ✏️ Edit Time
-                            </button>
+                                    {/* Edit Time */}
+                                    <button
+                                        onClick={() => {
+                                            setEditStartTime(startInputVal);
+                                            setEditEndTime(endInputVal);
+                                            setIsEditing(true);
+                                        }}
+                                        className="w-full py-2 px-4 rounded-xl text-sm font-medium text-[var(--text-secondary)] border border-[var(--calendar-border)] hover:bg-[rgba(0,0,0,0.03)] dark:hover:bg-[rgba(255,255,255,0.05)] transition-colors"
+                                    >
+                                        ✏️ Edit Time
+                                    </button>
+                                </>
+                            )}
                         </>
                     ) : (
                         /* UPCOMING (Future) Event Actions */

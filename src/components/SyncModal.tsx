@@ -1,12 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface SyncModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSync: (url: string, semester: number) => Promise<void>;
     initialUrl?: string;
+}
+
+// Auto-detect semester based on current month
+function getDefaultSemester(): number {
+    const month = new Date().getMonth() + 1; // 1-12
+
+    if (month >= 9 && month <= 12) {
+        return 1; // Semester 1 (Sep-Dec)
+    } else if (month >= 1 && month <= 4) {
+        return 2; // Semester 2 (Jan-Apr)
+    } else {
+        return 3; // Summer (May-Aug)
+    }
 }
 
 export default function SyncModal({
@@ -16,9 +29,14 @@ export default function SyncModal({
     initialUrl = "",
 }: SyncModalProps) {
     const [url, setUrl] = useState(initialUrl);
-    const [semester, setSemester] = useState(2);
+    const [semester, setSemester] = useState(getDefaultSemester());
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Auto-detect semester on mount
+    useEffect(() => {
+        setSemester(getDefaultSemester());
+    }, []);
 
     if (!isOpen) return null;
 
@@ -87,22 +105,25 @@ export default function SyncModal({
                         <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
                             Semester
                         </label>
-                        <div className="flex gap-2">
+                        <div className="flex flex-col gap-2">
                             {[
-                                { value: 1, label: "Fall" },
-                                { value: 2, label: "Spring" },
-                                { value: 3, label: "Summer" },
+                                { value: 1, label: "Semester 1", months: "Sep-Dec" },
+                                { value: 2, label: "Semester 2", months: "Jan-Apr" },
+                                { value: 3, label: "Summer", months: "May-Aug" },
                             ].map((s) => (
                                 <button
                                     key={s.value}
                                     type="button"
                                     onClick={() => setSemester(s.value)}
-                                    className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${semester === s.value
-                                            ? "bg-[var(--calendar-today)] text-white"
-                                            : "bg-[rgba(0,0,0,0.03)] dark:bg-[rgba(255,255,255,0.05)] text-[var(--foreground)] hover:bg-[rgba(0,0,0,0.06)]"
+                                    className={`w-full py-2.5 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-between ${semester === s.value
+                                        ? "bg-[var(--calendar-today)] text-white"
+                                        : "bg-[rgba(0,0,0,0.03)] dark:bg-[rgba(255,255,255,0.05)] text-[var(--foreground)] hover:bg-[rgba(0,0,0,0.06)]"
                                         }`}
                                 >
-                                    {s.label}
+                                    <span>{s.label}</span>
+                                    <span className={`text-xs ${semester === s.value ? "text-white/80" : "text-[var(--text-tertiary)]"}`}>
+                                        ({s.months})
+                                    </span>
                                 </button>
                             ))}
                         </div>

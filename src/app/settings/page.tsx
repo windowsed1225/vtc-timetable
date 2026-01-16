@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getUserSettings, updateEmailPassword, updateGracePeriod } from "@/app/actions/settings";
+import { getUserSettings, updateEmailPassword } from "@/app/actions/settings";
 import Link from "next/link";
 
 export default function SettingsPage() {
@@ -12,7 +12,6 @@ export default function SettingsPage() {
         email?: string;
         hasPassword: boolean;
         authProviders: string[];
-        attendanceGracePeriod: number;
         discordUsername?: string;
         vtcStudentId?: string;
     } | null>(null);
@@ -27,13 +26,6 @@ export default function SettingsPage() {
         text: string;
     } | null>(null);
 
-    // Grace period state
-    const [gracePeriod, setGracePeriod] = useState(10);
-    const [gracePeriodLoading, setGracePeriodLoading] = useState(false);
-    const [gracePeriodMessage, setGracePeriodMessage] = useState<{
-        type: "success" | "error";
-        text: string;
-    } | null>(null);
 
     // Student ID visibility state
     const [isStudentIdVisible, setIsStudentIdVisible] = useState(false);
@@ -48,7 +40,6 @@ export default function SettingsPage() {
         if (result.success && result.data) {
             setSettings(result.data);
             setEmail(result.data.email || "");
-            setGracePeriod(result.data.attendanceGracePeriod);
         }
         setLoading(false);
     };
@@ -82,21 +73,6 @@ export default function SettingsPage() {
         }
     };
 
-    const handleGracePeriodSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setGracePeriodMessage(null);
-
-        setGracePeriodLoading(true);
-        const result = await updateGracePeriod(gracePeriod);
-        setGracePeriodLoading(false);
-
-        if (result.success) {
-            setGracePeriodMessage({ type: "success", text: "Grace period updated successfully!" });
-            loadSettings();
-        } else {
-            setGracePeriodMessage({ type: "error", text: result.error || "Failed to update." });
-        }
-    };
 
     if (loading) {
         return (
@@ -272,74 +248,6 @@ export default function SettingsPage() {
                     </form>
                 </div>
 
-                {/* Attendance Preferences Section */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                    <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">Attendance Preferences</h2>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-                        Customize how your attendance is calculated based on arrival time tolerance.
-                    </p>
-
-                    <form onSubmit={handleGracePeriodSubmit} className="space-y-6">
-                        <div>
-                            <div className="flex justify-between items-center mb-3">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    Grace Period
-                                </label>
-                                <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                                    {gracePeriod} min
-                                </span>
-                            </div>
-
-                            <input
-                                type="range"
-                                min="0"
-                                max="60"
-                                step="5"
-                                value={gracePeriod}
-                                onChange={(e) => setGracePeriod(parseInt(e.target.value))}
-                                className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                            />
-
-                            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-2">
-                                <span>0 min</span>
-                                <span>30 min</span>
-                                <span>60 min</span>
-                            </div>
-                        </div>
-
-                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                            <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-2">
-                                How it works
-                            </h3>
-                            <p className="text-sm text-blue-800 dark:text-blue-400 mb-3">
-                                If you arrive within <strong>{gracePeriod} minutes</strong> of the class start time, you'll be marked as <strong>Present</strong> instead of Absent.
-                            </p>
-                            <div className="bg-white dark:bg-gray-800 rounded-md p-3 text-sm">
-                                <p className="text-gray-700 dark:text-gray-300 mb-1">
-                                    <strong>Example:</strong> Class starts at 9:00 AM
-                                </p>
-                                <ul className="space-y-1 text-gray-600 dark:text-gray-400">
-                                    <li>✅ Arrive at 9:{gracePeriod.toString().padStart(2, "0")} AM or earlier = <strong className="text-green-600">Present</strong></li>
-                                    <li>❌ Arrive after 9:{gracePeriod.toString().padStart(2, "0")} AM = <strong className="text-red-600">Absent</strong></li>
-                                </ul>
-                            </div>
-                        </div>
-
-                        {gracePeriodMessage && (
-                            <div className={`p-4 rounded-lg ${gracePeriodMessage.type === "success" ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400" : "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400"}`}>
-                                {gracePeriodMessage.text}
-                            </div>
-                        )}
-
-                        <button
-                            type="submit"
-                            disabled={gracePeriodLoading}
-                            className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {gracePeriodLoading ? "Saving..." : "Save Grace Period"}
-                        </button>
-                    </form>
-                </div>
             </main>
         </div>
     );
