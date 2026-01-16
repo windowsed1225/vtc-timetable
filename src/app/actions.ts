@@ -148,6 +148,7 @@ export async function syncVtcData(vtcUrl: string, semesterNum: number = 2): Prom
         let newEventsCount = 0;
 
         // Helper function to fetch and save timetable for a specific semester/year
+        // Uses "check then insert" logic - only inserts new events, never updates existing ones
         const fetchSemesterTimetable = async (
             semNum: number,
             semCategory: "SEM 1" | "SEM 2" | "SEM 3",
@@ -169,50 +170,72 @@ export async function syncVtcData(vtcUrl: string, semesterNum: number = 2): Prom
                 if (response.isSuccess && response.payload?.timetable?.add) {
                     const events = response.payload.timetable.add;
 
-                    const bulkOps = events.map((event: TimetableEvent) => {
-                        // Validate vtc_id before inserting
+                    // Step 1: Filter out events without vtc_id and collect valid events
+                    const validEvents = events.filter((event: TimetableEvent) => {
                         if (!event.id) {
                             console.warn("Skipping event without vtc_id", event);
-                            return null;
+                            return false;
                         }
+                        return true;
+                    });
+
+                    if (validEvents.length === 0) continue;
+
+                    // Step 2: Extract vtc_ids from this batch
+                    const batchVtcIds = validEvents.map((event: TimetableEvent) => event.id);
+
+                    // Step 3: Query MongoDB for existing events with these vtc_ids (scoped to vtcStudentId)
+                    const existingEvents = await Event.find({
+                        vtc_id: { $in: batchVtcIds },
+                        vtcStudentId: vtcStudentId,
+                    }).select('vtc_id').lean();
+
+                    // Step 4: Create a Set of existing vtc_ids for efficient lookup
+                    const existingVtcIds = new Set(existingEvents.map(e => e.vtc_id));
+
+                    // Step 5: Filter to only new events that don't exist in DB
+                    const newEvents = validEvents.filter(
+                        (event: TimetableEvent) => !existingVtcIds.has(event.id)
+                    );
+
+                    if (newEvents.length === 0) continue;
+
+                    // Step 6: Prepare documents for insertMany
+                    const documentsToInsert = newEvents.map((event: TimetableEvent) => {
                         const eventEndTime = new Date(event.endTime * 1000);
                         const calculatedStatus: "FINISHED" | "UPCOMING" = eventEndTime < now ? "FINISHED" : "UPCOMING";
 
                         return {
-                            updateOne: {
-                                filter: { vtc_id: event.id, vtcStudentId, semester: semCategory },
-                                update: [
-                                    {
-                                        $set: {
-                                            vtcStudentId: vtcStudentId,
-                                            semester: semCategory,
-                                            status: {
-                                                $cond: {
-                                                    if: { $in: ["$status", ["CANCELED", "RESCHEDULED"]] },
-                                                    then: "$status",
-                                                    else: calculatedStatus
-                                                }
-                                            },
-                                            vtc_id: event.id,
-                                            courseCode: event.courseCode,
-                                            courseTitle: event.courseTitle,
-                                            lessonType: event.lessonType || "",
-                                            startTime: new Date(event.startTime * 1000),
-                                            endTime: eventEndTime,
-                                            location: `${event.campusCode || ""}-${event.roomNum || ""}`.replace(/^-|-$/g, ""),
-                                            lecturerName: event.lecturerName || "",
-                                            colorIndex: getColorIndex(event.courseCode),
-                                        },
-                                    }
-                                ],
-                                upsert: true,
-                            },
+                            vtc_id: event.id,
+                            vtcStudentId: vtcStudentId,
+                            semester: semCategory,
+                            status: calculatedStatus,
+                            courseCode: event.courseCode,
+                            courseTitle: event.courseTitle,
+                            lessonType: event.lessonType || "",
+                            startTime: new Date(event.startTime * 1000),
+                            endTime: eventEndTime,
+                            location: `${event.campusCode || ""}-${event.roomNum || ""}`.replace(/^-|-$/g, ""),
+                            lecturerName: event.lecturerName || "",
+                            colorIndex: getColorIndex(event.courseCode),
                         };
-                    }).filter((op): op is NonNullable<typeof op> => op !== null); // Remove null entries from events without vtc_id
+                    });
 
-                    if (bulkOps.length > 0) {
-                        const result = await Event.bulkWrite(bulkOps);
-                        count += result.upsertedCount;
+                    // Step 7: Insert only new events using insertMany
+                    // Use ordered: false to continue inserting even if some fail (e.g., race condition duplicates)
+                    try {
+                        const result = await Event.insertMany(documentsToInsert, { ordered: false });
+                        count += result.length;
+                    } catch (insertError: any) {
+                        // Handle duplicate key errors gracefully (in case of race conditions)
+                        if (insertError.code === 11000 && insertError.insertedDocs) {
+                            // Some documents were inserted before the duplicate error
+                            count += insertError.insertedDocs.length;
+                        } else if (insertError.code !== 11000) {
+                            // Re-throw non-duplicate errors
+                            throw insertError;
+                        }
+                        // For pure duplicate errors with no insertedDocs, count stays the same
                     }
                 }
             }
