@@ -19,10 +19,12 @@ VTC Mobile API (via vtc-api/ submodule)
 
 ### Authentication Pattern
 
-- **Discord OAuth** via NextAuth v5 (Beta) - see [src/auth.ts](../src/auth.ts)
+- **Dual OAuth Strategy** via NextAuth v5 (Beta) - see [src/auth.ts](../src/auth.ts)
+     - **Discord OAuth** - Primary authentication method
+     - **Credentials Provider** - Email/password login with bcrypt hashing
 - `discordId` is the primary user identifier throughout the system
 - JWT tokens store `discordId` as `token.sub`
-- No password management - single OAuth provider
+- User model supports multiple auth providers via `authProvider: string[]` array
 
 ### Database Schema (MongoDB + Mongoose)
 
@@ -30,10 +32,11 @@ Three core models in `src/models/`:
 
 1. **Event** - Individual class sessions
 
-      - Foreign keys: `discordId`, `vtcStudentId`
-      - Unique index: `(vtc_id, discordId, vtcStudentId, semester)`
+      - Foreign key: `vtcStudentId` (indexed)
+      - Unique compound index: `(vtc_id, vtcStudentId, semester)` - prevents duplicates
       - Fields: `semester`, `status`, `courseCode`, `startTime`, `endTime`, `location`, `colorIndex`
       - Status enum: `UPCOMING | FINISHED | CANCELED | RESCHEDULED | ABSENT`
+      - **vtc_id generation**: Composite ID from `courseCode-weekNum-startTime-endTime` (deterministic)
 
 2. **Attendance** - Per-course attendance statistics
 
@@ -70,9 +73,17 @@ The sync flow in `src/app/actions.ts` (`syncVtcData` function):
 
 1. Extract VTC API token from URL (`mobile.vtc.edu.hk`)
 2. Fetch all months for specified semester (see `SEMESTER_MAP`)
-3. Merge events into MongoDB (upsert by unique index)
-4. Fetch attendance data for all courses
-5. Return stats: `{ newEvents, newAttendance }`
+3. **"Check then insert"** logic - Query existing events, filter batch, use `insertMany({ ordered: false })`
+      - Never updates existing events - only inserts new ones
+      - Uses `insertMany()` for bulk efficiency, not `updateOne()` loops
+      - `ordered: false` continues inserting even if duplicates occur (race condition handling)
+4. Fetch attendance data with `bulkWrite()` for upserts
+
+**Semester Backfill Logic** (prevents missing past events):
+
+- Fall (SEM 1): Fetch Fall only
+- Spring (SEM 2): Fetch Spring (current year) + Fall (previous year)
+- Summer (SEM 3): Fetch Summer + Spring (current year)
 
 **Background Sync**: [BackgroundSync.tsx](../src/components/BackgroundSync.tsx) auto-syncs every 24h when user is logged in. Uses `checkAndSyncBackground()` server action.
 
@@ -96,20 +107,27 @@ All data operations are Server Actions in `src/app/actions.ts` marked with `"use
 
 Key server actions:
 
-- `syncVtcData(vtcUrl, semesterNum)` - Main sync entry point
-- `getStoredEvents()` - Fetch events for current user
-- `getHybridAttendanceStats()` - Merge VTC API + manual attendance
-- `updateEventStatus(vtc_id, newStatus)` - Manual status updates
-- `refreshAttendance()` - Re-fetch from VTC API
+- `syncVtcData(vtcUrl, semesterNum)` - Main sync entry point (uses token + semester)
+- `autoSyncFromStoredToken()` - Auto-sync using stored token (no user input needed)
+- `getStoredEvents()` - Fetch events for current user (uses `vtcStudentId` from User)
+- `getHybridAttendanceStats()` - Merge VTC API + manual attendance + calendar totals
+- `toggleEventAttendance(vtc_id, status)` - Toggle ABSENT/UPCOMING status
+- `refreshAttendance()` - Re-fetch from VTC API using stored token
 
 ### Hybrid Attendance System
 
-**Critical Pattern**: Courses have TWO attendance sources:
+**Critical Pattern**: Courses have THREE data sources merged into `HybridAttendanceStats`:
 
-1. **VTC API Attendance** - Official attendance from `Attendance` model
-2. **Manual Attendance** - User-tracked via localStorage (see `lib/manual-attendance.ts`)
+1. **VTC API Attendance** - Official conducted/attended counts from `Attendance` model
+2. **Calendar Events** - Total scheduled classes (past + future) from `Event` model
+3. **Manual Attendance** - User overrides via `toggleEventAttendance()` (stored in Event.status)
 
-The `getHybridAttendanceStats()` function merges both sources. Manual attendance is stored per-event in localStorage as `manual-attendance-{courseCode}`.
+The `getHybridAttendanceStats()` function:
+
+- Uses **minute-based calculations** for accuracy (not just class counts)
+- Calculates `currentAttendanceRate` (conducted only) vs `maxPossibleRate` (if attend all future)
+- Includes `safeToSkipMinutes` - how many minutes can be skipped while staying ≥80%
+- Recovery status: `"safe" | "recoverable" | "failed" | "grace"` (grace = early semester)
 
 ### Color Assignment
 
@@ -167,6 +185,8 @@ Uses `ics` library to generate `.ics` files from stored events. Downloads direct
 4. **NextAuth v5 beta** - Uses new `auth()` function instead of `getServerSession()`
 5. **Date formats** - VTC API uses `DD/MM/YYYY`, always normalize to ISO format
 6. **Token extraction** - Extract from URL search params, not path
+7. **Bulk inserts** - Use `insertMany()` with `ordered: false`, not loops with `findOneAndUpdate()`
+8. **Foreign keys** - Query by `vtcStudentId`, not `discordId` (use User model to map)
 
 ## Key Files Reference
 

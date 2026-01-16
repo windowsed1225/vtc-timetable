@@ -285,25 +285,8 @@ export async function syncVtcData(vtcUrl: string, semesterNum: number = 2): Prom
         // Use the primary semester as fallback for attendance tagging
         const fallbackSemester = primarySemester;
 
-        // Step 6: Fetch and save Attendance with both IDs
-        // Semester order for comparison
-        const SEMESTER_ORDER_MAP: Record<string, number> = {
-            "SEM 1": 1,
-            "SEM 2": 2,
-            "SEM 3": 3,
-        };
-
-        // First, build a map of courseCode -> semester from Calendar events
-        const courseToSemesterMap: Record<string, string> = {};
-        const existingEvents = await Event.find({ vtcStudentId }).select('courseCode semester').lean();
-        for (const event of existingEvents) {
-            // Use the most recent semester for each course (in case of duplicates)
-            if (!courseToSemesterMap[event.courseCode] ||
-                (SEMESTER_ORDER_MAP[event.semester] || 0) > (SEMESTER_ORDER_MAP[courseToSemesterMap[event.courseCode]] || 0)) {
-                courseToSemesterMap[event.courseCode] = event.semester;
-            }
-        }
-
+        // Step 6: Fetch and save Attendance
+        // Group attendance classes by semester based on their actual dates
         const listResponse = await api.getClassAttendanceList();
         let newAttendanceCount = 0;
 
@@ -311,105 +294,126 @@ export async function syncVtcData(vtcUrl: string, semesterNum: number = 2): Prom
             const courses = listResponse.payload.courses;
 
             const attendanceOps = await Promise.all(
-                courses.map(async (course) => {
-                    // Get semester from Calendar events, fallback to primary semester
-                    const courseSemester = (courseToSemesterMap[course.courseCode] || fallbackSemester) as "SEM 1" | "SEM 2" | "SEM 3";
-
+                courses.flatMap(async (course) => {
                     const detailResponse = await api.getClassAttendanceDetail(course.courseCode);
 
-                    let attended = 0;
-                    let late = 0;
-                    let absent = 0;
-                    let totalConducted = 0;
-                    const classRecords: Array<{
+                    if (!detailResponse.isSuccess || !detailResponse.payload?.classes) {
+                        return [];
+                    }
+
+                    // Group classes by semester based on their dates
+                    const classesBySemester: Record<string, Array<{
                         id: string;
                         date: string;
                         lessonTime: string;
                         attendTime: string;
                         roomName: string;
                         status: "attended" | "late" | "absent";
-                    }> = [];
+                    }>> = {
+                        "SEM 1": [],
+                        "SEM 2": [],
+                        "SEM 3": []
+                    };
 
-                    if (detailResponse.isSuccess && detailResponse.payload?.classes) {
-                        for (const cls of detailResponse.payload.classes) {
-                            totalConducted++;
-                            let status: "attended" | "late" | "absent" = "absent";
+                    // Categorize each class by its semester
+                    for (const cls of detailResponse.payload.classes) {
+                        const semester = getSemesterFromDate(cls.date);
+                        let status: "attended" | "late" | "absent" = "absent";
 
-                            if (cls.attendTime === "-" || !cls.attendTime) {
-                                absent++;
-                                status = "absent";
-                            } else if (cls.status === 3) {
-                                late++;
-                                attended++;
-                                status = "late";
-                            } else {
-                                attended++;
-                                status = "attended";
-                            }
-
-                            classRecords.push({
-                                id: cls.id,
-                                date: cls.date,
-                                lessonTime: cls.lessonTime,
-                                attendTime: cls.attendTime,
-                                roomName: cls.roomName,
-                                status,
-                            });
+                        if (cls.attendTime === "-" || !cls.attendTime) {
+                            status = "absent";
+                        } else if (cls.status === 3) {
+                            status = "late";
+                        } else {
+                            status = "attended";
                         }
+
+                        classesBySemester[semester].push({
+                            id: cls.id,
+                            date: cls.date,
+                            lessonTime: cls.lessonTime,
+                            attendTime: cls.attendTime,
+                            roomName: cls.roomName,
+                            status,
+                        });
                     }
 
-                    const totalScheduled = detailResponse.payload?.totalNumOfClass || 0;
-                    const attendRate = totalConducted > 0 ? (attended / totalConducted) * 100 : 0;
-                    const isFollowUp = /A$/.test(course.courseCode);
-                    const baseCourseCode = isFollowUp ? course.courseCode.slice(0, -1) : course.courseCode;
+                    // Create separate attendance records for each semester that has classes
+                    const ops = [];
+                    for (const [semester, classes] of Object.entries(classesBySemester)) {
+                        if (classes.length === 0) continue; // Skip empty semesters
 
-                    // Determine attendance status (ACTIVE or FINISHED)
-                    // Rule: FINISHED if semester is over AND course has > 10 classes conducted
-                    const SEMESTER_END_DATES: Record<string, { month: number; day: number }> = {
-                        "SEM 1": { month: 12, day: 31 },  // December 31st
-                        "SEM 2": { month: 5, day: 31 },   // May 31st
-                        "SEM 3": { month: 8, day: 31 },   // August 31st
-                    };
+                        // Calculate stats for this specific semester
+                        let attended = 0;
+                        let late = 0;
+                        let absent = 0;
+                        const totalConducted = classes.length;
 
-                    const semesterEnd = SEMESTER_END_DATES[courseSemester];
-                    const semesterEndDate = new Date(currentYear, semesterEnd.month - 1, semesterEnd.day, 23, 59, 59);
-                    const isPastSemesterEnd = now > semesterEndDate;
-                    const meetsClassThreshold = totalConducted > 10;
+                        for (const cls of classes) {
+                            if (cls.status === "attended") {
+                                attended++;
+                            } else if (cls.status === "late") {
+                                late++;
+                                attended++;
+                            } else if (cls.status === "absent") {
+                                absent++;
+                            }
+                        }
 
-                    // Status is FINISHED only if both conditions are met
-                    const attendanceStatus: "ACTIVE" | "FINISHED" =
-                        (isPastSemesterEnd && meetsClassThreshold) ? "FINISHED" : "ACTIVE";
+                        const attendRate = totalConducted > 0 ? (attended / totalConducted) * 100 : 0;
+                        const isFollowUp = /A$/.test(course.courseCode);
+                        const baseCourseCode = isFollowUp ? course.courseCode.slice(0, -1) : course.courseCode;
 
-                    return {
-                        updateOne: {
-                            filter: { courseCode: course.courseCode, vtcStudentId, semester: courseSemester },
-                            update: {
-                                $set: {
-                                    vtcStudentId,
-                                    semester: courseSemester,
-                                    status: attendanceStatus,
-                                    courseCode: course.courseCode,
-                                    courseName: course.name?.en || course.courseCode,
-                                    attendRate: Math.round(attendRate * 10) / 10,
-                                    totalClasses: totalScheduled,
-                                    conductedClasses: totalConducted,
-                                    attended,
-                                    late,
-                                    absent,
-                                    isFinished: totalScheduled > 0 && totalConducted >= totalScheduled,
-                                    isFollowUp,
-                                    baseCourseCode,
-                                    classes: classRecords,
+                        // Determine attendance status (ACTIVE or FINISHED) for this semester
+                        const SEMESTER_END_DATES: Record<string, { month: number; day: number }> = {
+                            "SEM 1": { month: 12, day: 31 },  // December 31st
+                            "SEM 2": { month: 5, day: 31 },   // May 31st
+                            "SEM 3": { month: 8, day: 31 },   // August 31st
+                        };
+
+                        const semesterEnd = SEMESTER_END_DATES[semester as keyof typeof SEMESTER_END_DATES];
+                        const semesterEndDate = new Date(currentYear, semesterEnd.month - 1, semesterEnd.day, 23, 59, 59);
+                        const isPastSemesterEnd = now > semesterEndDate;
+                        const meetsClassThreshold = totalConducted > 10;
+
+                        const attendanceStatus: "ACTIVE" | "FINISHED" =
+                            (isPastSemesterEnd && meetsClassThreshold) ? "FINISHED" : "ACTIVE";
+
+                        ops.push({
+                            updateOne: {
+                                filter: { courseCode: course.courseCode, vtcStudentId, semester },
+                                update: {
+                                    $set: {
+                                        vtcStudentId,
+                                        semester,
+                                        status: attendanceStatus,
+                                        courseCode: course.courseCode,
+                                        courseName: course.name?.en || course.courseCode,
+                                        attendRate: Math.round(attendRate * 10) / 10,
+                                        totalClasses: detailResponse.payload.totalNumOfClass || 0,
+                                        conductedClasses: totalConducted,
+                                        attended,
+                                        late,
+                                        absent,
+                                        isFinished: (detailResponse.payload.totalNumOfClass || 0) > 0 && totalConducted >= (detailResponse.payload.totalNumOfClass || 0),
+                                        isFollowUp,
+                                        baseCourseCode,
+                                        classes,
+                                    },
                                 },
+                                upsert: true,
                             },
-                            upsert: true,
-                        },
-                    };
+                        });
+                    }
+
+                    return ops;
                 })
             );
 
-            if (attendanceOps.length > 0) {
-                const result = await Attendance.bulkWrite(attendanceOps);
+            // Flatten the array (since we used flatMap)
+            const flattenedOps = attendanceOps.flat();
+            if (flattenedOps.length > 0) {
+                const result = await Attendance.bulkWrite(flattenedOps);
                 newAttendanceCount = result.upsertedCount;
             }
         }
@@ -659,83 +663,112 @@ export async function refreshAttendance(): Promise<{
         let updatedCount = 0;
 
         const attendanceOps = await Promise.all(
-            courses.map(async (course) => {
+            courses.flatMap(async (course) => {
                 const detailResponse = await api.getClassAttendanceDetail(course.courseCode);
 
-                let attended = 0;
-                let late = 0;
-                let absent = 0;
-                let totalConducted = 0;
-                const classRecords: Array<{
+                if (!detailResponse.isSuccess || !detailResponse.payload?.classes) {
+                    return [];
+                }
+
+                // Group classes by semester based on their dates
+                const classesBySemester: Record<string, Array<{
                     id: string;
                     date: string;
                     lessonTime: string;
                     attendTime: string;
                     roomName: string;
                     status: "attended" | "late" | "absent";
-                }> = [];
+                }>> = {
+                    "SEM 1": [],
+                    "SEM 2": [],
+                    "SEM 3": []
+                };
 
-                if (detailResponse.isSuccess && detailResponse.payload?.classes) {
-                    for (const cls of detailResponse.payload.classes) {
-                        totalConducted++;
-                        let status: "attended" | "late" | "absent" = "absent";
+                // Categorize each class by its semester
+                for (const cls of detailResponse.payload.classes) {
+                    const semester = getSemesterFromDate(cls.date);
+                    let status: "attended" | "late" | "absent" = "absent";
 
-                        if (cls.attendTime === "-" || !cls.attendTime) {
-                            absent++;
-                            status = "absent";
-                        } else if (cls.status === 3) {
-                            late++;
-                            attended++;
-                            status = "late";
-                        } else {
-                            attended++;
-                            status = "attended";
-                        }
-
-                        classRecords.push({
-                            id: cls.id,
-                            date: cls.date,
-                            lessonTime: cls.lessonTime,
-                            attendTime: cls.attendTime,
-                            roomName: cls.roomName,
-                            status,
-                        });
+                    if (cls.attendTime === "-" || !cls.attendTime) {
+                        status = "absent";
+                    } else if (cls.status === 3) {
+                        status = "late";
+                    } else {
+                        status = "attended";
                     }
+
+                    classesBySemester[semester].push({
+                        id: cls.id,
+                        date: cls.date,
+                        lessonTime: cls.lessonTime,
+                        attendTime: cls.attendTime,
+                        roomName: cls.roomName,
+                        status,
+                    });
                 }
 
-                const totalScheduled = detailResponse.payload?.totalNumOfClass || 0;
-                const attendRate = totalConducted > 0 ? (attended / totalConducted) * 100 : 0;
-                const isFollowUp = /A$/.test(course.courseCode);
-                const baseCourseCode = isFollowUp ? course.courseCode.slice(0, -1) : course.courseCode;
+                // Create separate attendance records for each semester that has classes
+                const ops = [];
+                for (const [semester, classes] of Object.entries(classesBySemester)) {
+                    if (classes.length === 0) continue; // Skip empty semesters
 
-                return {
-                    updateOne: {
-                        filter: { courseCode: course.courseCode, vtcStudentId },
-                        update: {
-                            $set: {
-                                vtcStudentId,
-                                courseCode: course.courseCode,
-                                courseName: course.name?.en || course.courseCode,
-                                attendRate: Math.round(attendRate * 10) / 10,
-                                totalClasses: totalScheduled,
-                                conductedClasses: totalConducted,
-                                attended,
-                                late,
-                                absent,
-                                isFinished: totalScheduled > 0 && totalConducted >= totalScheduled,
-                                isFollowUp,
-                                baseCourseCode,
-                                classes: classRecords,
+                    // Calculate stats for this specific semester
+                    let attended = 0;
+                    let late = 0;
+                    let absent = 0;
+                    const totalConducted = classes.length;
+
+                    for (const cls of classes) {
+                        if (cls.status === "attended") {
+                            attended++;
+                        } else if (cls.status === "late") {
+                            late++;
+                            attended++;
+                        } else if (cls.status === "absent") {
+                            absent++;
+                        }
+                    }
+
+                    const attendRate = totalConducted > 0 ? (attended / totalConducted) * 100 : 0;
+                    const isFollowUp = /A$/.test(course.courseCode);
+                    const baseCourseCode = isFollowUp ? course.courseCode.slice(0, -1) : course.courseCode;
+                    const totalScheduled = detailResponse.payload.totalNumOfClass || 0;
+                    const semesterType = semester as "SEM 1" | "SEM 2" | "SEM 3";
+
+                    ops.push({
+                        updateOne: {
+                            filter: { courseCode: course.courseCode, vtcStudentId, semester: semesterType },
+                            update: {
+                                $set: {
+                                    vtcStudentId,
+                                    semester: semesterType,
+                                    courseCode: course.courseCode,
+                                    courseName: course.name?.en || course.courseCode,
+                                    attendRate: Math.round(attendRate * 10) / 10,
+                                    totalClasses: totalScheduled,
+                                    conductedClasses: totalConducted,
+                                    attended,
+                                    late,
+                                    absent,
+                                    isFinished: totalScheduled > 0 && totalConducted >= totalScheduled,
+                                    isFollowUp,
+                                    baseCourseCode,
+                                    classes,
+                                },
                             },
+                            upsert: true,
                         },
-                        upsert: true,
-                    },
-                };
+                    });
+                }
+
+                return ops;
             })
         );
 
-        if (attendanceOps.length > 0) {
-            const result = await Attendance.bulkWrite(attendanceOps);
+        // Flatten the array (since we used flatMap)
+        const flattenedOps = attendanceOps.flat();
+        if (flattenedOps.length > 0) {
+            const result = await Attendance.bulkWrite(flattenedOps as any);
             updatedCount = result.modifiedCount + result.upsertedCount;
         }
 
@@ -749,7 +782,6 @@ export async function refreshAttendance(): Promise<{
         };
     }
 }
-
 /**
  * Sync timetable from VTC API and store in MongoDB
  */
@@ -1153,6 +1185,20 @@ export interface HybridAttendanceStats extends AttendanceStats {
     recoveryStatus: "safe" | "recoverable" | "failed" | "grace";  // Current standing
 }
 
+/**
+ * Determine semester from a date string
+ * Uses month to classify: Sept-Dec = SEM 1, Jan-May = SEM 2, June-Aug = SEM 3
+ */
+function getSemesterFromDate(dateStr: string): "SEM 1" | "SEM 2" | "SEM 3" {
+    const date = new Date(dateStr);
+    const month = date.getMonth() + 1; // 1-12
+
+    if (month >= 9 && month <= 12) return "SEM 1"; // Sept-Dec (Fall)
+    if (month >= 1 && month <= 5) return "SEM 2";  // Jan-May (Spring)
+    if (month >= 6 && month <= 8) return "SEM 3";  // June-Aug (Summer)
+
+    return "SEM 2"; // fallback
+}
 
 /**
  * Get stored attendance from MongoDB for the authenticated user

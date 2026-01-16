@@ -69,7 +69,7 @@ VTC API
 
 All endpoints return:
 
-```typescript
+```json
 {
   isSuccess: boolean,
   errorCode: number,
@@ -80,7 +80,7 @@ All endpoints return:
 
 ### Event Object Structure
 
-```typescript
+```json
 {
   id: string,                    // UUID
   courseCode: "ITE3707",
