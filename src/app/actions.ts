@@ -170,19 +170,27 @@ export async function syncVtcData(vtcUrl: string, semesterNum: number = 2): Prom
                 if (response.isSuccess && response.payload?.timetable?.add) {
                     const events = response.payload.timetable.add;
 
-                    // Step 1: Filter out events without vtc_id and collect valid events
+                    // Step 1: Generate composite IDs and collect valid events
                     const validEvents = events.filter((event: TimetableEvent) => {
-                        if (!event.id) {
-                            console.warn("Skipping event without vtc_id", event);
+                        // Check for required fields
+                        if (!event.courseCode || !event.weekNum || !event.startTime || !event.endTime) {
+                            console.warn("Skipping event with missing required fields", event);
                             return false;
                         }
                         return true;
+                    }).map((event: TimetableEvent) => {
+                        // Generate deterministic composite ID
+                        const compositeId = `${event.courseCode}-${event.weekNum}-${event.startTime}-${event.endTime}`;
+                        return {
+                            ...event,
+                            compositeId, // Add composite ID to event object
+                        };
                     });
 
                     if (validEvents.length === 0) continue;
 
-                    // Step 2: Extract vtc_ids from this batch
-                    const batchVtcIds = validEvents.map((event: TimetableEvent) => event.id);
+                    // Step 2: Extract composite IDs from this batch
+                    const batchVtcIds = validEvents.map((event: any) => event.compositeId);
 
                     // Step 3: Query MongoDB for existing events with these vtc_ids (scoped to vtcStudentId)
                     const existingEvents = await Event.find({
@@ -195,18 +203,18 @@ export async function syncVtcData(vtcUrl: string, semesterNum: number = 2): Prom
 
                     // Step 5: Filter to only new events that don't exist in DB
                     const newEvents = validEvents.filter(
-                        (event: TimetableEvent) => !existingVtcIds.has(event.id)
+                        (event: any) => !existingVtcIds.has(event.compositeId)
                     );
 
                     if (newEvents.length === 0) continue;
 
                     // Step 6: Prepare documents for insertMany
-                    const documentsToInsert = newEvents.map((event: TimetableEvent) => {
+                    const documentsToInsert = newEvents.map((event: any) => {
                         const eventEndTime = new Date(event.endTime * 1000);
                         const calculatedStatus: "FINISHED" | "UPCOMING" = eventEndTime < now ? "FINISHED" : "UPCOMING";
 
                         return {
-                            vtc_id: event.id,
+                            vtc_id: event.compositeId, // Use composite ID instead of API UUID
                             vtcStudentId: vtcStudentId,
                             semester: semCategory,
                             status: calculatedStatus,
@@ -421,6 +429,107 @@ export async function syncVtcData(vtcUrl: string, semesterNum: number = 2): Prom
         };
     }
 }
+
+/**
+ * Auto-sync from stored token
+ * Uses the stored VTC token from User database to sync data
+ * Automatically detects semester based on current date
+ */
+export async function autoSyncFromStoredToken(): Promise<{
+    success: boolean;
+    error?: string;
+    vtcStudentId?: string;
+    newEvents?: number;
+    newAttendance?: number;
+}> {
+    try {
+        // Step 1: Auth Check
+        const session = await auth();
+        if (!session?.user?.discordId) {
+            return { success: false, error: "Please sign in first." };
+        }
+
+        await connectDB();
+        const discordId = session.user.discordId;
+
+        // Step 2: Get stored token from User
+        const user = await User.findOne({ discordId }).lean();
+        if (!user?.vtcToken) {
+            return { success: false, error: "No stored VTC token found. Please sync manually first." };
+        }
+
+        // Step 3: Detect current semester based on month
+        const now = new Date();
+        const currentMonth = now.getMonth() + 1; // 1-12
+
+        let semesterNum: number;
+        if (currentMonth >= 9 && currentMonth <= 12) {
+            semesterNum = 1; // Fall (Sept-Dec)
+        } else if (currentMonth >= 1 && currentMonth <= 4) {
+            semesterNum = 2; // Spring (Jan-Apr)
+        } else {
+            semesterNum = 3; // Summer (May-Aug)
+        }
+
+        // Step 4: Call syncVtcData with stored token
+        return await syncVtcData(user.vtcToken, semesterNum);
+
+    } catch (error) {
+        console.error("Error auto-syncing VTC data:", error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "Failed to auto-sync VTC data",
+        };
+    }
+}
+
+
+/**
+ * Check if auto-sync should run based on last sync time
+ * Returns true if last sync was more than 15 minutes ago or never synced
+ */
+export async function shouldAutoSync(): Promise<{
+    should: boolean;
+    lastSync?: Date;
+    minutesSinceLastSync?: number;
+}> {
+    try {
+        const session = await auth();
+        if (!session?.user?.discordId) {
+            return { should: false };
+        }
+
+        await connectDB();
+        const user = await User.findOne({ discordId: session.user.discordId }).lean();
+
+        if (!user?.vtcToken) {
+            return { should: false }; // No token, can't auto-sync
+        }
+
+        if (!user.lastSync) {
+            return { should: true }; // Never synced before
+        }
+
+        const now = new Date();
+        const lastSync = new Date(user.lastSync);
+        const minutesSinceLastSync = (now.getTime() - lastSync.getTime()) / 1000 / 60;
+
+        // Throttle: only sync if last sync was more than 15 minutes ago
+        const THROTTLE_MINUTES = 15;
+        const should = minutesSinceLastSync > THROTTLE_MINUTES;
+
+        return {
+            should,
+            lastSync,
+            minutesSinceLastSync: Math.floor(minutesSinceLastSync),
+        };
+    } catch (error) {
+        console.error("Error checking auto-sync:", error);
+        return { should: false };
+    }
+}
+
+
 
 /**
  * Deduplicate events and attendance data
@@ -1119,8 +1228,15 @@ export async function getHybridAttendanceStats(): Promise<{
         const discordId = session.user.discordId;
         const now = new Date();
 
-        // Step 1: Fetch attendance records from Attendance DB
-        const attendanceRecords = await Attendance.find({ discordId })
+        // Step 0: Fetch user to get vtcStudentId
+        const user = await User.findOne({ discordId }).lean();
+        if (!user?.vtcStudentId) {
+            return { success: true, data: [] }; // No vtcStudentId yet, return empty
+        }
+        const vtcStudentId = user.vtcStudentId;
+
+        // Step 1: Fetch attendance records from Attendance DB using vtcStudentId
+        const attendanceRecords = await Attendance.find({ vtcStudentId })
             .sort({ courseCode: 1 })
             .lean();
 
@@ -1131,9 +1247,9 @@ export async function getHybridAttendanceStats(): Promise<{
                 const courseCode = record.courseCode;
                 const baseCourseCode = record.baseCourseCode || courseCode;
 
-                // Query calendar events for this course (match both courseCode and baseCourseCode)
+                // Query calendar events for this course using vtcStudentId (match both courseCode and baseCourseCode)
                 const calendarEvents = await Event.find({
-                    discordId,
+                    vtcStudentId,
                     $or: [
                         { courseCode: courseCode },
                         { courseCode: baseCourseCode },

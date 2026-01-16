@@ -10,6 +10,8 @@ import {
   getHybridAttendanceStats,
   refreshAttendance,
   HybridAttendanceStats,
+  autoSyncFromStoredToken,
+  shouldAutoSync,
 } from "@/app/actions";
 import { CalendarEvent } from "@/types/timetable";
 import { getDateArray } from "@/lib/utils";
@@ -98,6 +100,59 @@ export default function Home() {
     }
   };
 
+  // Auto-sync on login with 15-minute throttling
+  useEffect(() => {
+    const performAutoSync = async () => {
+      // Only run if authenticated
+      if (status !== "authenticated") {
+        return;
+      }
+
+      try {
+        // Check if we should auto-sync (throttling)
+        const syncCheck = await shouldAutoSync();
+
+        if (!syncCheck.should) {
+          // Don't spam API, last sync was recent
+          console.log(`Auto-sync skipped. Last sync: ${syncCheck.minutesSinceLastSync} minutes ago`);
+          return;
+        }
+
+        // Show non-intrusive notification
+        setNotification({
+          type: "success",
+          message: "Updating schedule in background...",
+        });
+
+        // Perform background sync
+        const result = await autoSyncFromStoredToken();
+
+        if (result.success) {
+          // Reload data after successful sync
+          await loadStoredData();
+          await fetchAttendance();
+
+          setNotification({
+            type: "success",
+            message: "Schedule updated automatically",
+          });
+          setTimeout(() => setNotification(null), 3000);
+        } else {
+          // Silent fail - just hide notification
+          setNotification(null);
+          console.warn("Background sync failed:", result.error);
+        }
+      } catch (error) {
+        // Silent fail - don't disrupt user experience
+        setNotification(null);
+        console.error("Auto-sync error:", error);
+      }
+    };
+
+    performAutoSync();
+  }, [status]); // Run when authentication status changes
+
+
   // Handle refresh attendance from VTC API
   const handleRefreshAttendance = async () => {
     setIsRefreshingAttendance(true);
@@ -133,11 +188,44 @@ export default function Home() {
     setIsRefreshingCalendar(true);
     try {
       await loadStoredData();
-      setNotification({
-        type: "success",
-        message: "Calendar refreshed",
-      });
-      setTimeout(() => setNotification(null), 2000);
+
+      // Check if database is empty after loading
+      if (events.length === 0) {
+        // Database is empty, try to auto-sync from stored token
+        setNotification({
+          type: "success",
+          message: "Database empty. Auto-syncing from VTC...",
+        });
+
+        const result = await autoSyncFromStoredToken();
+
+        if (result.success) {
+          // Reload data after successful sync
+          await loadStoredData();
+          await fetchAttendance();
+          setNotification({
+            type: "success",
+            message: `Synced ${result.newEvents || 0} events automatically`,
+          });
+          setTimeout(() => setNotification(null), 3000);
+        } else {
+          // Auto-sync failed, prompt manual sync
+          setNotification({
+            type: "error",
+            message: result.error || "Failed to auto-sync. Please sync manually.",
+          });
+          setTimeout(() => {
+            setNotification(null);
+            setShowSyncModal(true); // Fallback to manual sync
+          }, 3000);
+        }
+      } else {
+        setNotification({
+          type: "success",
+          message: "Calendar refreshed",
+        });
+        setTimeout(() => setNotification(null), 2000);
+      }
     } catch (error) {
       setNotification({
         type: "error",
