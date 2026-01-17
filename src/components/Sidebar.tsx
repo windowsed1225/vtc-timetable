@@ -87,6 +87,11 @@ export default function Sidebar({
         let hasActive = false;
 
         attendance.forEach(course => {
+            // Skip follow-up courses (ending with 'A')
+            if (/A$/.test(course.courseCode)) {
+                return;
+            }
+
             if (course.status === "ACTIVE") {
                 totalAttended += course.attended || 0;
                 totalConducted += course.calendarConductedClasses || 0;
@@ -154,6 +159,11 @@ export default function Sidebar({
         const groups: Record<string, { items: HybridAttendanceStats[]; hasActive: boolean }> = {};
 
         for (const item of attendance) {
+            // Skip follow-up courses (ending with 'A')
+            if (/A$/.test(item.courseCode)) {
+                continue;
+            }
+
             const sem = item.semester || "SEM 2";
             if (!groups[sem]) {
                 groups[sem] = { items: [], hasActive: false };
