@@ -713,7 +713,7 @@ export async function refreshAttendance(): Promise<{
 
                 return {
                     updateOne: {
-                        filter: { courseCode: course.courseCode, vtcStudentId },
+                        filter: { courseCode: course.courseCode, vtcStudentId, semester },
                         update: {
                             $set: {
                                 vtcStudentId,
@@ -1752,8 +1752,15 @@ export async function setEventStatus(eventId: string, status: string) {
         if (!session?.user?.discordId) return { success: false, error: "Unauthorized" };
 
         await connectDB();
+
+        // Get vtcStudentId from User model
+        const user = await User.findOne({ discordId: session.user.discordId }).lean();
+        if (!user?.vtcStudentId) {
+            return { success: false, error: "No VTC student ID found." };
+        }
+
         await Event.findOneAndUpdate(
-            { vtc_id: eventId, discordId: session.user.discordId },
+            { vtc_id: eventId, vtcStudentId: user.vtcStudentId },
             { status },
             { new: true }
         );
