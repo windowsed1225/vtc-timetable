@@ -1,26 +1,27 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import { View, Views } from "react-big-calendar";
-import { useSession, signIn, signOut } from "next-auth/react";
 import {
-  syncVtcData,
+  autoSyncFromStoredToken,
+  checkStoredToken,
+  getHybridAttendanceStats,
   getStoredEvents,
   getUniqueCourses,
-  getHybridAttendanceStats,
-  refreshAttendance,
   HybridAttendanceStats,
-  autoSyncFromStoredToken,
+  refreshAttendance,
   shouldAutoSync,
+  syncVtcData,
 } from "@/app/actions";
-import { CalendarEvent } from "@/types/timetable";
-import { getDateArray } from "@/lib/utils";
-import { createEvents, EventAttributes } from "ics";
-import TimetableCalendar from "@/components/TimetableCalendar";
-import Sidebar from "@/components/Sidebar";
-import SyncModal from "@/components/SyncModal";
 import EventDetailsModal from "@/components/EventDetailsModal";
+import Sidebar from "@/components/Sidebar";
 import SignInModal from "@/components/SignInModal";
+import SyncModal from "@/components/SyncModal";
+import TimetableCalendar from "@/components/TimetableCalendar";
+import { getDateArray } from "@/lib/utils";
+import { CalendarEvent } from "@/types/timetable";
+import { createEvents, EventAttributes } from "ics";
+import { signOut, useSession } from "next-auth/react";
+import { useCallback, useEffect, useState } from "react";
+import { View, Views } from "react-big-calendar";
 
 export default function Home() {
   // Auth state
@@ -50,6 +51,7 @@ export default function Home() {
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const [showTokenExpiredWarning, setShowTokenExpiredWarning] = useState(false);
 
   // Load stored events on mount
   useEffect(() => {
@@ -99,6 +101,16 @@ export default function Home() {
       console.error("Failed to fetch attendance:", error);
     }
   };
+
+  // Check token validity on login
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    checkStoredToken().then((result) => {
+      if (!result.valid && result.reason === "expired") {
+        setShowTokenExpiredWarning(true);
+      }
+    });
+  }, [status]);
 
   // Auto-sync on login with 15-minute throttling
   useEffect(() => {
@@ -375,6 +387,32 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col p-6 overflow-hidden relative">
+        {/* Token Expired Warning Banner */}
+        {showTokenExpiredWarning && (
+          <div className="mb-4 flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 animate-slideIn">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 shrink-0">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+            </svg>
+            <p className="flex-1 text-sm font-medium">
+              Your VTC token has expired. Please re-sync to keep your schedule up to date.
+            </p>
+            <button
+              onClick={() => { setShowSyncModal(true); setShowTokenExpiredWarning(false); }}
+              className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors"
+            >
+              Re-sync
+            </button>
+            <button
+              onClick={() => setShowTokenExpiredWarning(false)}
+              className="shrink-0 btn-icon"
+              aria-label="Dismiss warning"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
         {events.length > 0 ? (
           <>
             {/* Semester Filter */}

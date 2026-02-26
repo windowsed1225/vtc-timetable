@@ -1,14 +1,14 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { TimetableEvent, CalendarEvent } from "@/types/timetable";
-import { API } from "../../vtc-api/src/core/api";
+import { auth } from "@/auth";
+import { getColorIndex } from "@/lib/colors";
 import connectDB from "@/lib/db";
+import Attendance, { IClassRecord } from "@/models/Attendance";
 import Event from "@/models/Event";
 import User from "@/models/User";
-import Attendance, { IClassRecord } from "@/models/Attendance";
-import { getColorIndex } from "@/lib/colors";
-import { auth } from "@/auth";
+import { CalendarEvent, TimetableEvent } from "@/types/timetable";
+import { revalidatePath } from "next/cache";
+import { API } from "../../vtc-api/src/core/api";
 
 // Semester to months mapping
 const SEMESTER_MAP: Record<number, number[]> = {
@@ -1832,5 +1832,46 @@ export async function checkAndSyncBackground(): Promise<{
         return { success: true, message: "Sync not needed yet" };
     } catch (error) {
         return { success: false, error: error instanceof Error ? error.message : "Background sync failed" };
+    }
+}
+
+/**
+ * Validate the stored VTC access token.
+ * Called on page load to detect expired tokens early.
+ *
+ * Returns:
+ *  { valid: true }                        – token is still active
+ *  { valid: false, reason: "no_token" }   – user never synced (silent, no popup)
+ *  { valid: false, reason: "expired" }    – token is expired / invalid
+ */
+export async function checkStoredToken(): Promise<{
+    valid: boolean;
+    reason?: "no_token" | "expired";
+}> {
+    try {
+        const session = await auth();
+        if (!session?.user?.discordId) {
+            return { valid: false, reason: "no_token" };
+        }
+
+        await connectDB();
+        const user = await User.findOne({ discordId: session.user.discordId }).lean();
+
+        if (!user?.vtcToken) {
+            return { valid: false, reason: "no_token" };
+        }
+
+        const api = new API({ token: user.vtcToken });
+        const result = await api.checkAccessToken();
+
+        if (result.isSuccess) {
+            return { valid: true };
+        }
+
+        return { valid: false, reason: "expired" };
+    } catch (error) {
+        console.error("Error checking stored token:", error);
+        // On network / server error, don't falsely flag as expired
+        return { valid: true };
     }
 }
