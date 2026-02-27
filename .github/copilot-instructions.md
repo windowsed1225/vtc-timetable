@@ -97,7 +97,7 @@ SEMESTER_MAP = {
 }
 ```
 
-**Important**: Current date (January 2026) is in Semester 2. When fetching data, loop through the semester's months and aggregate results.
+**Important**: As of February 2026, the current date is in Semester 2. When fetching data, loop through the semester's months and aggregate results.
 
 ## Project-Specific Conventions
 

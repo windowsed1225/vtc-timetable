@@ -8,14 +8,14 @@ export class API {
     private url;
     private token;
     constructor({ token }: { token: string }) {
-        this.url = "https://mobile.vtc.edu.hk/api?"
+        this.url = "https://mobile.vtc.edu.hk/api?cmd="
         this.token = token
     }
     /**
     * Retrieves the class attendance detail from the VTC mobile API.
      */
     async getClassAttendanceDetail(courseCode: string): Promise<getClassAttendanceDetail> {
-        const response = await fetch(`${this.url}cmd=getClassAttendanceDetail&token=${this.token}&courseCode=${courseCode}`, {
+        const response = await fetch(`${this.url}getClassAttendanceDetail&token=${this.token}&courseCode=${courseCode}`, {
             method: "GET",
         })
         return response.json()
@@ -25,7 +25,7 @@ export class API {
      * Retrieves the class attendance list from the VTC mobile API.
      */
     async getClassAttendanceList(): Promise<getClassAttendanceList> {
-        const response = await fetch(`${this.url}cmd=getClassAttendanceList&token=${this.token}`, {
+        const response = await fetch(`${this.url}getClassAttendanceList&token=${this.token}`, {
             method: "GET",
         })
         return response.json()
@@ -39,7 +39,7 @@ export class API {
      * @throws May throw an error if the fetch request fails or if the response cannot be parsed as JSON
      */
     async getTimeTableAndReminderList(month: number = 1, year: number = 2026): Promise<getTimeTableAndReminderList> {
-        const response = await fetch(`${this.url}cmd=getTimeTableAndReminderList&token=${this.token}&month=${month}&year=${year}`, {
+        const response = await fetch(`${this.url}getTimeTableAndReminderList&token=${this.token}&month=${month}&year=${year}`, {
             method: "GET",
         })
         return response.json()
@@ -55,14 +55,14 @@ export class API {
      * @throws May throw an error if the fetch request fails or if the response cannot be parsed as JSON
      */
     async getMoodleTimetable(isPlural: number = 1, month: number = 1, year: number = 2026): Promise<getMoodleTimetable> {
-        const response = await fetch(`${this.url}cmd=getMoodleTimetable&token=${this.token}&isPlural=${isPlural}&month=${month}&year=${year}`, {
+        const response = await fetch(`${this.url}getMoodleTimetable&token=${this.token}&isPlural=${isPlural}&month=${month}&year=${year}`, {
             method: "GET",
         })
         return response.json()
     }
 
     async checkAccessToken(): Promise<userResponse> {
-        const response = await fetch(`${this.url}cmd=checkAccessToken&token=${this.token}`, {
+        const response = await fetch(`${this.url}checkAccessToken&token=${this.token}`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
