@@ -14,6 +14,7 @@ export {
 	checkAndSyncBackground,
 	fetchTimetable,
 	shouldAutoSync,
+	syncSemesterFromStoredToken,
 	syncTimetable,
 	syncVtcData,
 } from "./sync";

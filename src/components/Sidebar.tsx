@@ -253,7 +253,7 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 
 	const [expandedAttendance, setExpandedAttendance] = useState<Record<string, boolean>>(() => {
 		const initial: Record<string, boolean> = {};
-		groupedAttendance.forEach(([sem, data]: [string, { items: HybridAttendanceStats[]; hasActive: boolean }]) => {
+		groupedAttendance.forEach(([sem, data]: [string, { items: { item: HybridAttendanceStats; viewSemester: string }[]; hasActive: boolean }]) => {
 			initial[`att-${sem}`] = data.hasActive;
 		});
 		return initial;

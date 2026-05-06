@@ -10,6 +10,7 @@ import {
     HybridAttendanceStats,
     refreshAttendance,
     shouldAutoSync,
+    syncSemesterFromStoredToken,
     syncVtcData,
 } from "@/app/actions";
 import EventDetailsModal from "@/components/EventDetailsModal";
@@ -25,6 +26,8 @@ import { signOut, useSession } from "next-auth/react";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { View, Views } from "react-big-calendar";
+
+const SEMESTER_PROGRESS_LABELS: Record<number, string> = { 1: "Fall (SEM 1)", 2: "Spring (SEM 2)", 3: "Summer (SEM 3)" };
 
 export default function Home() {
     const t = useTranslations("sync");
@@ -206,38 +209,33 @@ export default function Home() {
     const handleRefreshCalendar = async () => {
         setIsRefreshingCalendar(true);
         try {
-            setNotification({
-                type: "loading",
-                message: t("backgroundUpdating"),
-            });
+            let totalNewEvents = 0;
+            let firstError: string | undefined;
 
-            // Always do a full sync (all 3 semesters) when user manually clicks refresh
-            const result = await autoSyncFromStoredToken({ fetchAll: true });
+            for (const semesterNum of [1, 2, 3]) {
+                setNotification({ type: "loading", message: `Updating ${SEMESTER_PROGRESS_LABELS[semesterNum]}… (${semesterNum}/3)` });
+                const result = await syncSemesterFromStoredToken(semesterNum);
+                if (!result.success) {
+                    firstError = result.error;
+                    break;
+                }
+                totalNewEvents += result.newEvents ?? 0;
+            }
 
-            if (result.success) {
-                await loadStoredData();
-                await fetchAttendance();
-                setNotification({
-                    type: "success",
-                    message: t("autoSyncedEvents", { count: result.newEvents || 0 }),
-                });
-                setTimeout(() => setNotification(null), 3000);
-            } else {
-                // If no stored token, prompt user to sync manually
-                setNotification({
-                    type: "error",
-                    message: result.error || t("failedAutoSync"),
-                });
+            if (firstError) {
+                setNotification({ type: "error", message: firstError || t("failedAutoSync") });
                 setTimeout(() => {
                     setNotification(null);
                     setShowSyncModal(true);
                 }, 3000);
+            } else {
+                await loadStoredData();
+                await fetchAttendance();
+                setNotification({ type: "success", message: t("autoSyncedEvents", { count: totalNewEvents }) });
+                setTimeout(() => setNotification(null), 3000);
             }
         } catch (error) {
-            setNotification({
-                type: "error",
-                message: t("failedRefresh"),
-            });
+            setNotification({ type: "error", message: t("failedRefresh") });
             setTimeout(() => setNotification(null), 3000);
         } finally {
             setIsRefreshingCalendar(false);
@@ -255,6 +253,7 @@ export default function Home() {
             let totalNewAttendance = 0;
 
             for (const semesterNum of [1, 2, 3]) {
+                setNotification({ type: "loading", message: `Syncing ${SEMESTER_PROGRESS_LABELS[semesterNum]}… (${semesterNum}/3)` });
                 const result = await syncVtcData(url, semesterNum);
 
                 if (!result.success) {

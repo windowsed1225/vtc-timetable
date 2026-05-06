@@ -523,6 +523,32 @@ export async function autoSyncFromStoredToken(options?: { fetchAll?: boolean }):
 }
 
 /**
+ * Sync a single semester from stored token — used by the client for per-semester progress reporting
+ */
+export async function syncSemesterFromStoredToken(semesterNum: number): Promise<{
+	success: boolean;
+	error?: string;
+	newEvents?: number;
+	newAttendance?: number;
+}> {
+	try {
+		const session = await auth();
+		if (!session?.user?.discordId) {
+			return { success: false, error: "Please sign in first." };
+		}
+		await connectDB();
+		const user = await User.findOne({ discordId: session.user.discordId }).lean();
+		if (!user?.vtcToken) {
+			return { success: false, error: "No stored VTC token found. Please sync manually first." };
+		}
+		const result = await syncVtcData(user.vtcToken, semesterNum);
+		return result;
+	} catch (error) {
+		return { success: false, error: error instanceof Error ? error.message : "Failed to sync" };
+	}
+}
+
+/**
  * Check if auto-sync should run based on last sync time
  * Returns true if last sync was more than 15 minutes ago or never synced
  */
