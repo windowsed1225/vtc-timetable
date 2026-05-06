@@ -94,7 +94,7 @@ async function upsertAttendanceAdjustedEvent({ cls, vtcStudentId, semester, cour
 	};
 
 	if (matchingEvent) {
-		return Event.findOneAndUpdate({ _id: matchingEvent._id }, { $set: update }, { returnDocument: 'after' });
+		return Event.findOneAndUpdate({ _id: matchingEvent._id }, { $set: update }, { returnDocument: "after" });
 	}
 
 	return Event.findOneAndUpdate(
@@ -106,7 +106,7 @@ async function upsertAttendanceAdjustedEvent({ cls, vtcStudentId, semester, cour
 				lecturerName: "",
 			},
 		},
-		{ upsert: true, returnDocument: 'after', setDefaultsOnInsert: true },
+		{ upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
 	);
 }
 /**
@@ -199,19 +199,17 @@ export async function syncVtcData(
 							}
 							return true;
 						})
-						.map((event: TimetableEvent) => {
-							// Generate deterministic composite ID
-							const compositeId = `${event.courseCode}-${event.startTime}-${event.endTime}`;
-							return {
-								...event,
-								compositeId, // Add composite ID to event object
-							};
-						});
+						.map((event: TimetableEvent) => ({
+							...event,
+							compositeId: `${event.courseCode}-${event.startTime}-${event.endTime}`,
+						}));
+
+					type ValidEvent = (typeof validEvents)[number];
 
 					if (validEvents.length === 0) continue;
 
 					// Step 2: Extract composite IDs from this batch
-					const batchVtcIds = validEvents.map((event: any) => event.compositeId);
+					const batchVtcIds = validEvents.map((event: ValidEvent) => event.compositeId);
 
 					// Step 3: Query MongoDB for existing events with these vtc_ids (scoped to vtcStudentId)
 					const existingEvents = await Event.find({
@@ -225,12 +223,12 @@ export async function syncVtcData(
 					const existingVtcIds = new Set(existingEvents.map((e) => e.vtc_id));
 
 					// Step 5: Filter to only new events that don't exist in DB
-					const newEvents = validEvents.filter((event: any) => !existingVtcIds.has(event.compositeId));
+					const newEvents = validEvents.filter((event: ValidEvent) => !existingVtcIds.has(event.compositeId));
 
 					if (newEvents.length === 0) continue;
 
 					// Step 6: Prepare documents for insertMany
-					const documentsToInsert = newEvents.map((event: any) => {
+					const documentsToInsert = newEvents.map((event: ValidEvent) => {
 						const eventStartTime = new Date(event.startTime * 1000);
 						const eventEndTime = new Date(event.endTime * 1000);
 						const scheduledDuration = getDurationInMinutes(eventStartTime, eventEndTime);
@@ -263,12 +261,13 @@ export async function syncVtcData(
 					try {
 						const result = await Event.insertMany(documentsToInsert, { ordered: false });
 						count += result.length;
-					} catch (insertError: any) {
+					} catch (insertError: unknown) {
 						// Handle duplicate key errors gracefully (in case of race conditions)
-						if (insertError.code === 11000 && insertError.insertedDocs) {
+						const err = insertError as { code?: number; insertedDocs?: unknown[] };
+						if (err.code === 11000 && err.insertedDocs) {
 							// Some documents were inserted before the duplicate error
-							count += insertError.insertedDocs.length;
-						} else if (insertError.code !== 11000) {
+							count += err.insertedDocs.length;
+						} else if (err.code !== 11000) {
 							// Re-throw non-duplicate errors
 							throw insertError;
 						}
@@ -447,7 +446,6 @@ export async function syncVtcData(
 			if (staleDeleteOps.length > 0) {
 				await Attendance.bulkWrite(staleDeleteOps);
 			}
-
 		}
 
 		revalidatePath("/");

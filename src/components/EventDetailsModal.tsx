@@ -63,7 +63,7 @@ export default function EventDetailsModal({
         const [eh, em] = editEndTime.split(":").map(Number);
         newEnd.setHours(eh, em);
 
-        const vtc_id = (event.resource as any).vtc_id;
+        const vtc_id = event.resource?.vtc_id;
         if (!vtc_id) {
             alert("Unexpected error: missing event ID");
             setIsLoading(false);
@@ -84,7 +84,7 @@ export default function EventDetailsModal({
     const handleCancelClass = async () => {
         setIsLoading(true);
         // I'll need the vtc_id here. Let's assume I added it to resource.
-        const vtc_id = (event.resource as any).vtc_id;
+        const vtc_id = event.resource?.vtc_id;
         if (vtc_id) {
             await setEventStatus(vtc_id, "CANCELED");
         }

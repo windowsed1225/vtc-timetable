@@ -2,6 +2,7 @@
 
 import { auth } from "@/auth";
 import connectDB from "@/lib/db";
+import { IEvent } from "@/models/Event";
 import Event from "@/models/Event";
 import User from "@/models/User";
 
@@ -54,7 +55,7 @@ export async function exportSemesterIcs(semester: string): Promise<{
 			date.getMinutes(),
 		];
 
-		const icsEvents: EventAttributes[] = events.map((event: any) => ({
+		const icsEvents: EventAttributes[] = (events as IEvent[]).map((event) => ({
 			uid: `${event.vtc_id}@vtc-timetable`,
 			title: `${event.courseTitle} (${event.courseCode})`,
 			start: getDateArray(new Date(event.startTime)),

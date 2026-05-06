@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/auth";
+import { Types } from "mongoose";
 import connectDB from "@/lib/db";
 import { getCurrentSemester, getSemesterLabel } from "@/lib/utils";
 import Attendance, { IClassRecord } from "@/models/Attendance";
@@ -223,7 +224,7 @@ export async function toggleEventAttendance(vtcId: string, status: "UPCOMING" | 
 			}
 
 			// Check if this class already exists in the array
-			const existingClassIndex = attendance.classes.findIndex((cls: any) => cls.id === vtcId);
+			const existingClassIndex = attendance.classes.findIndex((cls) => cls.id === vtcId);
 
 			if (existingClassIndex >= 0) {
 				// Update existing class record
@@ -291,7 +292,7 @@ export async function getStoredAttendance(): Promise<{
 
 		const attendanceRecords = await Attendance.find({ discordId: session.user.discordId }).sort({ courseCode: 1 }).lean();
 
-		const stats: AttendanceStats[] = attendanceRecords.map((record: any) => ({
+		const stats: AttendanceStats[] = attendanceRecords.map((record) => ({
 			courseCode: record.courseCode,
 			courseName: record.courseName,
 			semester: record.semester || "SEM 2",
@@ -306,7 +307,7 @@ export async function getStoredAttendance(): Promise<{
 			isFinished: record.isFinished,
 			isFollowUp: record.isFollowUp,
 			baseCourseCode: record.baseCourseCode,
-			classes: record.classes.map((cls: any) => ({
+			classes: record.classes.map((cls) => ({
 				id: cls.id,
 				date: cls.date,
 				lessonTime: cls.lessonTime,
@@ -365,7 +366,7 @@ export async function getHybridAttendanceStats(): Promise<{
 
 		// Step 2: For each course, get calendar-based counts from Event DB
 		const hybridStats: HybridAttendanceStats[] = await Promise.all(
-			attendanceRecords.map(async (record: any) => {
+			attendanceRecords.map(async (record) => {
 				const courseCode = record.courseCode;
 				const baseCourseCode = record.baseCourseCode || courseCode;
 
@@ -478,7 +479,7 @@ export async function getHybridAttendanceStats(): Promise<{
 				}
 
 				// Step 4: Handle class records
-				const classes: ClassRecord[] = record.classes.map((cls: any) => ({
+				const classes: ClassRecord[] = record.classes.map((cls) => ({
 					id: cls.id,
 					date: cls.date,
 					lessonTime: cls.lessonTime,
@@ -492,7 +493,7 @@ export async function getHybridAttendanceStats(): Promise<{
 				let displaySemester: string | undefined;
 				if (calendarEvents.length > 0) {
 					// Use semester of the latest calendar event (most current semester this course belongs to)
-					const latestEvent = calendarEvents.reduce((latest: any, ev: any) => {
+					const latestEvent = calendarEvents.reduce((latest, ev) => {
 						return new Date(ev.startTime) > new Date(latest.startTime) ? ev : latest;
 					});
 					displaySemester = latestEvent.semester || undefined;
@@ -516,7 +517,7 @@ export async function getHybridAttendanceStats(): Promise<{
 				}
 				// Count calendar events per semester (creates entries for semesters with no class records yet)
 				for (const event of calendarEvents) {
-					const sem = (event as any).semester as string | undefined;
+					const sem = event.semester as string | undefined;
 					if (!sem) continue;
 					if (!semesterBreakdowns[sem]) semesterBreakdowns[sem] = { attended: 0, conductedClasses: 0, attendanceRate: 0, calendarTotalClasses: 0 };
 					semesterBreakdowns[sem].calendarTotalClasses++;
@@ -764,11 +765,13 @@ export async function deduplicateData(): Promise<{
 			{ $match: { count: { $gt: 1 } } },
 		]);
 
+		type DupDoc = { _id: Types.ObjectId; updatedAt: string };
+		type DupGroup = { docs: DupDoc[] };
+
 		let deletedEvents = 0;
-		for (const group of eventDuplicates) {
-			// Sort by updatedAt descending and keep the first (newest)
-			const sorted = group.docs.sort((a: any, b: any) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-			const idsToDelete = sorted.slice(1).map((d: any) => d._id);
+		for (const group of eventDuplicates as DupGroup[]) {
+			const sorted = group.docs.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+			const idsToDelete = sorted.slice(1).map((d) => d._id);
 			if (idsToDelete.length > 0) {
 				const result = await Event.deleteMany({ _id: { $in: idsToDelete } });
 				deletedEvents += result.deletedCount;
@@ -789,9 +792,9 @@ export async function deduplicateData(): Promise<{
 		]);
 
 		let deletedAttendance = 0;
-		for (const group of attendanceDuplicates) {
-			const sorted = group.docs.sort((a: any, b: any) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-			const idsToDelete = sorted.slice(1).map((d: any) => d._id);
+		for (const group of attendanceDuplicates as DupGroup[]) {
+			const sorted = group.docs.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+			const idsToDelete = sorted.slice(1).map((d) => d._id);
 			if (idsToDelete.length > 0) {
 				const result = await Attendance.deleteMany({ _id: { $in: idsToDelete } });
 				deletedAttendance += result.deletedCount;
