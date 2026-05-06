@@ -3,6 +3,14 @@
 import { deleteEventsByDateRange, previewDeleteEventsByDateRange } from "@/app/actions";
 import { useEffect, useMemo, useState } from "react";
 
+const SEMESTER_LABELS: Record<string, string> = {
+    "SEM 1": "Semester 1 (Fall)",
+    "SEM 2": "Semester 2 (Spring)",
+    "SEM 3": "Semester 3 (Summer)",
+};
+
+const SEMESTER_ORDER: Record<string, number> = { "SEM 3": 3, "SEM 2": 2, "SEM 1": 1 };
+
 interface CourseOption {
     courseCode: string;
     courseTitle: string;
@@ -40,6 +48,16 @@ export default function ManageEventsModal({ isOpen, onClose, courses, onRefresh 
         }, []),
         [courses]
     );
+
+    const coursesBySemester = useMemo(() => {
+        const groups: Record<string, CourseOption[]> = {};
+        for (const c of uniqueCourses) {
+            const sem = c.semester || "SEM 2";
+            if (!groups[sem]) groups[sem] = [];
+            groups[sem].push(c);
+        }
+        return Object.entries(groups).sort(([a], [b]) => (SEMESTER_ORDER[b] ?? 0) - (SEMESTER_ORDER[a] ?? 0));
+    }, [uniqueCourses]);
 
     const selectedCourse = uniqueCourses.find(c => `${c.courseCode}__${c.semester}` === selectedKey);
 
@@ -167,10 +185,14 @@ export default function ManageEventsModal({ isOpen, onClose, courses, onRefresh 
                         className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-white focus:outline-none focus:border-zinc-600"
                     >
                         <option value="">Select a course…</option>
-                        {uniqueCourses.map(c => (
-                            <option key={`${c.courseCode}__${c.semester}`} value={`${c.courseCode}__${c.semester}`}>
-                                {c.courseCode} — {c.courseTitle} ({c.semester})
-                            </option>
+                        {coursesBySemester.map(([sem, semCourses]) => (
+                            <optgroup key={sem} label={SEMESTER_LABELS[sem] ?? sem}>
+                                {semCourses.map(c => (
+                                    <option key={`${c.courseCode}__${c.semester}`} value={`${c.courseCode}__${c.semester}`}>
+                                        {c.courseCode} — {c.courseTitle}
+                                    </option>
+                                ))}
+                            </optgroup>
                         ))}
                     </select>
                 </div>
