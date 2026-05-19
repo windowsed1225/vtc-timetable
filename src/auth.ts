@@ -111,6 +111,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 					if (dbUser?.locale) {
 						token.locale = dbUser.locale;
 					}
+					if (dbUser?.discordAvatar) {
+						token.picture = dbUser.discordAvatar;
+					}
 				} catch (error) {
 					console.error("Error fetching user data:", error);
 				}
@@ -120,6 +123,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 				token.vtcStudentId = user.vtcStudentId as string;
 				token.email = user.email;
 				token.locale = (user as { locale?: string }).locale as string;
+			} else if (!account && token.sub) {
+				// Token refresh: sync latest avatar from DB so it stays current
+				try {
+					await connectDB();
+					const dbUser = await User.findOne({ discordId: token.sub }).lean();
+					if (dbUser?.discordAvatar) {
+						token.picture = dbUser.discordAvatar;
+					}
+				} catch (error) {
+					console.error("Error refreshing avatar from DB:", error);
+				}
 			}
 
 			return token;

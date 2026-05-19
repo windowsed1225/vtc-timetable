@@ -463,11 +463,12 @@ export async function getHybridAttendanceStats(): Promise<{
 				const GRACE_PERIOD_THRESHOLD = 0.15; // 15% of semester must pass before showing warnings
 
 				let recoveryStatus: "safe" | "recoverable" | "failed" | "grace" = "safe";
-				if (maxPossibleMinutesRate < 80) {
-					// Mathematically impossible to reach 80% - always show failed
-					recoveryStatus = "failed";
-				} else if (minutesAttendanceRate >= 80) {
+				if (minutesAttendanceRate >= 80) {
+					// Already meeting requirement — safe regardless of remaining classes
 					recoveryStatus = "safe";
+				} else if (maxPossibleMinutesRate < 80) {
+					// Mathematically impossible to reach 80% even attending everything remaining
+					recoveryStatus = "failed";
 				} else {
 					// Current rate < 80% but still recoverable
 					if (courseProgress < GRACE_PERIOD_THRESHOLD) {

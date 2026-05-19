@@ -19,7 +19,7 @@ import SignInModal from "@/components/SignInModal";
 import SyncModal from "@/components/SyncModal";
 import TopNavbar from "@/components/TopNavbar";
 import TimetableCalendar from "@/components/TimetableCalendar";
-import { getDateArray } from "@/lib/utils";
+import { getDateArray, getSemestersToSync } from "@/lib/utils";
 import { CalendarEvent } from "@/types/timetable";
 import { createEvents, EventAttributes } from "ics";
 import { signOut, useSession } from "next-auth/react";
@@ -212,8 +212,9 @@ export default function Home() {
             let totalNewEvents = 0;
             let firstError: string | undefined;
 
-            for (const semesterNum of [1, 2, 3]) {
-                setNotification({ type: "loading", message: `Updating ${SEMESTER_PROGRESS_LABELS[semesterNum]}… (${semesterNum}/3)` });
+            const semestersToSync = getSemestersToSync();
+            for (const semesterNum of semestersToSync) {
+                setNotification({ type: "loading", message: `Updating ${SEMESTER_PROGRESS_LABELS[semesterNum]}… (${semestersToSync.indexOf(semesterNum) + 1}/${semestersToSync.length})` });
                 const result = await syncSemesterFromStoredToken(semesterNum);
                 if (!result.success) {
                     firstError = result.error;
