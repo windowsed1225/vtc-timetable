@@ -21,5 +21,6 @@ declare module "next-auth/jwt" {
         discordId?: string;
         vtcStudentId?: string;
         locale?: string;
+        lastAvatarCheck?: number;
     }
 }

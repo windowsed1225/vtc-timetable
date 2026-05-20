@@ -4,6 +4,7 @@ export interface IUser extends Document {
     discordId: string;
     discordUsername?: string;
     discordAvatar?: string;
+    discordAccessToken?: string;
     email?: string;
     password?: string;
     authProvider: string[];
@@ -28,6 +29,9 @@ const UserSchema = new Schema<IUser>(
             type: String,
         },
         discordAvatar: {
+            type: String,
+        },
+        discordAccessToken: {
             type: String,
         },
         vtcToken: {
