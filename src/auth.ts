@@ -94,6 +94,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 			if (token.locale) {
 				session.user.locale = token.locale as string;
 			}
+			// Explicitly propagate avatar — NextAuth v5 beta does not reliably
+			// auto-populate session.user.image from token.picture in custom callbacks
+			session.user.image = (token.picture as string) ?? null;
 			return session;
 		},
 		async jwt({ token, account, user }) {
@@ -123,6 +126,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 				token.vtcStudentId = user.vtcStudentId as string;
 				token.email = user.email;
 				token.locale = (user as { locale?: string }).locale as string;
+				token.picture = user.image as string;
 			} else if (!account && token.sub) {
 				// Token refresh: sync latest avatar from DB so it stays current
 				try {
