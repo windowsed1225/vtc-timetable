@@ -364,18 +364,35 @@ export async function getHybridAttendanceStats(): Promise<{
 		// Step 1: Fetch attendance records from Attendance DB using vtcStudentId
 		const attendanceRecords = await Attendance.find({ vtcStudentId }).sort({ courseCode: 1 }).lean();
 
-		// Step 2: For each course, get calendar-based counts from Event DB
+		// Step 2: Bulk-fetch all events for this user in one query, then group by courseCode in memory
+		const allCourseCodes = new Set<string>();
+		for (const record of attendanceRecords) {
+			allCourseCodes.add(record.courseCode);
+			if (record.baseCourseCode) allCourseCodes.add(record.baseCourseCode);
+		}
+
+		const allCalendarEvents = await Event.find({
+			vtcStudentId,
+			courseCode: { $in: Array.from(allCourseCodes) },
+			status: { $ne: "CANCELED" },
+		}).lean();
+
+		const eventsByCourseCode = new Map<string, typeof allCalendarEvents>();
+		for (const event of allCalendarEvents) {
+			const code = event.courseCode as string;
+			if (!eventsByCourseCode.has(code)) eventsByCourseCode.set(code, []);
+			eventsByCourseCode.get(code)!.push(event);
+		}
+
 		const hybridStats: HybridAttendanceStats[] = await Promise.all(
 			attendanceRecords.map(async (record) => {
 				const courseCode = record.courseCode;
 				const baseCourseCode = record.baseCourseCode || courseCode;
 
-				// Query calendar events for this course using vtcStudentId (match both courseCode and baseCourseCode)
-				const calendarEvents = await Event.find({
-					vtcStudentId,
-					$or: [{ courseCode: courseCode }, { courseCode: baseCourseCode }],
-					status: { $ne: "CANCELED" }, // Exclude canceled events
-				}).lean();
+				const calendarEvents = [
+					...(eventsByCourseCode.get(courseCode) ?? []),
+					...(courseCode !== baseCourseCode ? (eventsByCourseCode.get(baseCourseCode) ?? []) : []),
+				];
 
 				// Calculate calendar-based counts - use simple counts for display
 				// But keep minute tracking for accurate percentage calculations
