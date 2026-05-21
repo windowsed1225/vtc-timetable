@@ -116,11 +116,9 @@ export async function GET(
             end: getDateArray(new Date(event.endTime)),
             location: event.location || undefined,
             description: [
-                event.lessonType ? `Type: ${event.lessonType}` : "",
-                event.location ? `Location: ${event.location}` : "",
-                event.lecturerName ? `Lecturer: ${event.lecturerName}` : "",
+                event.lecturerName ? `Instructor: ${event.lecturerName}` : "",
+                event.location ? `Room: ${event.location}` : "",
                 event.startTime ? `Time: ${new Date(Number(event.startTime)).toLocaleString()} - ${new Date(Number(event.endTime)).toLocaleString()}` : "",
-
             ]
                 .filter(Boolean)
                 .join("\n"),
