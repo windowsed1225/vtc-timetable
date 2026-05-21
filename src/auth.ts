@@ -70,6 +70,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 							discordId: account.providerAccountId,
 							discordUsername: user.name,
 							discordAvatar: user.image,
+							discordAccessToken: account.access_token,
 						},
 						{ upsert: true, returnDocument: 'after' },
 					);
@@ -94,12 +95,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 			if (token.locale) {
 				session.user.locale = token.locale as string;
 			}
+			// Explicitly propagate avatar — NextAuth v5 beta does not reliably
+			// auto-populate session.user.image from token.picture in custom callbacks
+			session.user.image = (token.picture as string) ?? null;
 			return session;
 		},
 		async jwt({ token, account, user }) {
 			// Initial sign in
 			if (account?.provider === "discord") {
 				token.sub = account.providerAccountId;
+				token.lastAvatarCheck = Date.now();
 
 				// Fetch vtcStudentId and locale from database
 				try {
@@ -123,13 +128,36 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 				token.vtcStudentId = user.vtcStudentId as string;
 				token.email = user.email;
 				token.locale = (user as { locale?: string }).locale as string;
+				token.picture = user.image as string;
 			} else if (!account && token.sub) {
-				// Token refresh: sync latest avatar from DB so it stays current
+				// Token refresh: sync avatar from DB, and call Discord API at most once per day
 				try {
 					await connectDB();
 					const dbUser = await User.findOne({ discordId: token.sub }).lean();
 					if (dbUser?.discordAvatar) {
 						token.picture = dbUser.discordAvatar;
+					}
+
+					const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+					const lastCheck = token.lastAvatarCheck as number | undefined;
+					if (dbUser?.discordAccessToken && (!lastCheck || Date.now() - lastCheck > ONE_DAY_MS)) {
+						const res = await fetch("https://discord.com/api/users/@me", {
+							headers: { Authorization: `Bearer ${dbUser.discordAccessToken}` },
+						});
+						if (res.ok) {
+							const profile = await res.json();
+							const newAvatar = profile.avatar
+								? `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.png`
+								: null;
+							if (newAvatar && newAvatar !== dbUser.discordAvatar) {
+								await User.findOneAndUpdate(
+									{ discordId: token.sub },
+									{ discordAvatar: newAvatar },
+								);
+								token.picture = newAvatar;
+							}
+						}
+						token.lastAvatarCheck = Date.now();
 					}
 				} catch (error) {
 					console.error("Error refreshing avatar from DB:", error);

@@ -78,10 +78,11 @@ export default function Home() {
 
     const loadStoredData = async () => {
         try {
-            const [eventsResult, coursesResult, moodleResult] = await Promise.all([
+            const [eventsResult, coursesResult, moodleResult, attendanceResult] = await Promise.all([
                 getStoredEvents(),
                 getUniqueCourses(),
                 getMoodleDeadlines(),
+                getHybridAttendanceStats(),
             ]);
 
             const classEvents = eventsResult.success ? (eventsResult.data ?? []) : [];
@@ -91,15 +92,14 @@ export default function Home() {
             if (coursesResult.success && coursesResult.data) {
                 setCourses(coursesResult.data);
             }
+
+            if (attendanceResult.success && attendanceResult.data) {
+                setAttendance(attendanceResult.data);
+            }
         } catch (error) {
             console.error("Failed to load stored data:", error);
         }
     };
-
-    // Fetch attendance from stored data
-    useEffect(() => {
-        fetchAttendance();
-    }, []);
 
     const fetchAttendance = async () => {
         try {
