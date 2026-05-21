@@ -32,6 +32,7 @@ interface ManageEventsModalProps {
 
 export default function ManageEventsModal({ isOpen, onClose, courses, onRefresh }: ManageEventsModalProps) {
     const [isClosing, setIsClosing] = useState(false);
+    const [selectedSemester, setSelectedSemester] = useState("");
     const [selectedKey, setSelectedKey] = useState("");
     const [fromDate, setFromDate] = useState("");
     const [toDate, setToDate] = useState("");
@@ -49,17 +50,20 @@ export default function ManageEventsModal({ isOpen, onClose, courses, onRefresh 
         [courses]
     );
 
-    const coursesBySemester = useMemo(() => {
-        const groups: Record<string, CourseOption[]> = {};
-        for (const c of uniqueCourses) {
-            const sem = c.semester || "SEM 2";
-            if (!groups[sem]) groups[sem] = [];
-            groups[sem].push(c);
-        }
-        return Object.entries(groups).sort(([a], [b]) => (SEMESTER_ORDER[b] ?? 0) - (SEMESTER_ORDER[a] ?? 0));
+    const availableSemesters = useMemo(() => {
+        const sems = [...new Set(uniqueCourses.map(c => c.semester || "SEM 2"))];
+        return sems.sort((a, b) => (SEMESTER_ORDER[b] ?? 0) - (SEMESTER_ORDER[a] ?? 0));
     }, [uniqueCourses]);
 
+    const coursesForSemester = useMemo(() =>
+        selectedSemester ? uniqueCourses.filter(c => c.semester === selectedSemester) : [],
+        [uniqueCourses, selectedSemester]
+    );
+
     const selectedCourse = uniqueCourses.find(c => `${c.courseCode}__${c.semester}` === selectedKey);
+
+    // Reset course when semester changes
+    useEffect(() => { setSelectedKey(""); }, [selectedSemester]);
 
     // Auto-fetch all unattended events when course changes
     useEffect(() => {
@@ -176,26 +180,39 @@ export default function ManageEventsModal({ isOpen, onClose, courses, onRefresh 
                     </button>
                 </div>
 
-                {/* Course selector */}
-                <div className="mb-4">
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1.5">Course</p>
+                {/* Semester selector */}
+                <div className="mb-3">
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1.5">Semester</p>
                     <select
-                        value={selectedKey}
-                        onChange={e => setSelectedKey(e.target.value)}
+                        value={selectedSemester}
+                        onChange={e => setSelectedSemester(e.target.value)}
                         className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-white focus:outline-none focus:border-zinc-600"
                     >
-                        <option value="">Select a course…</option>
-                        {coursesBySemester.map(([sem, semCourses]) => (
-                            <optgroup key={sem} label={SEMESTER_LABELS[sem] ?? sem}>
-                                {semCourses.map(c => (
-                                    <option key={`${c.courseCode}__${c.semester}`} value={`${c.courseCode}__${c.semester}`}>
-                                        {c.courseCode} — {c.courseTitle}
-                                    </option>
-                                ))}
-                            </optgroup>
+                        <option value="">Select a semester…</option>
+                        {availableSemesters.map(sem => (
+                            <option key={sem} value={sem}>{SEMESTER_LABELS[sem] ?? sem}</option>
                         ))}
                     </select>
                 </div>
+
+                {/* Course selector */}
+                {selectedSemester && (
+                    <div className="mb-4">
+                        <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1.5">Course</p>
+                        <select
+                            value={selectedKey}
+                            onChange={e => setSelectedKey(e.target.value)}
+                            className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-white focus:outline-none focus:border-zinc-600"
+                        >
+                            <option value="">Select a course…</option>
+                            {coursesForSemester.map(c => (
+                                <option key={`${c.courseCode}__${c.semester}`} value={`${c.courseCode}__${c.semester}`}>
+                                    {c.courseCode} — {c.courseTitle}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
 
                 {/* Loading */}
                 {isLoading && (

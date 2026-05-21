@@ -363,7 +363,7 @@ export default function Home() {
                 courses={courses}
                 events={events}
                 attendance={attendance}
-                onSyncClick={() => { setShowSyncModal(true); setSidebarOpen(false); }}
+                onSyncClick={() => { if (session) { setShowSyncModal(true); } else { setShowSignInModal(true); } setSidebarOpen(false); }}
                 onRefreshAttendance={handleRefreshAttendance}
                 onRefreshCalendar={handleRefreshCalendar}
                 isSyncing={isSyncing}
@@ -467,7 +467,7 @@ export default function Home() {
                                 {tc("noScheduleSubtitle")}
                             </p>
                             <button
-                                onClick={() => setShowSyncModal(true)}
+                                onClick={() => session ? setShowSyncModal(true) : setShowSignInModal(true)}
                                 className="btn-primary inline-flex items-center gap-2"
                             >
                                 <svg

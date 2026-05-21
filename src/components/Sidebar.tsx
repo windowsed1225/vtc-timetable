@@ -53,7 +53,7 @@ interface SidebarProps {
 	sidebarOpen?: boolean;
 }
 
-/** Calendar Tools â€” Vercel-style action card for dynamic semester export */
+/** Calendar Tools - Vercel-style action card for dynamic semester export */
 function CalendarToolsCard() {
 	const [isExporting, setIsExporting] = useState(false);
 	const [selectedSem, setSelectedSem] = useState(getDefaultSemester());
@@ -110,7 +110,7 @@ function CalendarToolsCard() {
 							<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
 							<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
 						</svg>
-						Exportingâ€¦
+						Exporting...
 					</>
 				) : (
 					<>
@@ -201,7 +201,7 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 		return Object.entries(groups).sort(([a], [b]) => (SEMESTER_ORDER[b] || 0) - (SEMESTER_ORDER[a] || 0)) as [string, { courses: CourseInfo[]; hasActive: boolean }][];
 	}, [courses]);
 
-	// Group attendance by semester â€” multi-semester courses appear in each semester they span
+	// Group attendance by semester - multi-semester courses appear in each semester they span
 	const groupedAttendance = useMemo(() => {
 		const groups: Record<string, { items: { item: HybridAttendanceStats; viewSemester: string }[]; hasActive: boolean }> = {};
 
@@ -411,8 +411,8 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 																			<div className="flex items-center gap-1">
 																				{isMultiSem && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">Mix</span>}
 																				{/* Recovery Status Badge */}
-																				{!isFinished && course.recoveryStatus === "recoverable" && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">Recoverable âš ï¸</span>}
-																				{!isFinished && course.recoveryStatus === "failed" && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Failed âŒ</span>}
+																				{!isFinished && course.recoveryStatus === "recoverable" && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">Recoverable ⚠️</span>}
+																				{!isFinished && course.recoveryStatus === "failed" && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Failed ❌</span>}
 																				{course.isFollowUp && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">Follow-up</span>}
 																				{isFinished && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">Finished</span>}
 																			</div>
@@ -501,3 +501,4 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 		</>
 	);
 }
+
