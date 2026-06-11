@@ -26,6 +26,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@tailwindcss/vite": "^4.3.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-big-calendar": "^1.16.3",
@@ -35,6 +36,7 @@
     "dotenv": "^17.2.3",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
+    "nitro": "^3.0.260610-beta",
     "react-server-dom-webpack": "^19.2.7",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
