@@ -13,8 +13,13 @@ export {
 	autoSyncFromStoredToken,
 	checkAndSyncBackground,
 	fetchTimetable,
+	finalizeAttendanceSync,
+	listAttendanceCoursesStored,
+	prepareVtcSync,
 	shouldAutoSync,
+	syncCourseAttendanceStored,
 	syncSemesterFromStoredToken,
+	syncSemesterTimetableStored,
 	syncTimetable,
 	syncVtcData,
 } from "./sync";
@@ -23,6 +28,7 @@ export {
 export {
 	deduplicateData,
 	getAttendance,
+	getCourseHoursBreakdown,
 	getHybridAttendanceStats,
 	getStoredAttendance,
 	refreshAttendance,
@@ -51,4 +57,4 @@ export { getMoodleDeadlines } from "./moodle";
 export { checkStoredToken, saveUserLocale } from "./user";
 
 // ── Settings ─────────────────────────────────────────
-export { getUserSettings, updateEmailPassword } from "./settings";
+export { clearVtcData, getUserSettings, updateEmailPassword } from "./settings";

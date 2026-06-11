@@ -1,49 +1,57 @@
 {
-	"name": "vtc-timetable",
-	"version": "0.1.2",
-	"private": true,
-	"scripts": {
-		"dev": "next dev",
-		"build": "next build",
-		"start": "next start",
-		"lint": "eslint"
-	},
-	"dependencies": {
-		"@types/bcryptjs": "^2.4.6",
-		"bcryptjs": "^3.0.3",
-		"dayjs": "^1.11.19",
-		"framer-motion": "^12.38.0",
-		"geist": "^1.7.0",
-		"ics": "^3.8.1",
-		"mongoose": "^9.1.2",
-		"next": "16.1.1",
-		"next-auth": "^5.0.0-beta.30",
-		"next-intl": "^4.8.3",
-		"next-themes": "^0.4.6",
-		"react": "19.2.3",
-		"react-big-calendar": "^1.19.4",
-		"react-dom": "19.2.3",
-		"vercel": "^52.0.0"
-	},
-	"devDependencies": {
-		"@tailwindcss/postcss": "^4",
-		"@types/node": "^20",
-		"@types/react": "^19",
-		"@types/react-big-calendar": "^1.16.3",
-		"@types/react-dom": "^19",
-		"dotenv": "^17.2.3",
-		"eslint": "^9",
-		"eslint-config-next": "16.1.1",
-		"tailwindcss": "^4",
-		"tsx": "^4.21.0",
-		"typescript": "^5"
-	},
-	"ignoreScripts": [
-		"sharp",
-		"unrs-resolver"
-	],
-	"trustedDependencies": [
-		"sharp",
-		"unrs-resolver"
-	]
+  "name": "vtc-timetable",
+  "version": "0.1.2",
+  "private": true,
+  "scripts": {
+    "dev": "vinext dev",
+    "build": "vinext build",
+    "start": "vinext start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "bcryptjs": "^3.0.3",
+    "better-auth": "^1.6.16",
+    "dayjs": "^1.11.19",
+    "framer-motion": "^12.38.0",
+    "ics": "^3.8.1",
+    "mongodb": "^7.3.0",
+    "mongoose": "^9.1.2",
+    "next-intl": "^4.8.3",
+    "next-themes": "^0.4.6",
+    "react": "^19.2.7",
+    "react-big-calendar": "^1.19.4",
+    "react-dom": "^19.2.7",
+    "vercel": "^52.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-big-calendar": "^1.16.3",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.0.2",
+    "@vitejs/plugin-rsc": "^0.5.27",
+    "dotenv": "^17.2.3",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.1",
+    "react-server-dom-webpack": "^19.2.7",
+    "tailwindcss": "^4",
+    "tsx": "^4.21.0",
+    "typescript": "^5",
+    "vinext": "^0.1.1",
+    "vite": "^8.0.16"
+  },
+  "ignoreScripts": [
+    "sharp",
+    "unrs-resolver"
+  ],
+  "trustedDependencies": [
+    "sharp",
+    "unrs-resolver"
+  ],
+  "patchedDependencies": {
+    "vinext@0.1.1": "patches/vinext@0.1.1.patch"
+  },
+  "type": "module"
 }

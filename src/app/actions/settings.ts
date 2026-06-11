@@ -2,8 +2,11 @@
 
 import { auth } from "@/auth";
 import connectDB from "@/lib/db";
+import Attendance from "@/models/Attendance";
+import Event from "@/models/Event";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
+import { revalidatePath } from "next/cache";
 
 /**
  * Update user's email and password for credentials-based login
@@ -109,6 +112,57 @@ export async function getUserSettings(): Promise<{
         return {
             success: false,
             error: error instanceof Error ? error.message : "Failed to fetch settings",
+        };
+    }
+}
+
+/**
+ * Clear all synced VTC data for the signed-in user: every timetable Event and
+ * Attendance record. The stored VTC token (API key) and last-sync marker are
+ * intentionally kept so the user can re-sync instantly with Quick Sync.
+ */
+export async function clearVtcData(): Promise<{
+    success: boolean;
+    deletedEvents?: number;
+    deletedAttendance?: number;
+    error?: string;
+}> {
+    try {
+        const session = await auth();
+        if (!session?.user?.discordId) {
+            return { success: false, error: "Not signed in" };
+        }
+
+        await connectDB();
+        const user = await User.findOne({ discordId: session.user.discordId }).lean();
+        if (!user) {
+            return { success: false, error: "User not found" };
+        }
+
+        // Scope deletes to this user's VTC student id (how Events/Attendance are keyed).
+        const vtcStudentId = user.vtcStudentId;
+        let deletedEvents = 0;
+        let deletedAttendance = 0;
+
+        if (vtcStudentId) {
+            const [eventResult, attendanceResult] = await Promise.all([
+                Event.deleteMany({ vtcStudentId }),
+                Attendance.deleteMany({ vtcStudentId }),
+            ]);
+            deletedEvents = eventResult.deletedCount ?? 0;
+            deletedAttendance = attendanceResult.deletedCount ?? 0;
+        }
+
+        // Keep the stored vtcToken + lastSync so Quick Sync stays available and a
+        // recent lastSync prevents auto-sync from immediately re-populating the data.
+
+        revalidatePath("/");
+        return { success: true, deletedEvents, deletedAttendance };
+    } catch (error) {
+        console.error("Error clearing VTC data:", error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "Failed to clear VTC data",
         };
     }
 }

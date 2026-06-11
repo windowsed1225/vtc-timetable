@@ -830,3 +830,72 @@ export async function deduplicateData(): Promise<{
 	}
 }
 
+/**
+ * Per-day attended-hours breakdown for a single course, aggregated from the same
+ * calendar Event source the grid's "Hours Attended" total uses (conducted events
+ * whose attendance status is present). The summed minutes therefore match the
+ * grid figure for that course.
+ */
+export async function getCourseHoursBreakdown(courseCode: string): Promise<{
+	success: boolean;
+	courseName?: string;
+	totalMinutes?: number;
+	days?: Array<{ date: string; minutes: number }>;
+	error?: string;
+}> {
+	try {
+		const session = await auth();
+		if (!session?.user?.discordId) {
+			return { success: false, error: "Not signed in" };
+		}
+
+		await connectDB();
+		const user = await User.findOne({ discordId: session.user.discordId }).lean();
+		if (!user?.vtcStudentId) {
+			return { success: true, totalMinutes: 0, days: [] };
+		}
+
+		const events = await Event.find({ vtcStudentId: user.vtcStudentId, courseCode }).lean();
+		const now = new Date();
+		const dayFormatter = new Intl.DateTimeFormat("en-CA", {
+			timeZone: "Asia/Hong_Kong",
+			year: "numeric",
+			month: "2-digit",
+			day: "2-digit",
+		});
+
+		const byDay = new Map<string, number>();
+		let totalMinutes = 0;
+		let courseName: string | undefined;
+
+		for (const event of events) {
+			courseName = courseName ?? event.courseTitle;
+
+			const startTime = new Date(event.startTime);
+			const endTime = new Date(event.endTime);
+
+			// Only conducted classes with a "present" attendance code count as attended.
+			if (endTime >= now) continue;
+			if (!isAttendanceStatusPresent(event.attendanceStatusCode)) continue;
+
+			const durationMinutes =
+				typeof event.actualDuration === "number" && event.actualDuration > 0
+					? event.actualDuration
+					: getDurationInMinutes(startTime, endTime);
+
+			const dayKey = dayFormatter.format(startTime);
+			byDay.set(dayKey, (byDay.get(dayKey) ?? 0) + durationMinutes);
+			totalMinutes += durationMinutes;
+		}
+
+		const days = Array.from(byDay.entries())
+			.map(([date, minutes]) => ({ date, minutes: Math.round(minutes) }))
+			.sort((a, b) => a.date.localeCompare(b.date));
+
+		return { success: true, courseName, totalMinutes: Math.round(totalMinutes), days };
+	} catch (error) {
+		console.error("Error building course hours breakdown:", error);
+		return { success: false, error: error instanceof Error ? error.message : "Failed to load breakdown" };
+	}
+}
+

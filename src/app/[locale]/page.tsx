@@ -1,41 +1,66 @@
 "use client";
 
 import {
-    autoSyncFromStoredToken,
     checkStoredToken,
+    finalizeAttendanceSync,
     getHybridAttendanceStats,
     getMoodleDeadlines,
     getStoredEvents,
     getUniqueCourses,
     HybridAttendanceStats,
+    listAttendanceCoursesStored,
+    prepareVtcSync,
     refreshAttendance,
     shouldAutoSync,
+    syncCourseAttendanceStored,
     syncSemesterFromStoredToken,
-    syncVtcData,
+    syncSemesterTimetableStored,
 } from "@/app/actions";
 import EventDetailsModal from "@/components/EventDetailsModal";
 import Sidebar from "@/components/Sidebar";
 import SignInModal from "@/components/SignInModal";
-import SyncModal from "@/components/SyncModal";
+import SyncModal, { type SyncProgress } from "@/components/SyncModal";
+import TutorialSimulation from "@/components/TutorialSimulation";
 import TopNavbar from "@/components/TopNavbar";
 import TimetableCalendar from "@/components/TimetableCalendar";
 import { getDateArray, getSemestersToSync } from "@/lib/utils";
 import { CalendarEvent } from "@/types/timetable";
 import { createEvents, EventAttributes } from "ics";
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "@/lib/auth-client";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { View, Views } from "react-big-calendar";
 
 const SEMESTER_PROGRESS_LABELS: Record<number, string> = { 1: "Fall (SEM 1)", 2: "Spring (SEM 2)", 3: "Summer (SEM 3)" };
 
+// Per-semester progress shown in the expandable background-sync details panel.
+type SemesterSyncStatus = "pending" | "syncing" | "done" | "error";
+interface SemesterSyncProgress {
+    semester: number;
+    label: string;
+    status: SemesterSyncStatus;
+    newEvents?: number;
+}
+
 export default function Home() {
     const t = useTranslations("sync");
     const tc = useTranslations("calendar");
+    const tTour = useTranslations("tour");
     const locale = useLocale();
 
     // Auth state
-    const { data: session, status } = useSession();
+    const { data: session, isPending } = useSession();
+    const status = isPending ? "loading" : session ? "authenticated" : "unauthenticated";
+    // Auth flag driving the empty-state UI. Set to `false` to preview the signed-out view.
+    const isLoggedIn = !!session;
+
+    // Ghost-cursor tutorial demo
+    const [showDemo, setShowDemo] = useState(false);
+
+    // Whether a *valid* VTC token is actually stored (verified via checkStoredToken).
+    // Drives the Sync modal's Quick Sync / saved-token view. Defaults false so we
+    // never show "valid connection" until confirmed.
+    const [hasSavedToken, setHasSavedToken] = useState(false);
 
     // Calendar state
     const [view, setView] = useState<View>(Views.WORK_WEEK);
@@ -62,6 +87,10 @@ export default function Home() {
         message: string;
     } | null>(null);
     const [showTokenExpiredWarning, setShowTokenExpiredWarning] = useState(false);
+    // Live per-semester progress for the background sync, surfaced in an expandable
+    // panel attached to the loading pill.
+    const [syncProgress, setSyncProgress] = useState<SemesterSyncProgress[] | null>(null);
+    const [syncDetailsExpanded, setSyncDetailsExpanded] = useState(false);
 
     // Load stored events on mount
     useEffect(() => {
@@ -114,8 +143,13 @@ export default function Home() {
 
     // Check token validity on login
     useEffect(() => {
-        if (status !== "authenticated") return;
+        if (status !== "authenticated") {
+            setHasSavedToken(false);
+            return;
+        }
         checkStoredToken().then((result) => {
+            // Only treat the token as "saved" when it actually exists and is valid.
+            setHasSavedToken(result.valid);
             if (!result.valid && result.reason === "expired") {
                 setShowTokenExpiredWarning(true);
             }
@@ -142,16 +176,53 @@ export default function Home() {
                 // Detect new user: if they've never synced, fetch all semesters
                 const isNewUser = !syncCheck.lastSync;
 
+                // New users import the full year; existing users only sync the
+                // current/upcoming semesters. We sync one semester at a time so the
+                // details panel can report live per-semester progress.
+                const semesters = isNewUser ? [1, 2, 3] : getSemestersToSync();
+
+                setSyncProgress(
+                    semesters.map((s) => ({
+                        semester: s,
+                        label: SEMESTER_PROGRESS_LABELS[s],
+                        status: "pending" as SemesterSyncStatus,
+                    })),
+                );
+                // First-time setup imports the whole year — auto-expand the details
+                // panel so new users can watch each semester being fetched.
+                setSyncDetailsExpanded(isNewUser);
                 setNotification({
                     type: "loading",
                     message: isNewUser ? t("firstTimeSync") : t("backgroundUpdating"),
                 });
 
-                const result = await autoSyncFromStoredToken(
-                    isNewUser ? { fetchAll: true } : undefined
-                );
+                let anySuccess = false;
 
-                if (result.success) {
+                for (const semesterNum of semesters) {
+                    setSyncProgress((prev) =>
+                        prev?.map((p) => (p.semester === semesterNum ? { ...p, status: "syncing" } : p)) ?? prev,
+                    );
+
+                    const result = await syncSemesterFromStoredToken(semesterNum);
+
+                    if (result.success) {
+                        anySuccess = true;
+                        setSyncProgress((prev) =>
+                            prev?.map((p) =>
+                                p.semester === semesterNum
+                                    ? { ...p, status: "done", newEvents: result.newEvents ?? 0 }
+                                    : p,
+                            ) ?? prev,
+                        );
+                    } else {
+                        console.warn(`Background sync failed for semester ${semesterNum}:`, result.error);
+                        setSyncProgress((prev) =>
+                            prev?.map((p) => (p.semester === semesterNum ? { ...p, status: "error" } : p)) ?? prev,
+                        );
+                    }
+                }
+
+                if (anySuccess) {
                     await loadStoredData();
                     await fetchAttendance();
 
@@ -159,10 +230,14 @@ export default function Home() {
                         type: "success",
                         message: t("updatedAutomatically"),
                     });
-                    setTimeout(() => setNotification(null), 3000);
+                    setTimeout(() => {
+                        setNotification(null);
+                        setSyncProgress(null);
+                        setSyncDetailsExpanded(false);
+                    }, 3000);
                 } else {
                     setNotification(null);
-                    console.warn("Background sync failed:", result.error);
+                    setSyncProgress(null);
                 }
             } catch (error) {
                 setNotification(null);
@@ -243,51 +318,108 @@ export default function Home() {
         }
     };
 
-    // Manual sync via URL — always full sync (all 3 semesters)
-    // This is the SyncModal flow where a user pastes their VTC URL
-    const handleSync = async (url: string) => {
+    // Manual sync via URL — staged full sync (all 3 semesters) that reports
+    // real-time, course-level progress into the SyncModal's progress view.
+    // Phase weighting: prepare 0–5%, timetables 5–45%, attendance 45–95%, finalize 95–100%.
+    // `url === null` → Quick Sync using the token already stored on the account.
+    const runStagedSync = async (
+        url: string | null,
+        onProgress: (p: SyncProgress) => void,
+        signal: AbortSignal,
+    ) => {
         setIsSyncing(true);
 
         try {
-            // Full sync: iterate all 3 semesters to capture the complete academic year
+            // Step 1: validate + persist the token (only when a fresh URL was given)
+            onProgress({ percent: 3, phase: "preparing" });
+            if (url) {
+                const prep = await prepareVtcSync(url);
+                if (!prep.success) throw new Error(prep.error || "Failed to validate token");
+            }
+            if (signal.aborted) return;
+
+            // Step 2: per-semester timetables
+            const semesters = [1, 2, 3];
             let totalNewEvents = 0;
-            let totalNewAttendance = 0;
-
-            for (const semesterNum of [1, 2, 3]) {
-                setNotification({ type: "loading", message: `Syncing ${SEMESTER_PROGRESS_LABELS[semesterNum]}… (${semesterNum}/3)` });
-                const result = await syncVtcData(url, semesterNum);
-
-                if (!result.success) {
-                    throw new Error(result.error || "Failed to sync");
-                }
-
+            for (let i = 0; i < semesters.length; i++) {
+                if (signal.aborted) return;
+                onProgress({
+                    percent: 5 + (i / semesters.length) * 40,
+                    phase: "timetable",
+                    semesterLabel: SEMESTER_PROGRESS_LABELS[semesters[i]],
+                });
+                const result = await syncSemesterTimetableStored(semesters[i]);
+                if (!result.success) throw new Error(result.error || "Failed to sync timetable");
                 totalNewEvents += result.newEvents || 0;
+            }
+
+            // Step 3: course list for attendance
+            if (signal.aborted) return;
+            onProgress({ percent: 45, phase: "attendance", coursesDone: 0, coursesTotal: 0 });
+            const list = await listAttendanceCoursesStored();
+            if (!list.success) throw new Error(list.error || "Failed to list courses");
+            const courses = list.courses ?? [];
+
+            // Step 4: per-course attendance (real "i / total" + current course id)
+            const courseSemesterMap: Record<string, string> = {};
+            let totalNewAttendance = 0;
+            for (let i = 0; i < courses.length; i++) {
+                if (signal.aborted) return;
+                onProgress({
+                    percent: 45 + (courses.length ? (i / courses.length) * 50 : 50),
+                    phase: "attendance",
+                    coursesDone: i,
+                    coursesTotal: courses.length,
+                    currentCourseCode: courses[i].courseCode,
+                    currentCourseName: courses[i].courseName,
+                });
+                const result = await syncCourseAttendanceStored(courses[i].courseCode, courses[i].courseName);
+                if (result.success && result.courseSemester) {
+                    courseSemesterMap[courses[i].courseCode] = result.courseSemester;
+                }
                 totalNewAttendance += result.newAttendance || 0;
             }
 
-            setVtcUrl(url);
-            localStorage.setItem("vtc_url", url);
+            // Step 5: finalize (stale cleanup + revalidate)
+            if (signal.aborted) return;
+            onProgress({
+                percent: 96,
+                phase: "finalizing",
+                coursesDone: courses.length,
+                coursesTotal: courses.length,
+            });
+            await finalizeAttendanceSync(courseSemesterMap);
+            onProgress({
+                percent: 100,
+                phase: "finalizing",
+                coursesDone: courses.length,
+                coursesTotal: courses.length,
+            });
+
+            if (signal.aborted) return;
+            if (url) {
+                setVtcUrl(url);
+                localStorage.setItem("vtc_url", url);
+            }
+            // A successful sync means a valid token is now stored.
+            setHasSavedToken(true);
 
             await loadStoredData();
             await fetchAttendance();
-
-            setNotification({
-                type: "success",
-                message: t("syncedEvents", { count: totalNewEvents, attendance: totalNewAttendance }),
-            });
-
-            setTimeout(() => setNotification(null), 3000);
+            // Success is confirmed by the modal's SyncSuccess view — no toast needed here.
         } catch (error) {
-            setNotification({
-                type: "error",
-                message: error instanceof Error ? error.message : "Failed to sync",
-            });
-            setTimeout(() => setNotification(null), 5000);
+            // Surfaced inline by the modal; rethrow so it can display the message.
             throw error;
         } finally {
             setIsSyncing(false);
         }
     };
+
+    // Manual sync (fresh URL) and Quick Sync (stored token) entry points for the modal.
+    const handleSync = (url: string, onProgress: (p: SyncProgress) => void, signal: AbortSignal) =>
+        runStagedSync(url, onProgress, signal);
+    const handleQuickSync = (onProgress: (p: SyncProgress) => void, signal: AbortSignal) =>
+        runStagedSync(null, onProgress, signal);
 
     // Handle ICS export
     const handleExport = useCallback(() => {
@@ -372,10 +504,11 @@ export default function Home() {
                 vtcUrl={vtcUrl}
                 user={session?.user}
                 sidebarOpen={sidebarOpen}
+                onStartTour={() => { setSidebarOpen(false); setShowDemo(true); }}
             />
 
             {/* Main Content */}
-            <main className="flex-1 flex flex-col p-6 overflow-hidden relative">
+            <main data-tour="calendar" className="flex-1 flex flex-col p-6 overflow-hidden relative">
                 {/* Token Expired Warning Banner */}
                 {showTokenExpiredWarning && (
                     <div className="mb-4 flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 animate-slideIn">
@@ -443,7 +576,62 @@ export default function Home() {
                             locale={locale}
                         />
                     </>
+                ) : !isLoggedIn ? (
+                    /* ── Unauthenticated empty state ── */
+                    <div className="flex-1 flex flex-col items-center justify-center">
+                        <div className="text-center max-w-md animate-fadeIn">
+                            <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-[var(--calendar-header-bg)] flex items-center justify-center">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    strokeWidth={1}
+                                    stroke="currentColor"
+                                    className="w-12 h-12 text-[var(--text-tertiary)]"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
+                                    />
+                                </svg>
+                            </div>
+                            <h2 className="text-2xl font-semibold mb-2">{tc("welcomeTitle")}</h2>
+                            <p className="text-[var(--text-secondary)] mb-6">
+                                {tc("signInToView")}
+                            </p>
+                            <button
+                                onClick={() => setShowSignInModal(true)}
+                                className="btn-primary inline-flex items-center gap-2"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    strokeWidth={1.5}
+                                    stroke="currentColor"
+                                    className="w-5 h-5"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l3 3m0 0-3 3m3-3H2.25"
+                                    />
+                                </svg>
+                                {tc("signIn")}
+                            </button>
+                            <div className="mt-3">
+                                <button
+                                    onClick={() => setShowDemo(true)}
+                                    className="text-sm text-[var(--text-tertiary)] hover:text-[var(--foreground)] transition-colors"
+                                >
+                                    {tTour("seeHowItWorks")}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 ) : (
+                    /* ── Authenticated, no data yet ── */
                     <div className="flex-1 flex flex-col items-center justify-center">
                         <div className="text-center max-w-md animate-fadeIn">
                             <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-[var(--calendar-header-bg)] flex items-center justify-center">
@@ -467,7 +655,7 @@ export default function Home() {
                                 {tc("noScheduleSubtitle")}
                             </p>
                             <button
-                                onClick={() => session ? setShowSyncModal(true) : setShowSignInModal(true)}
+                                onClick={() => setShowSyncModal(true)}
                                 className="btn-primary inline-flex items-center gap-2"
                             >
                                 <svg
@@ -486,6 +674,14 @@ export default function Home() {
                                 </svg>
                                 {tc("syncSchedule")}
                             </button>
+                            <div className="mt-3">
+                                <button
+                                    onClick={() => setShowDemo(true)}
+                                    className="text-sm text-[var(--text-tertiary)] hover:text-[var(--foreground)] transition-colors"
+                                >
+                                    {tTour("seeHowItWorks")}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -494,7 +690,36 @@ export default function Home() {
                 {notification && (
                     notification.type === "loading" ? (
                         /* ── Vercel-style dark sync pill ── */
-                        <div className="absolute bottom-6 right-6 z-50 animate-toast-enter">
+                        <div className="absolute bottom-6 right-6 z-50 animate-toast-enter flex flex-col items-end gap-2">
+                            {/* Expandable details panel */}
+                            {syncProgress && syncProgress.length > 0 && syncDetailsExpanded && (
+                                <div className="w-[260px] bg-[#0a0a0a] border border-[#222] rounded-xl shadow-2xl p-2 animate-toast-enter">
+                                    {syncProgress.map((p) => (
+                                        <div key={p.semester} className="flex items-center gap-2.5 px-2 py-1.5 text-sm">
+                                            {/* Status icon */}
+                                            {p.status === "done" ? (
+                                                <svg className="w-3.5 h-3.5 text-[#3ecf8e] shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                                            ) : p.status === "error" ? (
+                                                <svg className="w-3.5 h-3.5 text-[#f55353] shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                                            ) : p.status === "syncing" ? (
+                                                <svg className="w-3.5 h-3.5 text-[#666] animate-spin shrink-0" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                                            ) : (
+                                                <span className="w-3.5 h-3.5 shrink-0 flex items-center justify-center"><span className="w-1.5 h-1.5 rounded-full bg-[#444]" /></span>
+                                            )}
+                                            <span className="flex-1 text-[#d4d4d4] tracking-tight truncate">{p.label}</span>
+                                            <span className="text-xs text-[#666] shrink-0">
+                                                {p.status === "done"
+                                                    ? t("detailEvents", { count: p.newEvents ?? 0 })
+                                                    : p.status === "syncing"
+                                                        ? t("statusSyncing")
+                                                        : p.status === "error"
+                                                            ? t("statusError")
+                                                            : t("statusPending")}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                             <div className="relative flex items-center gap-3 px-5 py-3 bg-[#0a0a0a] border border-[#222] rounded-full shadow-2xl overflow-hidden min-w-[240px]">
                                 {/* Animated Spinner */}
                                 <svg className="w-4 h-4 text-[#666] animate-spin shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -505,6 +730,20 @@ export default function Home() {
                                 <span className="text-sm font-medium text-[#d4d4d4] tracking-tight">
                                     {notification.message}
                                 </span>
+                                {/* Details toggle */}
+                                {syncProgress && syncProgress.length > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setSyncDetailsExpanded((v) => !v)}
+                                        aria-expanded={syncDetailsExpanded}
+                                        aria-label={syncDetailsExpanded ? t("detailsHide") : t("detailsShow")}
+                                        className="ml-auto -mr-1.5 shrink-0 rounded-full p-1 text-[#888] hover:bg-[#1a1a1a] hover:text-[#d4d4d4] transition-colors"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={`w-3.5 h-3.5 transition-transform ${syncDetailsExpanded ? "rotate-180" : ""}`}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+                                        </svg>
+                                    </button>
+                                )}
                                 {/* Indeterminate Bottom Loading Bar */}
                                 <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#222]">
                                     <div className="h-full w-1/4 rounded-full bg-white/60 toast-loading-bar" />
@@ -542,8 +781,13 @@ export default function Home() {
                 isOpen={showSyncModal}
                 onClose={() => setShowSyncModal(false)}
                 onSync={handleSync}
+                onQuickSync={handleQuickSync}
+                hasSavedToken={hasSavedToken}
                 initialUrl={vtcUrl}
             />
+
+            {/* Ghost-cursor tutorial demo */}
+            <TutorialSimulation open={showDemo} onClose={() => setShowDemo(false)} />
 
             {/* Event Details Modal */}
             <EventDetailsModal

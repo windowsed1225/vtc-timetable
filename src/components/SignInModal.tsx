@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "@/lib/navigation";
-import { signIn } from "next-auth/react";
+import { signIn } from "@/lib/auth-client";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
@@ -22,7 +22,7 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
 
     const handleDiscordSignIn = async () => {
         setIsLoading(true);
-        await signIn("discord", { callbackUrl: "/" });
+        await signIn.social({ provider: "discord", callbackURL: "/" });
     };
 
     const handleCredentialsSignIn = async (e: React.FormEvent) => {
@@ -31,16 +31,12 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
         setIsLoading(true);
 
         try {
-            const result = await signIn("credentials", {
-                email,
-                password,
-                redirect: false,
-            });
+            const { error: signInError } = await signIn.email({ email, password });
 
-            if (result?.error) {
+            if (signInError) {
                 setError(t("invalidCredentials"));
                 setIsLoading(false);
-            } else if (result?.ok) {
+            } else {
                 router.push("/");
                 router.refresh();
                 onClose();

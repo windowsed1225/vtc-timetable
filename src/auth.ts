@@ -1,170 +1,24 @@
-import connectDB from "@/lib/db";
-import User from "@/models/User";
-import bcrypt from "bcryptjs";
-import NextAuth from "next-auth";
-import Credentials from "next-auth/providers/credentials";
-import Discord from "next-auth/providers/discord";
+import { headers } from "next/headers";
+import { auth as betterAuth } from "@/lib/auth";
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
-	providers: [
-		Discord({
-			checks: ["state", "pkce"],
-			authorization: {
-				params: {
-					prompt: "none",
-				},
-			},
-		}),
-		Credentials({
-			name: "Email & Password",
-			credentials: {
-				email: { label: "Email", type: "email", placeholder: "your.email@example.com" },
-				password: { label: "Password", type: "password" },
-			},
-			async authorize(credentials) {
-				if (!credentials?.email || !credentials?.password) {
-					return null;
-				}
+/**
+ * Compatibility shim preserving the next-auth `auth()` call signature used across
+ * the server actions and route handlers. Returns a session-like object whose
+ * `user.discordId` is the key the rest of the app reads. Backed by better-auth.
+ */
+export async function auth() {
+	const session = await betterAuth.api.getSession({ headers: await headers() });
+	if (!session) return null;
 
-				try {
-					await connectDB();
-
-					// Find user by email
-					const user = await User.findOne({ email: credentials.email }).lean();
-
-					if (!user || !user.password) {
-						return null;
-					}
-
-					// Verify password
-					const isValid = await bcrypt.compare(credentials.password as string, user.password);
-
-					if (!isValid) {
-						return null;
-					}
-
-					// Return user object for session
-					return {
-						id: user._id.toString(),
-						email: user.email,
-						name: user.discordUsername || user.email,
-						image: user.discordAvatar,
-						discordId: user.discordId,
-						vtcStudentId: user.vtcStudentId,
-					};
-				} catch (error) {
-					console.error("Error during credentials authorization:", error);
-					return null;
-				}
-			},
-		}),
-	],
-	callbacks: {
-		async signIn({ user, account }) {
-			if (account?.provider === "discord") {
-				try {
-					await connectDB();
-					await User.findOneAndUpdate(
-						{ discordId: account.providerAccountId },
-						{
-							discordId: account.providerAccountId,
-							discordUsername: user.name,
-							discordAvatar: user.image,
-							discordAccessToken: account.access_token,
-						},
-						{ upsert: true, returnDocument: 'after' },
-					);
-				} catch (error) {
-					console.error("Error saving user to database:", error);
-					// Still allow sign in even if DB save fails
-				}
-			}
-			return true;
+	return {
+		user: {
+			id: session.user.id,
+			name: session.user.name ?? null,
+			email: session.user.email ?? null,
+			image: session.user.image ?? null,
+			discordId: session.user.discordId ?? null,
+			vtcStudentId: session.user.vtcStudentId ?? null,
+			locale: session.user.locale ?? null,
 		},
-		async session({ session, token }) {
-			// Add custom fields to session
-			if (token.sub) {
-				session.user.discordId = token.sub;
-			}
-			if (token.vtcStudentId) {
-				session.user.vtcStudentId = token.vtcStudentId as string;
-			}
-			if (token.email) {
-				session.user.email = token.email as string;
-			}
-			if (token.locale) {
-				session.user.locale = token.locale as string;
-			}
-			// Explicitly propagate avatar — NextAuth v5 beta does not reliably
-			// auto-populate session.user.image from token.picture in custom callbacks
-			session.user.image = (token.picture as string) ?? null;
-			return session;
-		},
-		async jwt({ token, account, user }) {
-			// Initial sign in
-			if (account?.provider === "discord") {
-				token.sub = account.providerAccountId;
-				token.lastAvatarCheck = Date.now();
-
-				// Fetch vtcStudentId and locale from database
-				try {
-					await connectDB();
-					const dbUser = await User.findOne({ discordId: account.providerAccountId }).lean();
-					if (dbUser?.vtcStudentId) {
-						token.vtcStudentId = dbUser.vtcStudentId;
-					}
-					if (dbUser?.locale) {
-						token.locale = dbUser.locale;
-					}
-					if (dbUser?.discordAvatar) {
-						token.picture = dbUser.discordAvatar;
-					}
-				} catch (error) {
-					console.error("Error fetching user data:", error);
-				}
-			} else if (account?.provider === "credentials" && user) {
-				// For credentials login, user object already contains all data from authorize()
-				token.sub = user.discordId as string;
-				token.vtcStudentId = user.vtcStudentId as string;
-				token.email = user.email;
-				token.locale = (user as { locale?: string }).locale as string;
-				token.picture = user.image as string;
-			} else if (!account && token.sub) {
-				// Token refresh: sync avatar from DB, and call Discord API at most once per day
-				try {
-					await connectDB();
-					const dbUser = await User.findOne({ discordId: token.sub }).lean();
-					if (dbUser?.discordAvatar) {
-						token.picture = dbUser.discordAvatar;
-					}
-
-					const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-					const lastCheck = token.lastAvatarCheck as number | undefined;
-					if (dbUser?.discordAccessToken && (!lastCheck || Date.now() - lastCheck > ONE_DAY_MS)) {
-						const res = await fetch("https://discord.com/api/users/@me", {
-							headers: { Authorization: `Bearer ${dbUser.discordAccessToken}` },
-						});
-						if (res.ok) {
-							const profile = await res.json();
-							const newAvatar = profile.avatar
-								? `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.png`
-								: null;
-							if (newAvatar && newAvatar !== dbUser.discordAvatar) {
-								await User.findOneAndUpdate(
-									{ discordId: token.sub },
-									{ discordAvatar: newAvatar },
-								);
-								token.picture = newAvatar;
-							}
-						}
-						token.lastAvatarCheck = Date.now();
-					}
-				} catch (error) {
-					console.error("Error refreshing avatar from DB:", error);
-				}
-			}
-
-			return token;
-		},
-	},
-});
+	};
+}
