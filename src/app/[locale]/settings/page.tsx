@@ -1,6 +1,6 @@
 "use client";
 
-import { getUserSettings, updateEmailPassword } from "@/app/actions/settings";
+import { clearVtcData, getUserSettings, updateEmailPassword } from "@/app/actions/settings";
 import { motion } from "framer-motion";
 import { useLocale } from "next-intl";
 import Link from "next/link";
@@ -48,6 +48,31 @@ export default function SettingsPage() {
 
 	// Student ID visibility state
 	const [isStudentIdVisible, setIsStudentIdVisible] = useState(false);
+
+	// Clear VTC data (danger zone) state — two-step confirm
+	const [clearConfirm, setClearConfirm] = useState(false);
+	const [clearing, setClearing] = useState(false);
+	const [clearMessage, setClearMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+	const handleClearVtcData = async () => {
+		if (!clearConfirm) {
+			setClearConfirm(true);
+			setClearMessage(null);
+			return;
+		}
+		setClearing(true);
+		const result = await clearVtcData();
+		setClearing(false);
+		setClearConfirm(false);
+		if (result.success) {
+			setClearMessage({
+				type: "success",
+				text: `Cleared ${result.deletedEvents ?? 0} events and ${result.deletedAttendance ?? 0} attendance records.`,
+			});
+		} else {
+			setClearMessage({ type: "error", text: result.error || "Failed to clear VTC data." });
+		}
+	};
 
 	useEffect(() => {
 		// eslint-disable-next-line react-hooks/immutability
@@ -302,17 +327,37 @@ export default function SettingsPage() {
 						<p>Irreversible actions. Proceed with caution.</p>
 					</div>
 					<div className="settings-section-body">
-						<div className="flex items-center justify-between">
+						<div className="flex items-center justify-between gap-4">
 							<div>
 								<p className="text-sm font-medium">Clear VTC Data</p>
 								<p className="text-xs text-[var(--text-tertiary)] mt-0.5">
 									Remove all synced timetable and attendance data from your account.
 								</p>
 							</div>
-							<button className="btn-danger text-xs" disabled>
-								Coming Soon
-							</button>
+							<div className="flex items-center gap-2 shrink-0">
+								{clearConfirm && (
+									<button
+										onClick={() => setClearConfirm(false)}
+										disabled={clearing}
+										className="btn-secondary text-xs disabled:opacity-50"
+									>
+										Cancel
+									</button>
+								)}
+								<button
+									onClick={handleClearVtcData}
+									disabled={clearing}
+									className="btn-danger text-xs disabled:opacity-50"
+								>
+									{clearing ? "Clearing…" : clearConfirm ? "Confirm — Clear" : "Clear Data"}
+								</button>
+							</div>
 						</div>
+						{clearMessage && (
+							<p className={`text-xs mt-2 ${clearMessage.type === "success" ? "text-green-400" : "text-[var(--error)]"}`}>
+								{clearMessage.text}
+							</p>
+						)}
 					</div>
 				</motion.div>
 			</motion.main>

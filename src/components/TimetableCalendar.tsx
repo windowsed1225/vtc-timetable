@@ -194,13 +194,20 @@ export default function TimetableCalendar({
                                         <span className="ml-1 text-[10px]" title="Manually adjusted">⚡</span>
                                     )}
                                     {event.resource?.location && (
-                                        <div className="text-[10px] opacity-80 mt-0.5">
-                                            📍 {event.resource.location}
+                                        <div className="text-[11px] opacity-80 mt-1 flex items-center gap-1.5">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" strokeWidth={1.8} stroke="currentColor" className="h-3.5 w-3.5 shrink-0">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                                            </svg>
+                                            <span className="truncate">{event.resource.location}</span>
                                         </div>
                                     )}
                                     {event.resource?.lecturer && (
-                                        <div className="text-[10px] opacity-70 truncate">
-                                            👤 {event.resource.lecturer}
+                                        <div className="text-[11px] opacity-70 mt-0.5 flex items-center gap-1.5">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" strokeWidth={1.8} stroke="currentColor" className="h-3.5 w-3.5 shrink-0">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.118a7.5 7.5 0 0 1 15 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.5-1.632Z" />
+                                            </svg>
+                                            <span className="truncate">{event.resource.lecturer}</span>
                                         </div>
                                     )}
                                 </div>

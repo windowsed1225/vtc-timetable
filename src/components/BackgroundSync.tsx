@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { checkAndSyncBackground } from "@/app/actions";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/auth-client";
 
 /**
  * Component to trigger background synchronization when the user is logged in
