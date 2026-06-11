@@ -1,12 +1,13 @@
 "use client";
 
 import { deleteEventsByDateRange, previewDeleteEventsByDateRange } from "@/app/actions";
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
-const SEMESTER_LABELS: Record<string, string> = {
-    "SEM 1": "Semester 1 (Fall)",
-    "SEM 2": "Semester 2 (Spring)",
-    "SEM 3": "Semester 3 (Summer)",
+const SEM_KEY_MAP: Record<string, "sem1Label" | "sem2Label" | "sem3Label"> = {
+    "SEM 1": "sem1Label",
+    "SEM 2": "sem2Label",
+    "SEM 3": "sem3Label",
 };
 
 const SEMESTER_ORDER: Record<string, number> = { "SEM 3": 3, "SEM 2": 2, "SEM 1": 1 };
@@ -31,6 +32,7 @@ interface ManageEventsModalProps {
 }
 
 export default function ManageEventsModal({ isOpen, onClose, courses, onRefresh }: ManageEventsModalProps) {
+    const tCal = useTranslations("calendar");
     const [isClosing, setIsClosing] = useState(false);
     const [selectedSemester, setSelectedSemester] = useState("");
     const [selectedKey, setSelectedKey] = useState("");
@@ -190,7 +192,7 @@ export default function ManageEventsModal({ isOpen, onClose, courses, onRefresh 
                     >
                         <option value="">Select a semester…</option>
                         {availableSemesters.map(sem => (
-                            <option key={sem} value={sem}>{SEMESTER_LABELS[sem] ?? sem}</option>
+                            <option key={sem} value={sem}>{tCal(SEM_KEY_MAP[sem] ?? "sem1Label")}</option>
                         ))}
                     </select>
                 </div>

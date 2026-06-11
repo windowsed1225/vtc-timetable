@@ -47,7 +47,12 @@
     "summer": "夏季 (第3學期)",
     "sem1Label": "第1學期 (秋季)",
     "sem2Label": "第2學期 (春季)",
-    "sem3Label": "第3學期 (夏季)"
+    "sem3Label": "第3學期 (夏季)",
+    "calendarHeader": "行事曆",
+    "calendarTools": "行事曆工具",
+    "exportDesc": "匯出您的 {semester} 課表至 .ics",
+    "exportBtn": "匯出 {semester}",
+    "exporting": "匯出中..."
   },
   "attendance": {
     "attendance": "出席率",
@@ -72,7 +77,10 @@
     "attendedClasses": "已出席課堂",
     "safeToSkip": "可安全缺席",
     "required80": "要求 (80%)",
-    "maxPossibleShort": "最高可能"
+    "maxPossibleShort": "最高可能",
+    "totalAttendance": "總出席率",
+    "totalLabel": "總計",
+    "mix": "混合"
   },
   "event": {
     "time": "時間",

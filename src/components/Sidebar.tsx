@@ -12,11 +12,11 @@ import ManageEventsSection from "./ManageEventsSection";
 import SemesterSummaryCard from "./SemesterSummaryCard";
 import SubscribeButton from "./SubscribeButton";
 
-// Semester display names
-const SEMESTER_LABELS: Record<string, string> = {
-	"SEM 1": "Semester 1 (Fall)",
-	"SEM 2": "Semester 2 (Spring)",
-	"SEM 3": "Semester 3 (Summer)",
+// Semester display names — resolved at runtime via translations
+const SEMESTER_KEY_MAP: Record<string, "sem1Label" | "sem2Label" | "sem3Label"> = {
+	"SEM 1": "sem1Label",
+	"SEM 2": "sem2Label",
+	"SEM 3": "sem3Label",
 };
 
 // Semester sort order (newest first)
@@ -55,6 +55,7 @@ interface SidebarProps {
 
 /** Calendar Tools - Vercel-style action card for dynamic semester export */
 function CalendarToolsCard() {
+	const t = useTranslations("calendar");
 	const [isExporting, setIsExporting] = useState(false);
 	const [selectedSem, setSelectedSem] = useState(getDefaultSemester());
 
@@ -95,8 +96,8 @@ function CalendarToolsCard() {
 	return (
 		<div className="action-card p-3 rounded-xl border border-[#222] bg-[#0a0a0a] space-y-3 hover:border-[rgba(255,255,255,0.2)] transition-colors">
 			<div className="space-y-1">
-				<h4 className="action-card-title text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider">Calendar Tools</h4>
-				<p className="text-[11px] text-[var(--text-tertiary)] leading-relaxed">Export your {semDisplay} schedule to .ics</p>
+				<h4 className="action-card-title text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider">{t("calendarTools")}</h4>
+				<p className="text-[11px] text-[var(--text-tertiary)] leading-relaxed">{t("exportDesc", { semester: semDisplay })}</p>
 			</div>
 			<select value={selectedSem} onChange={(e) => setSelectedSem(Number(e.target.value))} className="w-full px-2 py-1.5 bg-zinc-900 border border-[#333] rounded-lg text-xs text-white focus:outline-none focus:border-zinc-600">
 				<option value={1}>Fall (SEM 1)</option>
@@ -110,14 +111,14 @@ function CalendarToolsCard() {
 							<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
 							<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
 						</svg>
-						Exporting...
+						{t("exporting")}
 					</>
 				) : (
 					<>
 						<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
 							<path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
 						</svg>
-						Export {semDisplay}
+						{t("exportBtn", { semester: semDisplay })}
 					</>
 				)}
 			</button>
@@ -127,6 +128,8 @@ function CalendarToolsCard() {
 
 export default function Sidebar({ courses, events, attendance, onSyncClick, onRefreshAttendance, onRefreshCalendar, isSyncing, isRefreshingAttendance, isRefreshingCalendar, user, sidebarOpen }: SidebarProps) {
 	const t = useTranslations("calendar");
+	const tAtt = useTranslations("attendance");
+	const semLabel = (sem: string) => t(SEMESTER_KEY_MAP[sem] ?? "sem1Label");
 	const [selectedCourse, setSelectedCourse] = useState<HybridAttendanceStats | null>(null);
 	const [selectedCourseInfo, setSelectedCourseInfo] = useState<CourseInfo | null>(null);
 	const [calculatingCourse, setCalculatingCourse] = useState<HybridAttendanceStats | null>(null);
@@ -279,7 +282,7 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 			<aside className={`glass w-[280px] min-w-[280px] h-full flex flex-col border-r border-[#222] overflow-hidden ${sidebarOpen ? "sidebar-open" : ""}`}>
 				{/* Header */}
 				<div className="p-4 border-b border-[#222]">
-					<h1 className="text-base font-semibold tracking-tight">Calendar</h1>
+					<h1 className="text-base font-semibold tracking-tight">{t("calendarHeader")}</h1>
 				</div>
 
 				{/* Scrollable content */}
@@ -309,7 +312,7 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 											{/* Semester Header */}
 											<button onClick={() => toggleCalendar(semester)} className={`flex items-center gap-2 w-full py-1.5 px-2 rounded-lg hover:bg-[rgba(0,0,0,0.03)] dark:hover:bg-[rgba(255,255,255,0.05)] transition-colors ${isFinishedSemester ? "text-[var(--text-tertiary)]" : "text-[var(--foreground)]"}`}>
 												<ChevronIcon isExpanded={isExpanded} />
-												<span className="text-xs font-medium">{SEMESTER_LABELS[semester] || semester}</span>
+												<span className="text-xs font-medium">{semLabel(semester)}</span>
 												<span className="text-xs text-[var(--text-tertiary)] ml-auto">{data.courses.length}</span>
 											</button>
 
@@ -317,7 +320,7 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 											{isExpanded && (
 												<div className="ml-5 mt-1 space-y-2 animate-fadeIn">
 													{/* Semester Summary Card */}
-													{(eventsBySemester[semester] || []).length > 0 && <SemesterSummaryCard events={eventsBySemester[semester] || []} semesterLabel={SEMESTER_LABELS[semester] || semester} />}
+													{(eventsBySemester[semester] || []).length > 0 && <SemesterSummaryCard events={eventsBySemester[semester] || []} semesterLabel={semLabel(semester)} />}
 													{/* Course List */}
 													{data.courses.map((course) => (
 														<button key={`${course.courseCode}-${course.semester}`} onClick={() => setSelectedCourseInfo(course)} className={`w-full flex items-center gap-3 py-1.5 px-2 rounded-lg hover:bg-[rgba(0,0,0,0.03)] dark:hover:bg-[rgba(255,255,255,0.05)] hover:-translate-y-px hover:shadow-sm active:translate-y-0 active:shadow-none transition-all cursor-pointer text-left ${course.status === "FINISHED" ? "opacity-60" : ""}`}>
@@ -347,7 +350,7 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 					{user && (
 						<section>
 							<div className="flex items-center justify-between mb-3">
-								<h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Attendance</h2>
+								<h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">{tAtt("attendance")}</h2>
 								<button onClick={onRefreshAttendance} disabled={isRefreshingAttendance} className="p-1 rounded hover:bg-[rgba(0,0,0,0.05)] dark:hover:bg-[rgba(255,255,255,0.05)] transition-colors disabled:opacity-50" title="Refresh attendance from VTC">
 									<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`w-4 h-4 text-[var(--text-tertiary)] ${isRefreshingAttendance ? "animate-spin" : ""}`}>
 										<path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -364,7 +367,7 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 										<div className="w-full py-2 px-3 rounded-lg bg-[rgba(0,0,0,0.03)] dark:bg-[rgba(255,255,255,0.04)] text-left">
 
 											<div className="flex items-center justify-between mb-1">
-												<span className="text-xs font-semibold text-[var(--text-secondary)]">Total Attendance</span>
+												<span className="text-xs font-semibold text-[var(--text-secondary)]">{tAtt("totalAttendance")}</span>
 												<span className={`text-sm font-bold ${globalStats.colorClass}`}>{globalStats.currentRate.toFixed(1)}%</span>
 											</div>
 											<div className="w-full h-1 bg-[var(--calendar-border)] rounded-full overflow-hidden">
@@ -383,7 +386,7 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 												{/* Semester Header */}
 												<button onClick={() => toggleAttendance(semester)} className={`flex items-center gap-2 w-full py-1.5 px-2 rounded-lg hover:bg-[rgba(0,0,0,0.03)] dark:hover:bg-[rgba(255,255,255,0.05)] transition-colors ${isFinishedSemester ? "text-[var(--text-tertiary)]" : "text-[var(--foreground)]"}`}>
 													<ChevronIcon isExpanded={isExpanded} />
-													<span className="text-xs font-medium">{SEMESTER_LABELS[semester] || semester}</span>
+													<span className="text-xs font-medium">{semLabel(semester)}</span>
 													<span className="text-xs text-[var(--text-tertiary)] ml-auto">{data.items.length}</span>
 												</button>
 
@@ -409,12 +412,12 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 																		<div className="flex items-center justify-between mb-1">
 																			<span className="text-sm font-medium truncate flex-1">{course.courseCode}</span>
 																			<div className="flex items-center gap-1">
-																				{isMultiSem && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">Mix</span>}
+																				{isMultiSem && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">{tAtt("mix")}</span>}
 																				{/* Recovery Status Badge */}
-																				{!isFinished && course.recoveryStatus === "recoverable" && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">Recoverable ⚠️</span>}
-																				{!isFinished && course.recoveryStatus === "failed" && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Failed ❌</span>}
-																				{course.isFollowUp && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">Follow-up</span>}
-																				{isFinished && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">Finished</span>}
+																				{!isFinished && course.recoveryStatus === "recoverable" && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">{tAtt("recoverable")} ⚠️</span>}
+																				{!isFinished && course.recoveryStatus === "failed" && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">{tAtt("failed")} ❌</span>}
+																				{course.isFollowUp && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">{tAtt("followUp")}</span>}
+																				{isFinished && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">{tAtt("finished")}</span>}
 																			</div>
 																			<span className={`text-sm font-semibold ml-2 ${course.recoveryStatus === "grace" ? "text-yellow-500" : rate < 80 ? "text-red-500" : rate < 90 ? "text-yellow-500" : "text-green-500"}`}>
 																				{rate.toFixed(1)}%
@@ -437,7 +440,7 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 																			onClick={() => setSelectedCourse(course)}
 																			className="w-full mt-0.5 py-1 px-2 rounded-md flex items-center justify-between text-[10px] bg-[rgba(0,0,0,0.03)] dark:bg-[rgba(255,255,255,0.04)] hover:bg-[rgba(0,0,0,0.06)] dark:hover:bg-[rgba(255,255,255,0.07)] transition-colors text-[var(--text-tertiary)]"
 																		>
-																			<span className="font-medium">Total</span>
+																			<span className="font-medium">{tAtt("totalLabel")}</span>
 																			<span className={`font-semibold ${totalRate < 80 ? "text-red-500" : totalRate < 90 ? "text-yellow-500" : "text-green-500"}`}>
 																				{totalRate.toFixed(1)}% &nbsp;Â·&nbsp; Max {totalMaxRate.toFixed(0)}%
 																			</span>

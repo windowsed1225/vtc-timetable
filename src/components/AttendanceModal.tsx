@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
 const SEM_ORDER: Record<string, number> = { "SEM 1": 1, "SEM 2": 2, "SEM 3": 3 };
-const SEM_LABELS: Record<string, string> = { "SEM 1": "Semester 1 (Fall)", "SEM 2": "Semester 2 (Spring)", "SEM 3": "Semester 3 (Summer)" };
+const SEM_KEY_MAP: Record<string, "sem1Label" | "sem2Label" | "sem3Label"> = { "SEM 1": "sem1Label", "SEM 2": "sem2Label", "SEM 3": "sem3Label" };
 
 function getClassSemLabel(dateStr: string): string {
 	const parts = dateStr.split("/");
@@ -23,6 +23,7 @@ interface AttendanceModalProps {
 
 export default function AttendanceModal({ course, onClose }: AttendanceModalProps) {
 	const t = useTranslations("attendance");
+	const tCal = useTranslations("calendar");
 
 	const [manualMarks, setManualMarks] = useState<Record<string, "attended" | "late" | "absent">>({});
 	const [selectedSem, setSelectedSem] = useState<string | null>(null);
@@ -87,8 +88,8 @@ export default function AttendanceModal({ course, onClose }: AttendanceModalProp
 						<p className="text-sm text-[(--text-tertiary)] truncate">{course.courseName}</p>
 					</div>
 					<div className="flex items-center gap-2 ml-3">
-						{course.isFollowUp && <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">Follow-up</span>}
-						{course.isFinished && <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">Finished</span>}
+						{course.isFollowUp && <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">{t("followUp")}</span>}
+						{course.isFinished && <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">{t("finished")}</span>}
 						<span className={`text-lg font-bold ${course.isLow ? "text-red-500" : "text-green-500"}`}>{rate.toFixed(1)}%</span>
 					</div>
 					<button onClick={onClose} className="ml-3 p-1 rounded-full hover:bg-[rgba(0,0,0,0.05)] dark:hover:bg-[rgba(255,255,255,0.1)] transition-colors">
@@ -104,21 +105,21 @@ export default function AttendanceModal({ course, onClose }: AttendanceModalProp
 					<div className="flex items-center justify-between text-xs mb-2 flex-wrap gap-x-3 gap-y-1">
 						<div className="flex items-center gap-1 text-green-600">
 							<span>✓</span>
-							<span className="font-medium">{(course.attended || 0) - (course.late || 0)} on time</span>
+							<span className="font-medium">{(course.attended || 0) - (course.late || 0)} {t("onTime")}</span>
 						</div>
 						<div className="flex items-center gap-1 text-yellow-600">
 							<span>🕐</span>
-							<span className="font-medium">{course.late || 0} late</span>
+							<span className="font-medium">{course.late || 0} {t("late")}</span>
 						</div>
 						<div className="flex items-center gap-1 text-red-600">
 							<span>✗</span>
-							<span className="font-medium">{course.absent || 0} absent</span>
+							<span className="font-medium">{course.absent || 0} {t("absent")}</span>
 						</div>
 						<div className="flex items-center gap-1 text-[(--text-tertiary)] ml-auto">
 							<span className="font-medium">
-								{course.calendarConductedClasses || 0}/{course.calendarTotalClasses || 0} conducted
+								{course.calendarConductedClasses || 0}/{course.calendarTotalClasses || 0} {t("conducted")}
 							</span>
-							<span>({course.calendarRemainingClasses || 0} remaining)</span>
+							<span>({course.calendarRemainingClasses || 0} {t("remaining")})</span>
 						</div>
 					</div>
 
@@ -135,11 +136,11 @@ export default function AttendanceModal({ course, onClose }: AttendanceModalProp
 					{/* Max Possible & Status */}
 					<div className="flex items-center justify-between text-xs text-[(--text-tertiary)]">
 						<span>
-							Max Possible: <span className="font-medium">{(course.maxPossibleMinutesRate ?? course.maxPossibleRate).toFixed(1)}%</span>
+							{t("maxPossible")}: <span className="font-medium">{(course.maxPossibleMinutesRate ?? course.maxPossibleRate).toFixed(1)}%</span>
 						</span>
-						{course.recoveryStatus === "safe" && <span className="text-green-600 font-medium">✓ Safe</span>}
-						{course.recoveryStatus === "recoverable" && <span className="text-yellow-600 font-medium">⚠️ Recoverable</span>}
-						{course.recoveryStatus === "failed" && <span className="text-red-600 font-medium">❌ Failed</span>}
+						{course.recoveryStatus === "safe" && <span className="text-green-600 font-medium">✓ {t("safe")}</span>}
+						{course.recoveryStatus === "recoverable" && <span className="text-yellow-600 font-medium">⚠️ {t("recoverable")}</span>}
+						{course.recoveryStatus === "failed" && <span className="text-red-600 font-medium">❌ {t("failed")}</span>}
 					</div>
 					{course.currentSemesterStats && course.currentSemesterStats.semester !== course.semester && course.currentSemesterStats.conductedClasses > 0 && (
 						<div className="flex items-center justify-between text-xs text-[var(--text-tertiary)] mt-1">
@@ -161,7 +162,7 @@ export default function AttendanceModal({ course, onClose }: AttendanceModalProp
 									onClick={() => setSelectedSem(sem)}
 									className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-medium transition-colors ${isActive ? "bg-blue-600 dark:bg-blue-500 text-white" : "bg-[rgba(0,0,0,0.04)] dark:bg-[rgba(255,255,255,0.06)] text-[var(--text-secondary)] hover:bg-[rgba(0,0,0,0.08)] dark:hover:bg-[rgba(255,255,255,0.1)]"}`}
 								>
-									<div>{SEM_LABELS[sem] ?? sem}</div>
+									<div>{tCal(SEM_KEY_MAP[sem] ?? "sem1Label")}</div>
 									<div className={`text-[10px] mt-0.5 ${isActive ? "text-white/80" : "text-[var(--text-tertiary)]"}`}>
 										{b.attended}/{b.calendarTotalClasses} · {b.attendanceRate.toFixed(0)}%
 									</div>

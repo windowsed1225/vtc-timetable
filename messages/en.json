@@ -47,7 +47,12 @@
     "summer": "Summer (SEM 3)",
     "sem1Label": "Semester 1 (Fall)",
     "sem2Label": "Semester 2 (Spring)",
-    "sem3Label": "Semester 3 (Summer)"
+    "sem3Label": "Semester 3 (Summer)",
+    "calendarHeader": "Calendar",
+    "calendarTools": "Calendar Tools",
+    "exportDesc": "Export your {semester} schedule to .ics",
+    "exportBtn": "Export {semester}",
+    "exporting": "Exporting..."
   },
   "attendance": {
     "attendance": "Attendance",
@@ -72,7 +77,10 @@
     "attendedClasses": "Attended Classes",
     "safeToSkip": "Safe to Skip",
     "required80": "Required (80%)",
-    "maxPossibleShort": "Max Possible"
+    "maxPossibleShort": "Max Possible",
+    "totalAttendance": "Total Attendance",
+    "totalLabel": "Total",
+    "mix": "Mix"
   },
   "event": {
     "time": "Time",
