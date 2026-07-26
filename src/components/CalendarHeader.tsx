@@ -64,7 +64,7 @@ export default function CalendarHeader({
             {/* Center: Date — animates on change */}
             <h2
                 key={formattedDate}
-                className="calendar-title text-lg font-semibold md:absolute md:left-1/2 md:-translate-x-1/2 animate-fadeIn"
+                className="calendar-title font-display text-lg font-semibold md:absolute md:left-1/2 md:-translate-x-1/2 animate-fadeIn"
             >
                 {formattedDate}
             </h2>
@@ -76,8 +76,8 @@ export default function CalendarHeader({
                         key={v.key}
                         onClick={() => onViewChange(v.key)}
                         className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 active:scale-95 ${view === v.key
-                            ? "bg-white dark:bg-[var(--calendar-border)] text-[var(--foreground)] shadow-sm scale-[1.02]"
-                            : "text-[var(--text-secondary)] hover:text-[var(--foreground)] hover:bg-[rgba(0,0,0,0.04)] dark:hover:bg-[rgba(255,255,255,0.06)]"
+                            ? "bg-active text-[var(--foreground)] shadow-sm scale-[1.02]"
+                            : "text-[var(--text-secondary)] hover:text-[var(--foreground)] hover:bg-overlay"
                             }`}
                     >
                         {v.label}

@@ -1,12 +1,12 @@
 ﻿"use client";
 
 import { exportSemesterIcs, HybridAttendanceStats } from "@/app/actions";
-import { PASTEL_COLORS } from "@/lib/colors";
+import { LINE_COLORS } from "@/lib/colors";
 import { Link } from "@/lib/navigation";
 import { getDefaultSemester, getSemesterDisplayLabel, getSemesterLabel } from "@/lib/utils";
 import { CalendarEvent } from "@/types/timetable";
 import { useTranslations } from "next-intl";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import AttendanceModal from "./AttendanceModal";
 import CourseDetailsModal from "./CourseDetailsModal";
 import ManageEventsSection from "./ManageEventsSection";
@@ -96,17 +96,17 @@ function CalendarToolsCard() {
 	};
 
 	return (
-		<div className="action-card p-3 rounded-xl border border-[#222] bg-[#0a0a0a] space-y-3 hover:border-[rgba(255,255,255,0.2)] transition-colors">
+		<div className="action-card p-3 rounded-xl border space-y-3 transition-colors">
 			<div className="space-y-1">
 				<h4 className="action-card-title text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider">{t("calendarTools")}</h4>
 				<p className="text-[11px] text-[var(--text-tertiary)] leading-relaxed">{t("exportDesc", { semester: semDisplay })}</p>
 			</div>
-			<select value={selectedSem} onChange={(e) => setSelectedSem(Number(e.target.value))} className="w-full px-2 py-1.5 bg-zinc-900 border border-[#333] rounded-lg text-xs text-white focus:outline-none focus:border-zinc-600">
+			<select value={selectedSem} onChange={(e) => setSelectedSem(Number(e.target.value))} className="w-full px-2 py-1.5 bg-overlay border border-border rounded-lg text-xs text-foreground focus:outline-none focus:border-border-strong">
 				<option value={1}>Fall (SEM 1)</option>
 				<option value={2}>Spring (SEM 2)</option>
 				<option value={3}>Summer (SEM 3)</option>
 			</select>
-			<button onClick={handleExport} disabled={isExporting} className="action-card-button w-full py-2 bg-white text-black rounded-lg text-xs font-bold flex items-center justify-center gap-2 hover:bg-[#e5e5e5] active:scale-[0.98] transition-all disabled:opacity-50">
+			<button onClick={handleExport} disabled={isExporting} className="action-card-button btn-primary w-full text-xs">
 				{isExporting ? (
 					<>
 						<svg className="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -166,14 +166,14 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 		const maxPossibleRate = totalClasses > 0 ? ((totalAttended + totalRemaining) / totalClasses) * 100 : 100;
 
 		// Color coding
-		let colorClass = "text-green-500";
-		let bgClass = "bg-green-500";
+		let colorClass = "text-success";
+		let bgClass = "bg-success";
 		if (currentRate < 80) {
-			colorClass = "text-red-500";
-			bgClass = "bg-red-500";
+			colorClass = "text-error";
+			bgClass = "bg-error";
 		} else if (currentRate < 90) {
-			colorClass = "text-yellow-500";
-			bgClass = "bg-yellow-500";
+			colorClass = "text-warning";
+			bgClass = "bg-warning";
 		}
 
 		return {
@@ -283,10 +283,10 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 
 	return (
 		<>
-			<aside className={`glass w-[280px] min-w-[280px] h-full flex flex-col border-r border-[#222] overflow-hidden ${sidebarOpen ? "sidebar-open" : ""}`}>
+			<aside className={`glass w-[280px] min-w-[280px] h-full flex flex-col border-r border-border overflow-hidden ${sidebarOpen ? "sidebar-open" : ""}`}>
 				{/* Header */}
-				<div className="p-4 border-b border-[#222]">
-					<h1 className="text-base font-semibold tracking-tight">{t("calendarHeader")}</h1>
+				<div className="p-4 border-b border-border">
+					<h1 className="font-display text-base font-semibold tracking-tight">{t("calendarHeader")}</h1>
 				</div>
 
 				{/* Scrollable content */}
@@ -294,8 +294,8 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 					{/* My Calendars Section */}
 					<section>
 						<div className="flex items-center justify-between mb-3">
-							<h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">{t("myCalendars")}</h2>
-							<button onClick={onRefreshCalendar} disabled={isRefreshingCalendar} className="p-1 rounded hover:bg-[rgba(0,0,0,0.05)] dark:hover:bg-[rgba(255,255,255,0.05)] transition-colors disabled:opacity-50" title="Refresh calendar from database">
+							<h2 className="font-display text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">{t("myCalendars")}</h2>
+							<button onClick={onRefreshCalendar} disabled={isRefreshingCalendar} className="p-1 rounded hover:bg-overlay transition-colors disabled:opacity-50" title="Refresh calendar from database">
 								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`w-4 h-4 text-[var(--text-tertiary)] ${isRefreshingCalendar ? "animate-spin" : ""}`}>
 									<path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
 								</svg>
@@ -314,7 +314,7 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 									return (
 										<div key={semester}>
 											{/* Semester Header */}
-											<button onClick={() => toggleCalendar(semester)} className={`flex items-center gap-2 w-full py-1.5 px-2 rounded-lg hover:bg-[rgba(0,0,0,0.03)] dark:hover:bg-[rgba(255,255,255,0.05)] transition-colors ${isFinishedSemester ? "text-[var(--text-tertiary)]" : "text-[var(--foreground)]"}`}>
+											<button onClick={() => toggleCalendar(semester)} className={`flex items-center gap-2 w-full py-1.5 px-2 rounded-lg hover:bg-overlay transition-colors ${isFinishedSemester ? "text-[var(--text-tertiary)]" : "text-[var(--foreground)]"}`}>
 												<ChevronIcon isExpanded={isExpanded} />
 												<span className="text-xs font-medium">{semLabel(semester)}</span>
 												<span className="text-xs text-[var(--text-tertiary)] ml-auto">{data.courses.length}</span>
@@ -327,13 +327,15 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 													{(eventsBySemester[semester] || []).length > 0 && <SemesterSummaryCard events={eventsBySemester[semester] || []} semesterLabel={semLabel(semester)} />}
 													{/* Course List */}
 													{data.courses.map((course) => (
-														<button key={`${course.courseCode}-${course.semester}`} onClick={() => setSelectedCourseInfo(course)} className={`w-full flex items-center gap-3 py-1.5 px-2 rounded-lg hover:bg-[rgba(0,0,0,0.03)] dark:hover:bg-[rgba(255,255,255,0.05)] hover:-translate-y-px hover:shadow-sm active:translate-y-0 active:shadow-none transition-all cursor-pointer text-left ${course.status === "FINISHED" ? "opacity-60" : ""}`}>
+														<button key={`${course.courseCode}-${course.semester}`} onClick={() => setSelectedCourseInfo(course)} className={`w-full flex items-center gap-3 py-1.5 px-2 rounded-lg hover:bg-overlay hover:-translate-y-px hover:shadow-sm active:translate-y-0 active:shadow-none transition-all cursor-pointer text-left ${course.status === "FINISHED" ? "opacity-60" : ""}`}>
 															<div
-																className="color-dot"
-																style={{
-																	backgroundColor: PASTEL_COLORS[course.colorIndex] || PASTEL_COLORS[0],
-																	filter: course.status === "FINISHED" ? "grayscale(50%)" : "none",
-																}}
+																className="platform-chip-bullet"
+																style={
+																	{
+																		"--chip-color": LINE_COLORS[course.colorIndex] || LINE_COLORS[0],
+																		filter: course.status === "FINISHED" ? "grayscale(50%)" : "none",
+																	} as CSSProperties
+																}
 															/>
 															<div className="flex-1 min-w-0">
 																<p className="text-sm font-medium truncate">{course.courseCode}</p>
@@ -354,8 +356,8 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 					{user && (
 						<section data-tour="attendance">
 							<div className="flex items-center justify-between mb-3">
-								<h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">{tAtt("attendance")}</h2>
-								<button onClick={onRefreshAttendance} disabled={isRefreshingAttendance} className="p-1 rounded hover:bg-[rgba(0,0,0,0.05)] dark:hover:bg-[rgba(255,255,255,0.05)] transition-colors disabled:opacity-50" title="Refresh attendance from VTC">
+								<h2 className="font-display text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">{tAtt("attendance")}</h2>
+								<button onClick={onRefreshAttendance} disabled={isRefreshingAttendance} className="p-1 rounded hover:bg-overlay transition-colors disabled:opacity-50" title="Refresh attendance from VTC">
 									<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`w-4 h-4 text-[var(--text-tertiary)] ${isRefreshingAttendance ? "animate-spin" : ""}`}>
 										<path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
 									</svg>
@@ -365,7 +367,7 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 							{/* Bulk attendance entry — grid/spreadsheet view */}
 							<Link
 								href="/attendance-grid"
-								className="mb-3 flex items-center gap-2.5 w-full py-2 px-2 rounded-lg text-[var(--text-secondary)] hover:bg-[rgba(0,0,0,0.03)] dark:hover:bg-[rgba(255,255,255,0.05)] hover:text-[var(--foreground)] transition-colors"
+								className="mb-3 flex items-center gap-2.5 w-full py-2 px-2 rounded-lg text-[var(--text-secondary)] hover:bg-overlay hover:text-[var(--foreground)] transition-colors"
 							>
 								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-[var(--accent-blue)] shrink-0">
 									<path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75h16.5v16.5H3.75zM3.75 9h16.5M3.75 14.25h16.5M9 3.75v16.5M15 3.75v16.5" />
@@ -382,7 +384,7 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 								<div className="space-y-2">
 									{/* Total Attendance Summary */}
 									{globalStats.hasActive && (
-										<div className="w-full py-2 px-3 rounded-lg bg-[rgba(0,0,0,0.03)] dark:bg-[rgba(255,255,255,0.04)] text-left">
+										<div className="w-full py-2 px-3 rounded-lg bg-overlay text-left">
 
 											<div className="flex items-center justify-between mb-1">
 												<span className="text-xs font-semibold text-[var(--text-secondary)]">{tAtt("totalAttendance")}</span>
@@ -402,7 +404,7 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 										return (
 											<div key={semester}>
 												{/* Semester Header */}
-												<button onClick={() => toggleAttendance(semester)} className={`flex items-center gap-2 w-full py-1.5 px-2 rounded-lg hover:bg-[rgba(0,0,0,0.03)] dark:hover:bg-[rgba(255,255,255,0.05)] transition-colors ${isFinishedSemester ? "text-[var(--text-tertiary)]" : "text-[var(--foreground)]"}`}>
+												<button onClick={() => toggleAttendance(semester)} className={`flex items-center gap-2 w-full py-1.5 px-2 rounded-lg hover:bg-overlay transition-colors ${isFinishedSemester ? "text-[var(--text-tertiary)]" : "text-[var(--foreground)]"}`}>
 													<ChevronIcon isExpanded={isExpanded} />
 													<span className="text-xs font-medium">{semLabel(semester)}</span>
 													<span className="text-xs text-[var(--text-tertiary)] ml-auto">{data.items.length}</span>
@@ -426,40 +428,40 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 
 																return (
 																<div key={`${course.courseCode}-${viewSemester}`}>
-																	<button onClick={() => setSelectedCourse(course)} className={`w-full py-2 px-2 rounded-lg hover:bg-[rgba(0,0,0,0.03)] dark:hover:bg-[rgba(255,255,255,0.05)] hover:-translate-y-px hover:shadow-sm active:translate-y-0 active:shadow-none transition-all text-left ${isFinished ? "opacity-60" : ""}`}>
+																	<button onClick={() => setSelectedCourse(course)} className={`w-full py-2 px-2 rounded-lg hover:bg-overlay hover:-translate-y-px hover:shadow-sm active:translate-y-0 active:shadow-none transition-all text-left ${isFinished ? "opacity-60" : ""}`}>
 																		<div className="flex items-center justify-between mb-1">
 																			<span className="text-sm font-medium truncate flex-1">{course.courseCode}</span>
 																			<div className="flex items-center gap-1">
-																				{isMultiSem && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">{tAtt("mix")}</span>}
+																				{isMultiSem && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-accent-blue/15 text-accent-blue">{tAtt("mix")}</span>}
 																				{/* Recovery Status Badge */}
-																				{!isFinished && course.recoveryStatus === "recoverable" && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">{tAtt("recoverable")} ⚠️</span>}
-																				{!isFinished && course.recoveryStatus === "failed" && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">{tAtt("failed")} ❌</span>}
-																				{course.isFollowUp && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">{tAtt("followUp")}</span>}
-																				{isFinished && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">{tAtt("finished")}</span>}
+																				{!isFinished && course.recoveryStatus === "recoverable" && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-warning/15 text-warning">{tAtt("recoverable")} ⚠️</span>}
+																				{!isFinished && course.recoveryStatus === "failed" && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-error/15 text-error">{tAtt("failed")} ❌</span>}
+																				{course.isFollowUp && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-line-7/15 text-line-7">{tAtt("followUp")}</span>}
+																				{isFinished && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-overlay text-text-tertiary">{tAtt("finished")}</span>}
 																			</div>
-																			<span className={`text-sm font-semibold ml-2 ${course.recoveryStatus === "grace" ? "text-yellow-500" : rate < 80 ? "text-red-500" : rate < 90 ? "text-yellow-500" : "text-green-500"}`}>
+																			<span className={`text-sm font-semibold ml-2 ${course.recoveryStatus === "grace" ? "text-warning" : rate < 80 ? "text-error" : rate < 90 ? "text-warning" : "text-success"}`}>
 																				{rate.toFixed(1)}%
 																			</span>
 																		</div>
 																		<div className="w-full h-1.5 bg-[var(--calendar-border)] rounded-full overflow-hidden mb-1.5">
 																			<div
-																				className={`h-full rounded-full transition-all duration-500 ${rate < 80 ? "bg-red-500" : rate < 90 ? "bg-yellow-500" : "bg-green-500"}`}
+																				className={`h-full rounded-full transition-all duration-500 ${rate < 80 ? "bg-error" : rate < 90 ? "bg-warning" : "bg-success"}`}
 																				style={{ width: `${Math.min(rate, 100)}%`, filter: isFinished ? "grayscale(50%)" : "none" }}
 																			/>
 																		</div>
 																		<div className="flex items-center justify-between text-[10px] text-[var(--text-tertiary)]">
 																			<span>{attendedCount} / {breakdown ? breakdown.calendarTotalClasses : 0} classes</span>
-																			{!isMultiSem && <span className="text-gray-400">Max: {maxRate.toFixed(0)}%</span>}
+																			{!isMultiSem && <span className="text-text-tertiary">Max: {maxRate.toFixed(0)}%</span>}
 																		</div>
 																	</button>
 																	{/* Total button for multi-semester courses */}
 																	{isMultiSem && (
 																		<button
 																			onClick={() => setSelectedCourse(course)}
-																			className="w-full mt-0.5 py-1 px-2 rounded-md flex items-center justify-between text-[10px] bg-[rgba(0,0,0,0.03)] dark:bg-[rgba(255,255,255,0.04)] hover:bg-[rgba(0,0,0,0.06)] dark:hover:bg-[rgba(255,255,255,0.07)] transition-colors text-[var(--text-tertiary)]"
+																			className="w-full mt-0.5 py-1 px-2 rounded-md flex items-center justify-between text-[10px] bg-overlay hover:bg-active transition-colors text-[var(--text-tertiary)]"
 																		>
 																			<span className="font-medium">{tAtt("totalLabel")}</span>
-																			<span className={`font-semibold ${totalRate < 80 ? "text-red-500" : totalRate < 90 ? "text-yellow-500" : "text-green-500"}`}>
+																			<span className={`font-semibold ${totalRate < 80 ? "text-error" : totalRate < 90 ? "text-warning" : "text-success"}`}>
 																				{totalRate.toFixed(1)}% &nbsp;Â·&nbsp; Max {totalMaxRate.toFixed(0)}%
 																			</span>
 																		</button>
@@ -519,7 +521,7 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 					{onStartTour && (
 						<button
 							onClick={onStartTour}
-							className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:bg-[rgba(255,255,255,0.05)] hover:text-[var(--foreground)] transition-colors"
+							className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:bg-overlay hover:text-[var(--foreground)] transition-colors"
 						>
 							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
 								<path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z" />

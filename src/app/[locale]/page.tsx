@@ -17,6 +17,8 @@ import {
     syncSemesterTimetableStored,
 } from "@/app/actions";
 import EventDetailsModal from "@/components/EventDetailsModal";
+import LandingPage from "@/components/landing/LandingPage";
+import SessionSplash from "@/components/SessionSplash";
 import Sidebar from "@/components/Sidebar";
 import SignInModal from "@/components/SignInModal";
 import SyncModal, { type SyncProgress } from "@/components/SyncModal";
@@ -51,8 +53,6 @@ export default function Home() {
     // Auth state
     const { data: session, isPending } = useSession();
     const status = isPending ? "loading" : session ? "authenticated" : "unauthenticated";
-    // Auth flag driving the empty-state UI. Set to `false` to preview the signed-out view.
-    const isLoggedIn = !!session;
 
     // Ghost-cursor tutorial demo
     const [showDemo, setShowDemo] = useState(false);
@@ -361,7 +361,7 @@ export default function Home() {
             const courses = list.courses ?? [];
 
             // Step 4: per-course attendance (real "i / total" + current course id)
-            const courseSemesterMap: Record<string, string> = {};
+            const courseSemesterMap: Record<string, "SEM 1" | "SEM 2" | "SEM 3"> = {};
             let totalNewAttendance = 0;
             for (let i = 0; i < courses.length; i++) {
                 if (signal.aborted) return;
@@ -474,6 +474,12 @@ export default function Home() {
     // Mobile sidebar state
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
+    // Session gate: splash while the session resolves (isPending is true on both the
+    // server render and the first client render, so there is no hydration flash),
+    // landing page for visitors, calendar app for signed-in users.
+    if (isPending) return <SessionSplash />;
+    if (!session) return <LandingPage />;
+
     return (
         <div className="h-screen flex flex-col bg-[var(--background)] overflow-hidden">
             {/* Top Navbar */}
@@ -511,7 +517,7 @@ export default function Home() {
             <main data-tour="calendar" className="flex-1 flex flex-col p-6 overflow-hidden relative">
                 {/* Token Expired Warning Banner */}
                 {showTokenExpiredWarning && (
-                    <div className="mb-4 flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 animate-slideIn">
+                    <div className="mb-4 flex items-center gap-3 px-4 py-3 rounded-xl bg-warning/15 border border-warning/30 text-warning animate-slideIn">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 shrink-0">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
                         </svg>
@@ -520,7 +526,7 @@ export default function Home() {
                         </p>
                         <button
                             onClick={() => { setShowSyncModal(true); setShowTokenExpiredWarning(false); }}
-                            className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors"
+                            className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg bg-warning text-white hover:opacity-90 transition-all"
                         >
                             {t("reSync")}
                         </button>
@@ -576,60 +582,6 @@ export default function Home() {
                             locale={locale}
                         />
                     </>
-                ) : !isLoggedIn ? (
-                    /* ── Unauthenticated empty state ── */
-                    <div className="flex-1 flex flex-col items-center justify-center">
-                        <div className="text-center max-w-md animate-fadeIn">
-                            <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-[var(--calendar-header-bg)] flex items-center justify-center">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    strokeWidth={1}
-                                    stroke="currentColor"
-                                    className="w-12 h-12 text-[var(--text-tertiary)]"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
-                                    />
-                                </svg>
-                            </div>
-                            <h2 className="text-2xl font-semibold mb-2">{tc("welcomeTitle")}</h2>
-                            <p className="text-[var(--text-secondary)] mb-6">
-                                {tc("signInToView")}
-                            </p>
-                            <button
-                                onClick={() => setShowSignInModal(true)}
-                                className="btn-primary inline-flex items-center gap-2"
-                            >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    strokeWidth={1.5}
-                                    stroke="currentColor"
-                                    className="w-5 h-5"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l3 3m0 0-3 3m3-3H2.25"
-                                    />
-                                </svg>
-                                {tc("signIn")}
-                            </button>
-                            <div className="mt-3">
-                                <button
-                                    onClick={() => setShowDemo(true)}
-                                    className="text-sm text-[var(--text-tertiary)] hover:text-[var(--foreground)] transition-colors"
-                                >
-                                    {tTour("seeHowItWorks")}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
                 ) : (
                     /* ── Authenticated, no data yet ── */
                     <div className="flex-1 flex flex-col items-center justify-center">
@@ -693,21 +645,21 @@ export default function Home() {
                         <div className="absolute bottom-6 right-6 z-50 animate-toast-enter flex flex-col items-end gap-2">
                             {/* Expandable details panel */}
                             {syncProgress && syncProgress.length > 0 && syncDetailsExpanded && (
-                                <div className="w-[260px] bg-[#0a0a0a] border border-[#222] rounded-xl shadow-2xl p-2 animate-toast-enter">
+                                <div className="w-[260px] bg-surface border border-border rounded-xl shadow-2xl p-2 animate-toast-enter">
                                     {syncProgress.map((p) => (
                                         <div key={p.semester} className="flex items-center gap-2.5 px-2 py-1.5 text-sm">
                                             {/* Status icon */}
                                             {p.status === "done" ? (
-                                                <svg className="w-3.5 h-3.5 text-[#3ecf8e] shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                                                <svg className="w-3.5 h-3.5 text-success shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
                                             ) : p.status === "error" ? (
-                                                <svg className="w-3.5 h-3.5 text-[#f55353] shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                                                <svg className="w-3.5 h-3.5 text-error shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
                                             ) : p.status === "syncing" ? (
-                                                <svg className="w-3.5 h-3.5 text-[#666] animate-spin shrink-0" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                                                <svg className="w-3.5 h-3.5 text-text-tertiary animate-spin shrink-0" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
                                             ) : (
-                                                <span className="w-3.5 h-3.5 shrink-0 flex items-center justify-center"><span className="w-1.5 h-1.5 rounded-full bg-[#444]" /></span>
+                                                <span className="w-3.5 h-3.5 shrink-0 flex items-center justify-center"><span className="w-1.5 h-1.5 rounded-full bg-border-strong" /></span>
                                             )}
-                                            <span className="flex-1 text-[#d4d4d4] tracking-tight truncate">{p.label}</span>
-                                            <span className="text-xs text-[#666] shrink-0">
+                                            <span className="flex-1 text-text-secondary tracking-tight truncate">{p.label}</span>
+                                            <span className="text-xs text-text-tertiary shrink-0">
                                                 {p.status === "done"
                                                     ? t("detailEvents", { count: p.newEvents ?? 0 })
                                                     : p.status === "syncing"
@@ -720,14 +672,14 @@ export default function Home() {
                                     ))}
                                 </div>
                             )}
-                            <div className="relative flex items-center gap-3 px-5 py-3 bg-[#0a0a0a] border border-[#222] rounded-full shadow-2xl overflow-hidden min-w-[240px]">
+                            <div className="relative flex items-center gap-3 px-5 py-3 bg-surface border border-border rounded-full shadow-2xl overflow-hidden min-w-[240px]">
                                 {/* Animated Spinner */}
-                                <svg className="w-4 h-4 text-[#666] animate-spin shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <svg className="w-4 h-4 text-text-tertiary animate-spin shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                                 </svg>
                                 {/* Status Text */}
-                                <span className="text-sm font-medium text-[#d4d4d4] tracking-tight">
+                                <span className="text-sm font-medium text-text-secondary tracking-tight">
                                     {notification.message}
                                 </span>
                                 {/* Details toggle */}
@@ -737,7 +689,7 @@ export default function Home() {
                                         onClick={() => setSyncDetailsExpanded((v) => !v)}
                                         aria-expanded={syncDetailsExpanded}
                                         aria-label={syncDetailsExpanded ? t("detailsHide") : t("detailsShow")}
-                                        className="ml-auto -mr-1.5 shrink-0 rounded-full p-1 text-[#888] hover:bg-[#1a1a1a] hover:text-[#d4d4d4] transition-colors"
+                                        className="ml-auto -mr-1.5 shrink-0 rounded-full p-1 text-text-secondary hover:bg-overlay hover:text-foreground transition-colors"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={`w-3.5 h-3.5 transition-transform ${syncDetailsExpanded ? "rotate-180" : ""}`}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
@@ -745,8 +697,8 @@ export default function Home() {
                                     </button>
                                 )}
                                 {/* Indeterminate Bottom Loading Bar */}
-                                <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#222]">
-                                    <div className="h-full w-1/4 rounded-full bg-white/60 toast-loading-bar" />
+                                <div className="absolute bottom-0 left-0 w-full h-[2px] bg-overlay">
+                                    <div className="h-full w-1/4 rounded-full bg-accent toast-loading-bar" />
                                 </div>
                             </div>
                         </div>
@@ -755,8 +707,8 @@ export default function Home() {
                         <div
                             className={`absolute bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg animate-toast-enter ${
                                 notification.type === "success"
-                                    ? "bg-[#0a0a0a] border border-[#222] text-[#3ecf8e]"
-                                    : "bg-[#0a0a0a] border border-[#222] text-[#f55353]"
+                                    ? "bg-surface border border-border text-success"
+                                    : "bg-surface border border-border text-error"
                             }`}
                         >
                             <div className="flex items-center gap-2.5">
@@ -769,7 +721,7 @@ export default function Home() {
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
                                     </svg>
                                 )}
-                                <span className="text-sm font-medium text-[#ededed]">{notification.message}</span>
+                                <span className="text-sm font-medium text-foreground">{notification.message}</span>
                             </div>
                         </div>
                     )

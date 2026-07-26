@@ -40,16 +40,16 @@ export default function SyncSuccess({
 				initial={{ scale: 0, opacity: 0 }}
 				animate={{ scale: 1, opacity: 1 }}
 				transition={{ type: "spring", stiffness: 320, damping: 16 }}
-				className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500/15 ring-1 ring-green-500/30"
+				className="flex h-16 w-16 items-center justify-center rounded-full bg-success/15 ring-1 ring-success/30"
 			>
-				<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="h-8 w-8 text-green-400">
+				<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="h-8 w-8 text-success">
 					<path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
 				</svg>
 			</motion.div>
 
 			<div className="space-y-1.5">
-				<h3 className="text-xl font-semibold tracking-tight text-zinc-100">{t("successTitle")}</h3>
-				<p className="mx-auto max-w-xs text-sm text-zinc-400">
+				<h3 className="font-display text-xl font-semibold tracking-tight text-foreground">{t("successTitle")}</h3>
+				<p className="mx-auto max-w-xs text-sm text-text-secondary">
 					{t("successSummary", { count: courseCount, semester: semesterLabel })}
 				</p>
 			</div>

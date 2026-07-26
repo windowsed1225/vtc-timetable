@@ -28,14 +28,14 @@ export default function SemesterSummaryCard({
     }
 
     return (
-        <div className="mb-4 p-3 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-100 dark:border-blue-900/50">
-            <p className="text-xs font-medium text-[var(--text-secondary)] mb-2 uppercase tracking-wider">
+        <div className="mb-4 p-3 rounded-xl bg-overlay border border-border">
+            <p className="font-display text-xs font-medium text-[var(--text-secondary)] mb-2 uppercase tracking-wider">
                 {semesterLabel}
             </p>
             <div className="flex items-center justify-between gap-4">
                 {/* Total Subjects */}
                 <div className="flex-1 text-center">
-                    <p className="text-2xl font-bold text-[var(--foreground)]">
+                    <p className="font-mono text-2xl font-bold text-[var(--foreground)]">
                         {uniqueSubjects}
                     </p>
                     <p className="text-xs text-[var(--text-tertiary)]">
@@ -48,7 +48,7 @@ export default function SemesterSummaryCard({
 
                 {/* Total Hours */}
                 <div className="flex-1 text-center">
-                    <p className="text-2xl font-bold text-[var(--foreground)]">
+                    <p className="font-mono text-2xl font-bold text-[var(--foreground)]">
                         {totalHours}
                     </p>
                     <p className="text-xs text-[var(--text-tertiary)]">Hours</p>

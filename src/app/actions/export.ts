@@ -2,7 +2,7 @@
 
 import { auth } from "@/auth";
 import connectDB from "@/lib/db";
-import { IEvent } from "@/models/Event";
+import { IEvent, SemesterType } from "@/models/Event";
 import Event from "@/models/Event";
 import User from "@/models/User";
 
@@ -37,7 +37,9 @@ export async function exportSemesterIcs(semester: string): Promise<{
 		}
 
 		// Step 4: Fetch events by vtcStudentId (not discordId — events don't have discordId)
-		const events = await Event.find({ vtcStudentId: user.vtcStudentId, semester }).sort({ startTime: 1 }).lean();
+		const events = await Event.find({ vtcStudentId: user.vtcStudentId, semester: semester as SemesterType })
+			.sort({ startTime: 1 })
+			.lean();
 
 		if (events.length === 0) {
 			return { success: false, error: `No events found for ${semester}. Try syncing your schedule first.` };

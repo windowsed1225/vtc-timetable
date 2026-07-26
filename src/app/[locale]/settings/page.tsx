@@ -131,7 +131,7 @@ export default function SettingsPage() {
 	return (
 		<div className="min-h-screen bg-[var(--background)]">
 			{/* Header */}
-			<header className="border-b" style={{ borderColor: "#222", background: "var(--bg-subtle)" }}>
+			<header className="border-b" style={{ borderColor: "var(--border-default)", background: "var(--bg-subtle)" }}>
 				<div className="max-w-2xl mx-auto px-6 py-4">
 					<div className="flex items-center gap-3">
 						<Link
@@ -354,7 +354,7 @@ export default function SettingsPage() {
 							</div>
 						</div>
 						{clearMessage && (
-							<p className={`text-xs mt-2 ${clearMessage.type === "success" ? "text-green-400" : "text-[var(--error)]"}`}>
+							<p className={`text-xs mt-2 ${clearMessage.type === "success" ? "text-success" : "text-[var(--error)]"}`}>
 								{clearMessage.text}
 							</p>
 						)}

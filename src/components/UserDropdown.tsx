@@ -88,10 +88,10 @@ export default function UserDropdown({ user }: UserDropdownProps) {
 					<img
 						src={user.image}
 						alt={user.name || "User"}
-						className="w-7 h-7 rounded-full ring-1 ring-[#333]"
+						className="w-7 h-7 rounded-full ring-1 ring-border-strong"
 					/>
 				) : (
-					<div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+					<div className="w-7 h-7 rounded-full bg-accent flex items-center justify-center">
 						<span className="text-white font-semibold text-xs">
 							{user.name?.charAt(0).toUpperCase() || "U"}
 						</span>
@@ -105,9 +105,9 @@ export default function UserDropdown({ user }: UserDropdownProps) {
 
 			{/* Dropdown Menu */}
 			{isOpen && (
-				<div className="absolute right-0 mt-2 w-56 bg-[var(--bg-surface)] rounded-xl shadow-lg border border-[#222] py-1 z-50 animate-fadeIn">
+				<div className="absolute right-0 mt-2 w-56 bg-[var(--bg-surface)] rounded-xl shadow-lg border border-border py-1 z-50 animate-fadeIn">
 					{/* User Info */}
-					<div className="px-4 py-3 border-b border-[#222]">
+					<div className="px-4 py-3 border-b border-border">
 						<p className="text-sm font-semibold text-[var(--foreground)] truncate">
 							{user.name || "User"}
 						</p>
@@ -145,7 +145,7 @@ export default function UserDropdown({ user }: UserDropdownProps) {
 								<path strokeLinecap="round" strokeLinejoin="round" d="m10.5 21 5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 0 1 6-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 0 1-3.827-5.802" />
 							</svg>
 							<span className="text-sm text-[var(--text-secondary)] flex-1">{t("language")}:</span>
-							<div className="flex rounded-lg overflow-hidden border border-[#333]">
+							<div className="flex rounded-lg overflow-hidden border border-border-strong">
 								<button
 									onClick={() => handleLocaleSwitch("en")}
 									className={`px-2.5 py-1 text-xs font-medium transition-colors ${locale === "en"
@@ -157,7 +157,7 @@ export default function UserDropdown({ user }: UserDropdownProps) {
 								</button>
 								<button
 									onClick={() => handleLocaleSwitch("zh-HK")}
-									className={`px-2.5 py-1 text-xs font-medium transition-colors border-l border-[#333] ${locale === "zh-HK"
+									className={`px-2.5 py-1 text-xs font-medium transition-colors border-l border-border-strong ${locale === "zh-HK"
 										? "bg-[var(--accent-blue)] text-white"
 										: "text-[var(--text-secondary)] hover:bg-[var(--bg-active)]"
 										}`}
@@ -168,7 +168,7 @@ export default function UserDropdown({ user }: UserDropdownProps) {
 						</div>
 
 						{/* Divider */}
-						<div className="my-1 border-t border-[#222]" />
+						<div className="my-1 border-t border-border" />
 
 						{/* Logout */}
 						<button

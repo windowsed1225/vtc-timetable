@@ -112,7 +112,7 @@ async function upsertAttendanceAdjustedEvent({ cls, vtcStudentId, semester, cour
 // A single MongoDB bulkWrite updateOne op for an Attendance document.
 type AttendanceBulkOp = {
 	updateOne: {
-		filter: { courseCode: string; vtcStudentId: string; semester: string };
+		filter: { courseCode: string; vtcStudentId: string; semester: "SEM 1" | "SEM 2" | "SEM 3" };
 		update: { $set: Record<string, unknown> };
 		upsert: boolean;
 	};
@@ -449,10 +449,10 @@ export async function syncVtcData(
 
 			// Remove stale Attendance records where the semester was mis-tagged in a previous sync.
 			// Build a map of courseCode -> correct semester from the ops we just wrote.
-			const correctSemesterMap: Record<string, string> = {};
+			const correctSemesterMap: Record<string, "SEM 1" | "SEM 2" | "SEM 3"> = {};
 			for (const op of attendanceOps) {
 				if ("updateOne" in op) {
-					const { courseCode, semester } = op.updateOne.filter as { courseCode: string; semester: string };
+					const { courseCode, semester } = op.updateOne.filter;
 					correctSemesterMap[courseCode] = semester;
 				}
 			}
@@ -897,7 +897,7 @@ export async function syncCourseAttendanceStored(
  * previous sync, using the courseCode → semester map gathered from step 4, then
  * revalidate the home route.
  */
-export async function finalizeAttendanceSync(courseSemesterMap: Record<string, string>): Promise<{
+export async function finalizeAttendanceSync(courseSemesterMap: Record<string, "SEM 1" | "SEM 2" | "SEM 3">): Promise<{
 	success: boolean;
 	error?: string;
 }> {

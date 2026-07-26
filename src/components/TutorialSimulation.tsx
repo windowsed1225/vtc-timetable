@@ -135,7 +135,7 @@ export default function TutorialSimulation({ open, onClose }: TutorialSimulation
 								readOnly
 								value={typed}
 								placeholder={t("vtcUrlPlaceholder")}
-								className={`input-apple transition-shadow ${focused ? "ring-2 ring-blue-500/60 border-blue-500" : ""}`}
+								className={`input-apple transition-shadow ${focused ? "ring-2 ring-accent-blue/60 border-accent-blue" : ""}`}
 							/>
 							<p className="text-xs text-[var(--text-tertiary)] mt-2">{t("vtcUrlHint")}</p>
 						</div>
@@ -182,7 +182,7 @@ export default function TutorialSimulation({ open, onClose }: TutorialSimulation
 				<div className="relative">
 					{clicking && <span className="absolute -left-2 -top-2 h-6 w-6 animate-ping rounded-full border border-white/70" />}
 					<svg width="26" height="26" viewBox="0 0 24 24" className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
-						<path d="M5 2.5 19 10l-6.2 1.9L10.7 18 5 2.5Z" fill="white" stroke="#09090b" strokeWidth="1.2" strokeLinejoin="round" />
+						<path d="M5 2.5 19 10l-6.2 1.9L10.7 18 5 2.5Z" fill="white" stroke="#0B1D33" strokeWidth="1.2" strokeLinejoin="round" />
 					</svg>
 				</div>
 			</motion.div>

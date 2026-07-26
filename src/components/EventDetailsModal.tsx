@@ -145,11 +145,11 @@ export default function EventDetailsModal({
                         <div className="flex-1 pr-4">
                             <div className="flex items-center gap-2 mb-1">
                                 <span className="text-xl">🚩</span>
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${isPast ? "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400" : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"}`}>
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${isPast ? "bg-overlay text-text-tertiary" : "bg-error/15 text-error"}`}>
                                     {isPast ? "Overdue" : "Deadline"}
                                 </span>
                             </div>
-                            <h2 className="text-lg font-semibold text-[var(--foreground)] leading-snug">
+                            <h2 className="font-display text-lg font-semibold text-[var(--foreground)] leading-snug">
                                 {event.title}
                             </h2>
                             <p className="text-sm text-[var(--text-secondary)] mt-1">
@@ -172,7 +172,7 @@ export default function EventDetailsModal({
                         </div>
                         <div>
                             <p className="text-xs text-[var(--text-tertiary)] uppercase tracking-wider">Due</p>
-                            <p className={`text-sm font-semibold ${isPast ? "text-gray-500 line-through" : "text-red-600 dark:text-red-400"}`}>
+                            <p className={`text-sm font-semibold font-mono ${isPast ? "text-text-tertiary line-through" : "text-error"}`}>
                                 {dueDate} · {dueTime}
                             </p>
                         </div>
@@ -238,16 +238,16 @@ export default function EventDetailsModal({
                 <div className="flex items-start justify-between mb-4">
                     <div className="flex-1 pr-4">
                         <div className="flex items-center gap-2 flex-wrap">
-                            <h2 className="text-lg font-semibold text-[var(--foreground)]">
+                            <h2 className="font-display text-lg font-semibold text-[var(--foreground)]">
                                 {event.resource?.courseCode}
                             </h2>
                             {event.resource?.isAdjusted && (
-                                <span className="bg-amber-500/10 text-amber-500 border border-amber-500/20 px-2 py-0.5 rounded text-[10px] font-semibold">
+                                <span className="bg-warning/10 text-warning border border-warning/20 px-2 py-0.5 rounded text-[10px] font-semibold">
                                     Manually Adjusted
                                 </span>
                             )}
                             {isMarkedAbsent && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-error/15 text-error">
                                     ❌ Absent
                                 </span>
                             )}
@@ -441,12 +441,12 @@ export default function EventDetailsModal({
                             </p>
                             <span
                                 className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${status === "FINISHED"
-                                    ? "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+                                    ? "bg-overlay text-text-secondary"
                                     : status === "CANCELED"
-                                        ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                                        ? "bg-error/15 text-error"
                                         : status === "RESCHEDULED"
-                                            ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                                            : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                            ? "bg-accent-blue/15 text-accent-blue"
+                                            : "bg-success/15 text-success"
                                     }`}
                             >
                                 {status.charAt(0) + status.slice(1).toLowerCase()}
@@ -478,8 +478,8 @@ export default function EventDetailsModal({
                                             onClick={handleToggleAttendance}
                                             disabled={isLoading || status === "CANCELED"}
                                             className={`flex-1 text-sm py-2.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-1.5 ${isMarkedAbsent
-                                                ? 'bg-green-50 text-green-600 border border-green-200 hover:bg-green-100'
-                                                : 'bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100'
+                                                ? 'bg-success/10 text-success border border-success/25 hover:bg-success/20'
+                                                : 'bg-warning/10 text-warning border border-warning/25 hover:bg-warning/20'
                                                 }`}
                                         >
                                             {isMarkedAbsent ? '✅ Present' : '❌ Absent'}
@@ -490,8 +490,8 @@ export default function EventDetailsModal({
                                             onClick={handleCancelClass}
                                             disabled={isLoading || status === "CANCELED"}
                                             className={`flex-1 text-sm py-2.5 rounded-xl font-semibold border transition-colors ${status === "CANCELED"
-                                                ? 'bg-gray-100 text-gray-500 border-gray-200'
-                                                : 'bg-purple-50 text-purple-600 border-purple-200 hover:bg-purple-100'
+                                                ? 'bg-overlay text-text-tertiary border-border'
+                                                : 'bg-line-3/10 text-line-3 border-line-3/25 hover:bg-line-3/20'
                                                 }`}
                                         >
                                             {status === "CANCELED" ? "🚫 Voided" : "🚫 Void Class"}
@@ -505,7 +505,7 @@ export default function EventDetailsModal({
                                             setEditEndTime(endInputVal);
                                             setIsEditing(true);
                                         }}
-                                        className="w-full py-2 px-4 rounded-xl text-sm font-medium text-[var(--text-secondary)] border border-[var(--calendar-border)] hover:bg-[rgba(0,0,0,0.03)] dark:hover:bg-[rgba(255,255,255,0.05)] transition-colors"
+                                        className="w-full py-2 px-4 rounded-xl text-sm font-medium text-[var(--text-secondary)] border border-[var(--calendar-border)] hover:bg-overlay transition-colors"
                                     >
                                         ✏️ Edit Time
                                     </button>
@@ -521,8 +521,8 @@ export default function EventDetailsModal({
                                     onClick={handleCancelClass}
                                     disabled={isLoading || status === "CANCELED"}
                                     className={`flex-1 text-sm py-2.5 rounded-xl font-semibold border transition-colors ${status === "CANCELED"
-                                        ? 'bg-red-50 text-red-500 border-red-200'
-                                        : 'bg-white text-red-600 border-red-200 hover:bg-red-50'
+                                        ? 'bg-error/10 text-error border-error/25'
+                                        : 'bg-transparent text-error border-error/25 hover:bg-error/10'
                                         }`}
                                 >
                                     {status === "CANCELED" ? "🚫 Canceled" : "🚫 Cancel Class"}
@@ -535,7 +535,7 @@ export default function EventDetailsModal({
                                         setEditEndTime(endInputVal);
                                         setIsEditing(true);
                                     }}
-                                    className="flex-1 text-sm py-2.5 rounded-xl font-medium text-[var(--text-secondary)] border border-[var(--calendar-border)] hover:bg-[rgba(0,0,0,0.03)] dark:hover:bg-[rgba(255,255,255,0.05)] transition-colors"
+                                    className="flex-1 text-sm py-2.5 rounded-xl font-medium text-[var(--text-secondary)] border border-[var(--calendar-border)] hover:bg-overlay transition-colors"
                                 >
                                     ✏️ Edit Time
                                 </button>
@@ -546,7 +546,7 @@ export default function EventDetailsModal({
                                 <button
                                     onClick={handleFinishEarly}
                                     disabled={isLoading}
-                                    className="w-full py-2.5 px-4 rounded-xl text-sm font-semibold text-red-600 border border-red-200 hover:bg-red-50 transition-all flex items-center justify-center gap-2"
+                                    className="w-full py-2.5 px-4 rounded-xl text-sm font-semibold text-error border border-error/25 hover:bg-error/10 transition-all flex items-center justify-center gap-2"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />

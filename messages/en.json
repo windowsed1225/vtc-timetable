@@ -232,5 +232,86 @@
     "attendedClasses": "Attended Classes",
     "required80": "Required (80%)",
     "maxPossible": "Max Possible"
+  },
+  "landing": {
+    "badge": "For VTC students",
+    "heroTitle": "Your classes, on time.",
+    "heroTitleAlt": "準時上課。",
+    "heroSubtitle": "Sync your VTC timetable with one paste, keep watch on the 80% attendance line, and carry your schedule in every calendar app you use.",
+    "signIn": "Sign in to get started",
+    "seeDemo": "See how it works",
+    "scrollHint": "Scroll for the route map",
+    "board": {
+      "title": "Next departures",
+      "live": "Live",
+      "colTime": "Time",
+      "colLine": "Line",
+      "colCourse": "Class",
+      "colRoom": "Room",
+      "colStatus": "Status",
+      "statusOnTime": "On time",
+      "statusSoon": "Boarding"
+    },
+    "routeTitle": "Six stops to a smarter semester",
+    "routeSubtitle": "Everything the app does, laid out like the line you ride every day.",
+    "features": {
+      "sync": {
+        "title": "One-paste Moodle sync",
+        "desc": "Paste your VTC mobile link once — your full academic year imports with live per-semester progress."
+      },
+      "attendance": {
+        "title": "The 80% line, watched",
+        "desc": "Per-course attendance rates with safe, recoverable, and failed states — plus a calculator that tells you how many classes you can still skip."
+      },
+      "calendar": {
+        "title": "A calendar that feels right",
+        "desc": "Week, day, month, and agenda views with a semester filter and color-coded course lines."
+      },
+      "deadlines": {
+        "title": "Moodle deadlines on board",
+        "desc": "Assignment due dates appear on your calendar with a red flag and one-tap links back to Moodle."
+      },
+      "export": {
+        "title": "Take it anywhere",
+        "desc": "Export .ics files per semester, or subscribe once and stay in sync with Apple, Google, and Outlook calendars."
+      },
+      "bilingual": {
+        "title": "中英雙語 · Dark or light",
+        "desc": "Full English and Traditional Chinese interface, with a night-signage dark theme and an enamel light theme."
+      }
+    },
+    "playground": {
+      "eyebrow": "Interactive demo",
+      "title": "Try it before you board",
+      "subtitle": "No sign-in needed — these two widgets run the real features on sample data.",
+      "attendance": {
+        "title": "Class tracker",
+        "caption": "Tick off your six remaining classes and watch the projected rate against the 80% line.",
+        "remaining": "Remaining classes",
+        "projected": "Projected final rate",
+        "line80": "80%",
+        "verdictSafe": "Safe — you pass",
+        "verdictFailed": "Below the line",
+        "skipHint": "You can skip {count} more classes and still pass",
+        "reset": "Reset"
+      },
+      "week": {
+        "title": "Week at a glance",
+        "caption": "Tap a class block to inspect it — every course rides its own line color.",
+        "time": "Time",
+        "room": "Room",
+        "lecturer": "Lecturer",
+        "hint": "Tap a block"
+      }
+    },
+    "terminus": {
+      "title": "This is the terminus.",
+      "subtitle": "Sign in with Discord and your timetable is on board in under a minute.",
+      "cta": "Sign in"
+    },
+    "footer": {
+      "madeWith": "Made with ❤️ for VTC students",
+      "disclaimer": "Not affiliated with the Vocational Training Council."
+    }
   }
 }
