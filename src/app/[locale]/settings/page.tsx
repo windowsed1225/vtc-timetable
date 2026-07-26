@@ -1,10 +1,23 @@
 "use client";
 
 import { clearVtcData, getUserSettings, updateEmailPassword } from "@/app/actions/settings";
+import { checkStoredToken, getPrintQuota, registerEcard } from "@/app/actions/user";
 import { motion } from "framer-motion";
 import { useLocale } from "next-intl";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+
+type PrintQuotaInfo = {
+	campus: string;
+	balance: number;
+	status: number;
+	lastUpdatedTime: string;
+};
+
+type ProgrammeInfo = {
+	progStructCode: string;
+	progStructCodeDesc: string;
+};
 
 // Framer Motion animation variants
 const containerVariants = {
@@ -35,6 +48,13 @@ export default function SettingsPage() {
 		discordUsername?: string;
 		vtcStudentId?: string;
 	} | null>(null);
+
+	// Live VTC info (site, print quota, programme from e-card)
+	const [vtcSite, setVtcSite] = useState<string | null>(null);
+	const [printQuota, setPrintQuota] = useState<PrintQuotaInfo | null>(null);
+	const [programme, setProgramme] = useState<ProgrammeInfo | null>(null);
+	const [vtcLiveLoading, setVtcLiveLoading] = useState(false);
+	const [vtcLiveError, setVtcLiveError] = useState<string | null>(null);
 
 	// Email/Password form state
 	const [email, setEmail] = useState("");
@@ -79,12 +99,70 @@ export default function SettingsPage() {
 		loadSettings();
 	}, []);
 
+	const loadVtcLiveInfo = async () => {
+		setVtcLiveLoading(true);
+		setVtcLiveError(null);
+		try {
+			const [tokenResult, quotaResult, ecardResult] = await Promise.all([
+				checkStoredToken(),
+				getPrintQuota(),
+				registerEcard(), // no photo; only need progStruct fields from userInfo
+			]);
+
+			if (tokenResult.valid && tokenResult.site) {
+				setVtcSite(tokenResult.site);
+			} else if (!tokenResult.valid) {
+				setVtcSite(null);
+				if (tokenResult.reason === "expired") {
+					setVtcLiveError("VTC token expired. Please re-sync.");
+				} else if (tokenResult.reason === "no_token") {
+					setVtcLiveError(null);
+				}
+			}
+
+			if (quotaResult.success && quotaResult.data) {
+				setPrintQuota(quotaResult.data);
+			} else {
+				setPrintQuota(null);
+				// Prefer token errors; otherwise surface quota error when we have a token
+				if (tokenResult.valid && quotaResult.error) {
+					setVtcLiveError(quotaResult.error);
+				}
+			}
+
+			if (ecardResult.success && ecardResult.data?.userInfo) {
+				const { progStructCode, progStructCodeDesc } = ecardResult.data.userInfo;
+				if (progStructCode || progStructCodeDesc) {
+					setProgramme({
+						progStructCode: progStructCode || "",
+						progStructCodeDesc: progStructCodeDesc || "",
+					});
+				} else {
+					setProgramme(null);
+				}
+			} else {
+				setProgramme(null);
+				if (tokenResult.valid && !quotaResult.error && ecardResult.error) {
+					setVtcLiveError(ecardResult.error);
+				}
+			}
+		} catch {
+			setVtcLiveError("Failed to load VTC account info.");
+		} finally {
+			setVtcLiveLoading(false);
+		}
+	};
+
 	const loadSettings = async () => {
 		setLoading(true);
 		const result = await getUserSettings();
 		if (result.success && result.data) {
 			setSettings(result.data);
 			setEmail(result.data.email || "");
+			// Live VTC fields only when student has synced
+			if (result.data.vtcStudentId) {
+				void loadVtcLiveInfo();
+			}
 		}
 		setLoading(false);
 	};
@@ -202,6 +280,83 @@ export default function SettingsPage() {
 								)}
 							</div>
 						</div>
+
+						{/* Site from checkAccessToken */}
+						<div className="settings-row">
+							<span className="settings-row-label">Site</span>
+							<span className="settings-row-value font-mono text-xs tracking-wide">
+								{vtcLiveLoading ? (
+									<span className="text-[var(--text-tertiary)]">Loading…</span>
+								) : vtcSite ? (
+									vtcSite
+								) : (
+									<span className="text-[var(--text-tertiary)]">
+										{settings?.vtcStudentId ? "Unavailable" : "Not synced"}
+									</span>
+								)}
+							</span>
+						</div>
+
+						{/* Programme from e-card register */}
+						<div className="settings-row">
+							<span className="settings-row-label">Programme</span>
+							<div className="text-right max-w-[70%]">
+								{vtcLiveLoading ? (
+									<span className="settings-row-value text-[var(--text-tertiary)]">Loading…</span>
+								) : programme ? (
+									<div className="flex flex-col items-end gap-0.5">
+										{programme.progStructCode ? (
+											<span className="settings-row-value font-mono text-xs tracking-wide">
+												{programme.progStructCode}
+											</span>
+										) : null}
+										{programme.progStructCodeDesc ? (
+											<span className="text-xs text-[var(--text-secondary)] leading-snug text-right">
+												{programme.progStructCodeDesc}
+											</span>
+										) : null}
+									</div>
+								) : (
+									<span className="settings-row-value text-[var(--text-tertiary)]">
+										{settings?.vtcStudentId ? "Unavailable" : "Not synced"}
+									</span>
+								)}
+							</div>
+						</div>
+
+						{/* Print quota from getPrintQuota */}
+						<div className="settings-row">
+							<span className="settings-row-label">Print Quota</span>
+							<div className="text-right">
+								{vtcLiveLoading ? (
+									<span className="settings-row-value text-[var(--text-tertiary)]">Loading…</span>
+								) : printQuota ? (
+									<div className="flex flex-col items-end gap-0.5">
+										<span className="settings-row-value font-mono text-xs tracking-wide">
+											{printQuota.balance}
+											{printQuota.campus ? (
+												<span className="text-[var(--text-tertiary)] font-sans normal-case tracking-normal ml-1.5">
+													· {printQuota.campus}
+												</span>
+											) : null}
+										</span>
+										{printQuota.lastUpdatedTime ? (
+											<span className="text-[10px] text-[var(--text-tertiary)]">
+												Updated {printQuota.lastUpdatedTime}
+											</span>
+										) : null}
+									</div>
+								) : (
+									<span className="settings-row-value text-[var(--text-tertiary)]">
+										{settings?.vtcStudentId ? "Unavailable" : "Not synced"}
+									</span>
+								)}
+							</div>
+						</div>
+
+						{vtcLiveError && (
+							<p className="text-xs text-[var(--error)] px-1 -mt-1">{vtcLiveError}</p>
+						)}
 
 						<div className="settings-row">
 							<span className="settings-row-label">Login Methods</span>
