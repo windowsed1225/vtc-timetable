@@ -54,7 +54,8 @@ export { exportSemesterIcs } from "./export";
 export { getMoodleDeadlines } from "./moodle";
 
 // ── User ─────────────────────────────────────────────
-export { checkStoredToken, getPrintQuota, registerEcard, saveUserLocale } from "./user";
+export { checkStoredToken, getEcard, getPrintQuota, registerEcard, saveUserLocale } from "./user";
+export type { EcardCardData } from "./user";
 
 // ── Settings ─────────────────────────────────────────
 export { clearVtcData, getUserSettings, updateEmailPassword } from "./settings";

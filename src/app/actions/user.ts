@@ -7,6 +7,17 @@ import type { EcardUserInfo } from "../../../vtc-api/src/types/ecardRegister";
 import type { PrintQuotaPayload } from "../../../vtc-api/src/types/getPrintQuota";
 import { API } from "../../../vtc-api/src/core/api";
 
+export type EcardCardData = {
+	doorAccessKey: string;
+	expiryDate: string;
+	currentTime: string;
+	userInfo: Omit<EcardUserInfo, "photoStr"> & { photoStr?: string };
+	deviceId: string;
+	/** Short-lived ecard JWT used for this fetch (not the mobile VTC token) */
+	accessToken: string;
+	refreshToken: string;
+};
+
 /**
  * Validate the stored VTC access token.
  * Called on page load to detect expired tokens early.
@@ -169,6 +180,80 @@ export async function registerEcard(options?: {
 		return {
 			success: false,
 			error: error instanceof Error ? error.message : "Failed to register ecard",
+		};
+	}
+}
+
+/**
+ * Fetch the digital e-card from GET /v1/ecard.
+ *
+ * Flow:
+ *  1. registerEcard (mobile VTC token → short-lived ecard JWT)
+ *  2. getEcard (Bearer ecard JWT → doorAccessKey + userInfo)
+ *
+ * Photo is omitted unless `{ includePhoto: true }`.
+ */
+export async function getEcard(options?: {
+	includePhoto?: boolean;
+	deviceId?: string;
+}): Promise<{
+	success: boolean;
+	data?: EcardCardData;
+	error?: string;
+}> {
+	try {
+		const session = await auth();
+		if (!session?.user?.discordId) {
+			return { success: false, error: "Not authenticated" };
+		}
+
+		await connectDB();
+		const user = await User.findOne({ discordId: session.user.discordId }).lean();
+		if (!user?.vtcToken) {
+			return { success: false, error: "No stored VTC token found. Please sync with your URL first." };
+		}
+
+		const api = new API({ token: user.vtcToken });
+		const registered = await api.registerEcard(options?.deviceId);
+
+		if (!registered.isSuccess || !registered.payload?.accessToken) {
+			return {
+				success: false,
+				error: "Failed to register ecard session. Your VTC token may have expired.",
+			};
+		}
+
+		const card = await api.getEcard(registered.payload.accessToken);
+
+		if (!card.isSuccess || !card.payload) {
+			return {
+				success: false,
+				error: card.errorMsg || "Failed to fetch e-card. Please try again.",
+			};
+		}
+
+		const { photoStr, ...userInfoRest } = card.payload.userInfo;
+		const userInfo = options?.includePhoto
+			? { ...userInfoRest, photoStr }
+			: userInfoRest;
+
+		return {
+			success: true,
+			data: {
+				doorAccessKey: card.payload.doorAccessKey,
+				expiryDate: card.payload.expiryDate,
+				currentTime: card.payload.currentTime,
+				userInfo,
+				deviceId: registered.deviceId,
+				accessToken: registered.payload.accessToken,
+				refreshToken: registered.payload.refreshToken,
+			},
+		};
+	} catch (error) {
+		console.error("Error fetching e-card:", error);
+		return {
+			success: false,
+			error: error instanceof Error ? error.message : "Failed to fetch e-card",
 		};
 	}
 }

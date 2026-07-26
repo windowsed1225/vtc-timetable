@@ -4,6 +4,7 @@ import { getTimeTableAndReminderList } from "../types/getTimeTableAndReminderLis
 import { getMoodleTimetable } from '../types/getMoodleTimetable';
 import { getPrintQuota } from "../types/getPrintQuota";
 import { ecardRegister } from "../types/ecardRegister";
+import { ecard, ecardTokenRefresh } from "../types/ecard";
 import { userResponse } from '../types/user';
 
 /** Uppercase UUID for ecard deviceID query param (matches VTC app style). */
@@ -101,6 +102,42 @@ export class API {
         );
         const body = (await response.json()) as ecardRegister;
         return { ...body, deviceId: id };
+    }
+
+    /**
+     * Fetches the digital e-card (door access key + user info).
+     * Requires a short-lived ecard JWT from registerEcard / refreshEcardToken —
+     * not the mobile VTC token.
+     *
+     * GET /v1/ecard
+     * Authorization: Bearer <ecardAccessToken>
+     */
+    async getEcard(ecardAccessToken: string): Promise<ecard> {
+        const response = await fetch(`${this.ecardUrl}/ecard`, {
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${ecardAccessToken}`,
+            },
+        });
+        return response.json();
+    }
+
+    /**
+     * Rotates ecard access/refresh tokens.
+     * POST /v1/token/refresh
+     * Authorization: Bearer <refreshToken>
+     * Body: { refreshToken }
+     */
+    async refreshEcardToken(refreshToken: string): Promise<ecardTokenRefresh> {
+        const response = await fetch(`${this.ecardUrl}/token/refresh`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${refreshToken}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ refreshToken }),
+        });
+        return response.json();
     }
 
     async checkAccessToken(): Promise<userResponse> {
