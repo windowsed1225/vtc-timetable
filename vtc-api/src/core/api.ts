@@ -2,13 +2,23 @@ import { getClassAttendanceDetail } from "../types/getClassAttendanceDetail";
 import { getClassAttendanceList } from "../types/getClassAttendanceList";
 import { getTimeTableAndReminderList } from "../types/getTimeTableAndReminderList";
 import { getMoodleTimetable } from '../types/getMoodleTimetable';
+import { getPrintQuota } from "../types/getPrintQuota";
+import { ecardRegister } from "../types/ecardRegister";
+import { ecard, ecardTokenRefresh } from "../types/ecard";
 import { userResponse } from '../types/user';
+
+/** Uppercase UUID for ecard deviceID query param (matches VTC app style). */
+export function randomEcardDeviceId(): string {
+    return crypto.randomUUID().toUpperCase();
+}
 
 export class API {
     private url;
+    private ecardUrl;
     private token;
     constructor({ token }: { token: string }) {
         this.url = "https://mobile.vtc.edu.hk/api?cmd="
+        this.ecardUrl = "https://ecard-api.vtc.edu.hk/v1"
         this.token = token
     }
     /**
@@ -59,6 +69,75 @@ export class API {
             method: "GET",
         })
         return response.json()
+    }
+
+    /**
+     * Retrieves the campus print quota for the authenticated student.
+     * Payload includes campus, remaining balance, status, and lastUpdatedTime.
+     */
+    async getPrintQuota(): Promise<getPrintQuota> {
+        const response = await fetch(`${this.url}getPrintQuota&token=${this.token}`, {
+            method: "GET",
+        })
+        return response.json()
+    }
+
+    /**
+     * Registers / opens an ecard session against ecard-api.vtc.edu.hk.
+     * Uses the mobile VTC token as the Authorization header.
+     * Generates a random deviceID unless one is provided.
+     *
+     * @returns API body plus the deviceId that was sent (needed for later ecard calls).
+     */
+    async registerEcard(deviceId?: string): Promise<ecardRegister & { deviceId: string }> {
+        const id = (deviceId ?? randomEcardDeviceId()).toUpperCase();
+        const response = await fetch(
+            `${this.ecardUrl}/register?deviceID=${encodeURIComponent(id)}`,
+            {
+                method: "GET",
+                headers: {
+                    Authorization: this.token,
+                },
+            },
+        );
+        const body = (await response.json()) as ecardRegister;
+        return { ...body, deviceId: id };
+    }
+
+    /**
+     * Fetches the digital e-card (door access key + user info).
+     * Requires a short-lived ecard JWT from registerEcard / refreshEcardToken —
+     * not the mobile VTC token.
+     *
+     * GET /v1/ecard
+     * Authorization: Bearer <ecardAccessToken>
+     */
+    async getEcard(ecardAccessToken: string): Promise<ecard> {
+        const response = await fetch(`${this.ecardUrl}/ecard`, {
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${ecardAccessToken}`,
+            },
+        });
+        return response.json();
+    }
+
+    /**
+     * Rotates ecard access/refresh tokens.
+     * POST /v1/token/refresh
+     * Authorization: Bearer <refreshToken>
+     * Body: { refreshToken }
+     */
+    async refreshEcardToken(refreshToken: string): Promise<ecardTokenRefresh> {
+        const response = await fetch(`${this.ecardUrl}/token/refresh`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${refreshToken}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ refreshToken }),
+        });
+        return response.json();
     }
 
     async checkAccessToken(): Promise<userResponse> {
