@@ -2,7 +2,7 @@
 
 import { auth } from "@/auth";
 import connectDB from "@/lib/db";
-import Event from "@/models/Event";
+import Event, { SemesterType } from "@/models/Event";
 import User from "@/models/User";
 import { CalendarEvent } from "@/types/timetable";
 import { revalidatePath } from "next/cache";
@@ -215,7 +215,7 @@ export async function previewDeleteEventsByDateRange(
 		const events = await Event.find({
 			vtcStudentId: user.vtcStudentId,
 			courseCode,
-			semester,
+			semester: semester as SemesterType,
 			startTime: { $gte: fromDate, $lte: toDate },
 			$or: [{ attendanceStatusCode: null }, { attendanceStatusCode: { $exists: false } }],
 		})
@@ -257,7 +257,7 @@ export async function deleteEventsByDateRange(
 		const result = await Event.deleteMany({
 			vtcStudentId: user.vtcStudentId,
 			courseCode,
-			semester,
+			semester: semester as SemesterType,
 			startTime: { $gte: fromDate, $lte: toDate },
 			$or: [{ attendanceStatusCode: null }, { attendanceStatusCode: { $exists: false } }],
 		});
@@ -284,7 +284,7 @@ export async function finishCourseEarly(courseCode: string, semester: string) {
 			{
 				courseCode,
 				discordId: session.user.discordId,
-				semester,
+				semester: semester as SemesterType,
 				startTime: { $gt: now },
 			},
 			{ status: "FINISHED" },

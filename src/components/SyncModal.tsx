@@ -158,7 +158,7 @@ export default function SyncModal({
 
 	// Shared error block.
 	const errorBlock = error && (
-		<div className="p-3 bg-[var(--error-bg)] border border-[rgba(245,83,83,0.15)] rounded-lg">
+		<div className="p-3 bg-[var(--error-bg)] border border-[color-mix(in_srgb,var(--error)_22%,transparent)] rounded-lg">
 			<p className="text-sm text-[var(--error)]">{error}</p>
 		</div>
 	);
@@ -168,7 +168,7 @@ export default function SyncModal({
 			<div className={`modal-content ${isClosing ? "modal-closing" : ""}`} onClick={(e) => e.stopPropagation()}>
 				{/* Header */}
 				<div className="flex items-center justify-between mb-6">
-					<h2 className="text-xl font-semibold">{t("syncSchedule")}</h2>
+					<h2 className="font-display text-xl font-semibold">{t("syncSchedule")}</h2>
 					{!syncing && (
 						<button onClick={handleClose} className="btn-icon">
 							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -191,21 +191,21 @@ export default function SyncModal({
 					<div className="animate-fadeIn space-y-5">
 						{/* Semester / phase context */}
 						<div>
-							<h3 className="text-base font-semibold text-zinc-100">{phaseHeading()}</h3>
+							<h3 className="text-base font-semibold text-foreground">{phaseHeading()}</h3>
 							{progress.phase === "attendance" && progress.currentCourseName && (
-								<p className="mt-1 text-sm text-zinc-400">{progress.currentCourseName}</p>
+								<p className="mt-1 text-sm text-text-secondary">{progress.currentCourseName}</p>
 							)}
 						</div>
 
 						{/* Overall progress bar */}
 						<div>
-							<div className="mb-1.5 flex items-center justify-between text-xs text-zinc-400">
+							<div className="mb-1.5 flex items-center justify-between text-xs text-text-secondary">
 								<span>{phaseLabel()}</span>
-								<span className="tabular-nums font-medium text-zinc-300">{Math.round(progress.percent)}%</span>
+								<span className="tabular-nums font-mono font-medium text-foreground">{Math.round(progress.percent)}%</span>
 							</div>
-							<div className="h-2 w-full overflow-hidden rounded-full bg-zinc-800">
+							<div className="h-2 w-full overflow-hidden rounded-full bg-overlay">
 								<div
-									className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-400 transition-[width] duration-500 ease-out"
+									className="h-full rounded-full bg-accent transition-[width] duration-500 ease-out"
 									style={{ width: `${Math.max(2, Math.min(100, progress.percent))}%` }}
 								/>
 							</div>
@@ -213,9 +213,9 @@ export default function SyncModal({
 
 						{/* Course counter */}
 						{progress.coursesTotal !== undefined && progress.coursesTotal > 0 && (
-							<div className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900/60 px-3 py-2.5">
-								<span className="text-sm text-zinc-400">{t("coursesSynced")}</span>
-								<span className="tabular-nums text-sm font-semibold text-zinc-100">
+							<div className="flex items-center justify-between rounded-xl border border-border bg-overlay px-3 py-2.5">
+								<span className="text-sm text-text-secondary">{t("coursesSynced")}</span>
+								<span className="tabular-nums font-mono text-sm font-semibold text-foreground">
 									{progress.coursesDone ?? 0} / {progress.coursesTotal}
 								</span>
 							</div>
@@ -223,9 +223,9 @@ export default function SyncModal({
 
 						{/* Current item status */}
 						{progress.currentCourseCode && (
-							<p className="truncate text-xs text-zinc-500">
+							<p className="truncate text-xs text-text-tertiary">
 								{t("currentlyFetching")}:{" "}
-								<span className="font-medium text-zinc-300">{progress.currentCourseCode}</span>
+								<span className="font-mono font-medium text-foreground">{progress.currentCourseCode}</span>
 								{progress.currentCourseName ? ` — ${progress.currentCourseName}` : ""}
 							</p>
 						)}
@@ -235,7 +235,7 @@ export default function SyncModal({
 							<button
 								type="button"
 								onClick={handleAbort}
-								className="btn-secondary w-full transition-colors hover:!border-red-900/50 hover:!bg-red-950/40 hover:!text-red-300"
+								className="btn-secondary w-full transition-colors hover:!border-[color-mix(in_srgb,var(--error)_40%,transparent)] hover:!bg-[var(--error-bg)] hover:!text-error"
 							>
 								{t("abort")}
 							</button>
@@ -283,11 +283,11 @@ export default function SyncModal({
 					/* ── Saved-token (quick sync) view ── */
 					<div className="animate-fadeIn space-y-4">
 						{/* Valid connection banner */}
-						<div className="flex items-start gap-3 rounded-xl border border-green-900/40 bg-green-950/30 px-4 py-3">
-							<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" strokeWidth={2} stroke="currentColor" className="mt-0.5 h-5 w-5 shrink-0 text-green-400">
+						<div className="flex items-start gap-3 rounded-xl border border-success/30 bg-success/10 px-4 py-3">
+							<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" strokeWidth={2} stroke="currentColor" className="mt-0.5 h-5 w-5 shrink-0 text-success">
 								<path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
 							</svg>
-							<p className="text-sm text-green-300">{t("validConnection")}</p>
+							<p className="text-sm text-success">{t("validConnection")}</p>
 						</div>
 
 						{autoDetectedRow}
@@ -307,7 +307,7 @@ export default function SyncModal({
 						<button
 							type="button"
 							onClick={() => { setIsUpdatingUrl(true); setError(null); }}
-							className="w-full text-center text-xs text-zinc-400 transition-colors hover:text-zinc-200"
+							className="w-full text-center text-xs text-text-secondary transition-colors hover:text-foreground"
 						>
 							{t("updateUrl")}
 						</button>

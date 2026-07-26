@@ -1,10 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Archivo, IBM_Plex_Mono, Noto_Sans_HK, Public_Sans } from "next/font/google";
 import { getLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 
-const geistSans = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
-const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
+// HK transit type system: Archivo = display/signage, Public Sans = body,
+// IBM Plex Mono = times/room numbers, Noto Sans HK = CJK fallback.
+const archivo = Archivo({ subsets: ["latin"], variable: "--font-archivo" });
+const publicSans = Public_Sans({ subsets: ["latin"], variable: "--font-public-sans" });
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-plex-mono",
+});
+const notoSansHK = Noto_Sans_HK({ subsets: ["latin"], variable: "--font-noto-hk", preload: false });
 
 export const metadata: Metadata = {
   title: "VTC Calendar | Class Schedule",
@@ -30,7 +38,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html
       lang={locale}
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable}`}
+      className={`${archivo.variable} ${publicSans.variable} ${plexMono.variable} ${notoSansHK.variable}`}
     >
       <body className="antialiased">{children}</body>
     </html>

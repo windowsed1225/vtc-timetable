@@ -232,5 +232,86 @@
     "attendedClasses": "已出席課堂",
     "required80": "要求 (80%)",
     "maxPossible": "最高可能"
+  },
+  "landing": {
+    "badge": "為 VTC 學生而設",
+    "heroTitle": "準時上課。",
+    "heroTitleAlt": "Your classes, on time.",
+    "heroSubtitle": "貼上連結一次即可同步 VTC 課表，緊貼 80% 出席率底線，並在你常用的日曆應用程式中隨身攜帶課堂時間表。",
+    "signIn": "登入開始使用",
+    "seeDemo": "查看示範",
+    "scrollHint": "向下滾動查看路綫圖",
+    "board": {
+      "title": "下一班課",
+      "live": "實時",
+      "colTime": "時間",
+      "colLine": "路綫",
+      "colCourse": "課堂",
+      "colRoom": "課室",
+      "colStatus": "狀態",
+      "statusOnTime": "準時",
+      "statusSoon": "即將開始"
+    },
+    "routeTitle": "六個站，讀好一個學期",
+    "routeSubtitle": "所有功能，像你每天乘搭的路綫般逐站排開。",
+    "features": {
+      "sync": {
+        "title": "一貼即同步 Moodle 課表",
+        "desc": "貼上 VTC 手機應用程式連結一次，即可匯入整個學年課表，並實時顯示各學期進度。"
+      },
+      "attendance": {
+        "title": "緊盯 80% 出席底線",
+        "desc": "逐科出席率一目了然，設有安全、可補救及未達標狀態，更有計算器告訴你還可以缺席多少堂。"
+      },
+      "calendar": {
+        "title": "順手好用的日曆",
+        "desc": "提供週、日、月及議程檢視，支援學期篩選，課程以路綫色區分。"
+      },
+      "deadlines": {
+        "title": "Moodle 死線一目了然",
+        "desc": "作業截止日期以紅旗顯示在日曆上，一按即返回 Moodle。"
+      },
+      "export": {
+        "title": "隨身攜帶",
+        "desc": "按學期匯出 .ics 檔案，或一次訂閱後與 Apple、Google 及 Outlook 日曆保持同步。"
+      },
+      "bilingual": {
+        "title": "中英雙語 · 深淺主題",
+        "desc": "完整的英文及繁體中文介面，配以夜間標誌深色主題與搪瓷淺色主題。"
+      }
+    },
+    "playground": {
+      "eyebrow": "互動示範",
+      "title": "上車前，先試玩",
+      "subtitle": "無需登入——兩個小工具以示範資料運行真實功能。",
+      "attendance": {
+        "title": "課堂追蹤器",
+        "caption": "剔選剩餘六堂課，實時觀察預計出席率與 80% 底線的距離。",
+        "remaining": "剩餘課堂",
+        "projected": "預計最終出席率",
+        "line80": "80%",
+        "verdictSafe": "安全——順利及格",
+        "verdictFailed": "低於底線",
+        "skipHint": "你仍可缺席 {count} 堂並保持及格",
+        "reset": "重設"
+      },
+      "week": {
+        "title": "一週課表",
+        "caption": "點按課堂方塊查看詳情——每科都有專屬路綫色。",
+        "time": "時間",
+        "room": "課室",
+        "lecturer": "講師",
+        "hint": "點按方塊"
+      }
+    },
+    "terminus": {
+      "title": "終點站到了。",
+      "subtitle": "使用 Discord 登入，一分鐘內你的課表即可就位。",
+      "cta": "登入"
+    },
+    "footer": {
+      "madeWith": "為 VTC 學生用 ❤️ 製作",
+      "disclaimer": "與職業訓練局並無任何關聯。"
+    }
   }
 }

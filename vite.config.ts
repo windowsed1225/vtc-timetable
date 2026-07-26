@@ -1,3 +1,5 @@
+import tailwindcss from "@tailwindcss/vite";
+import { nitro } from "nitro/vite";
 import vinext from "vinext";
 import { defineConfig } from "vite";
 
@@ -7,8 +9,13 @@ import { defineConfig } from "vite";
 // transform, so we externalize them and let Node load them directly.
 const serverExternals = ["mongodb", "mongoose"];
 
+// Nitro is only needed when building the deploy output (Vercel sets VERCEL=1; or
+// pass NITRO_PRESET explicitly). It emits the Build Output API (.vercel/output).
+// Local `vinext dev`/`build` skip it so the dev workflow is unchanged.
+const deploying = Boolean(process.env.VERCEL || process.env.NITRO_PRESET);
+
 export default defineConfig({
-  plugins: [vinext()],
+  plugins: [tailwindcss(), vinext(), ...(deploying ? [nitro()] : [])],
   ssr: { external: serverExternals },
   // next-intl ships a "use client" component (NextIntlClientProvider) whose React
   // context lives in `use-intl`. plugin-rsc must transform that client boundary

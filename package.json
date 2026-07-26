@@ -9,38 +9,48 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@types/bcryptjs": "^2.4.6",
     "bcryptjs": "^3.0.3",
-    "better-auth": "^1.6.16",
-    "dayjs": "^1.11.19",
-    "framer-motion": "^12.38.0",
-    "ics": "^3.8.1",
-    "mongodb": "^7.3.0",
-    "mongoose": "^9.1.2",
-    "next-intl": "^4.8.3",
+    "better-auth": "^1.6.25",
+    "dayjs": "^1.11.21",
+    "framer-motion": "^12.42.2",
+    "ics": "^3.12.0",
+    "mongodb": "^7.5.0",
+    "mongoose": "^9.8.0",
+    "next-intl": "^4.13.4",
     "next-themes": "^0.4.6",
-    "react": "^19.2.7",
-    "react-big-calendar": "^1.19.4",
-    "react-dom": "^19.2.7",
-    "vercel": "^52.0.0"
+    "react": "^19.2.8",
+    "react-big-calendar": "^1.20.0",
+    "react-dom": "^19.2.8",
+    "vercel": "^52.2.1"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^20.19.43",
+    "@types/react": "^19.2.17",
     "@types/react-big-calendar": "^1.16.3",
-    "@types/react-dom": "^19",
-    "@vitejs/plugin-react": "^6.0.2",
-    "@vitejs/plugin-rsc": "^0.5.27",
-    "dotenv": "^17.2.3",
-    "eslint": "^9",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.4",
+    "@vitejs/plugin-rsc": "^0.5.30",
+    "dotenv": "^17.4.2",
+    "eslint": "^9.39.5",
     "eslint-config-next": "16.1.1",
-    "react-server-dom-webpack": "^19.2.7",
-    "tailwindcss": "^4",
-    "tsx": "^4.21.0",
-    "typescript": "^5",
-    "vinext": "^0.1.1",
-    "vite": "^8.0.16"
+    "nitro": "^3.0.260610-beta",
+    "react-server-dom-webpack": "^19.2.8",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.1",
+    "typescript": "^5.9.3",
+    "vinext": "^0.1.8",
+    "vite": "^8.1.5"
+  },
+  "overrides": {
+    "tar": "^7.5.22",
+    "form-data": "^4.0.6",
+    "flatted": "^3.4.3",
+    "ip-address": "^10.3.1",
+    "smol-toml": "^1.7.0",
+    "postcss": "^8.5.23",
+    "sharp": "^0.35.3"
   },
   "ignoreScripts": [
     "sharp",
@@ -50,8 +60,5 @@
     "sharp",
     "unrs-resolver"
   ],
-  "patchedDependencies": {
-    "vinext@0.1.1": "patches/vinext@0.1.1.patch"
-  },
   "type": "module"
 }

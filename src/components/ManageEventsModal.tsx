@@ -172,8 +172,8 @@ export default function ManageEventsModal({ isOpen, onClose, courses, onRefresh 
                 {/* Header */}
                 <div className="flex items-center justify-between mb-5">
                     <div>
-                        <h2 className="text-base font-semibold text-[var(--foreground)]">Manage Events</h2>
-                        <p className="text-xs text-zinc-500 mt-0.5">Remove unattended scheduled events</p>
+                        <h2 className="font-display text-base font-semibold text-[var(--foreground)]">Manage Events</h2>
+                        <p className="text-xs text-text-tertiary mt-0.5">Remove unattended scheduled events</p>
                     </div>
                     <button onClick={handleClose} className="btn-icon shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -184,11 +184,11 @@ export default function ManageEventsModal({ isOpen, onClose, courses, onRefresh 
 
                 {/* Semester selector */}
                 <div className="mb-3">
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1.5">Semester</p>
+                    <p className="text-[10px] text-text-tertiary uppercase tracking-wider mb-1.5">Semester</p>
                     <select
                         value={selectedSemester}
                         onChange={e => setSelectedSemester(e.target.value)}
-                        className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-white focus:outline-none focus:border-zinc-600"
+                        className="w-full px-3 py-2 bg-overlay border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-border-strong"
                     >
                         <option value="">Select a semester…</option>
                         {availableSemesters.map(sem => (
@@ -200,11 +200,11 @@ export default function ManageEventsModal({ isOpen, onClose, courses, onRefresh 
                 {/* Course selector */}
                 {selectedSemester && (
                     <div className="mb-4">
-                        <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1.5">Course</p>
+                        <p className="text-[10px] text-text-tertiary uppercase tracking-wider mb-1.5">Course</p>
                         <select
                             value={selectedKey}
                             onChange={e => setSelectedKey(e.target.value)}
-                            className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-white focus:outline-none focus:border-zinc-600"
+                            className="w-full px-3 py-2 bg-overlay border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-border-strong"
                         >
                             <option value="">Select a course…</option>
                             {coursesForSemester.map(c => (
@@ -219,7 +219,7 @@ export default function ManageEventsModal({ isOpen, onClose, courses, onRefresh 
                 {/* Loading */}
                 {isLoading && (
                     <div className="flex items-center justify-center py-8">
-                        <svg className="animate-spin h-5 w-5 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <svg className="animate-spin h-5 w-5 text-text-secondary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                         </svg>
@@ -229,27 +229,27 @@ export default function ManageEventsModal({ isOpen, onClose, courses, onRefresh 
                 {/* Results */}
                 {!isLoading && allEvents !== null && (
                     allEvents.length === 0 ? (
-                        <p className="text-sm text-zinc-500 text-center py-6">No unattended events found.</p>
+                        <p className="text-sm text-text-tertiary text-center py-6">No unattended events found.</p>
                     ) : (
                         <>
                             {/* Date range filter */}
                             <div className="flex gap-2 mb-4">
                                 <div className="flex-1">
-                                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">From</p>
+                                    <p className="text-[10px] text-text-tertiary uppercase tracking-wider mb-1">From</p>
                                     <input
                                         type="date"
                                         value={fromDate}
                                         onChange={e => setFromDate(e.target.value)}
-                                        className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-white focus:outline-none focus:border-zinc-600"
+                                        className="w-full px-2 py-1.5 bg-overlay border border-border rounded-lg text-xs text-foreground focus:outline-none focus:border-border-strong"
                                     />
                                 </div>
                                 <div className="flex-1">
-                                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">To</p>
+                                    <p className="text-[10px] text-text-tertiary uppercase tracking-wider mb-1">To</p>
                                     <input
                                         type="date"
                                         value={toDate}
                                         onChange={e => setToDate(e.target.value)}
-                                        className="w-full px-2 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-white focus:outline-none focus:border-zinc-600"
+                                        className="w-full px-2 py-1.5 bg-overlay border border-border rounded-lg text-xs text-foreground focus:outline-none focus:border-border-strong"
                                     />
                                 </div>
                             </div>
@@ -262,34 +262,34 @@ export default function ManageEventsModal({ isOpen, onClose, courses, onRefresh 
                                         checked={allVisibleChecked}
                                         ref={el => { if (el) el.indeterminate = someChecked && !allVisibleChecked; }}
                                         onChange={toggleAll}
-                                        className="w-4 h-4 rounded accent-red-500"
+                                        className="w-4 h-4 rounded accent-[var(--error)]"
                                     />
-                                    <span className="text-xs text-zinc-400">Select all visible</span>
+                                    <span className="text-xs text-text-secondary">Select all visible</span>
                                 </label>
-                                <span className="text-xs text-amber-400 font-medium">
+                                <span className="text-xs text-warning font-medium">
                                     {selected.size} selected / {allEvents.length} total
                                 </span>
                             </div>
 
                             {/* Event list */}
-                            <div className="border border-zinc-800 rounded-xl overflow-hidden mb-4">
-                                <div className="max-h-64 overflow-y-auto divide-y divide-zinc-900">
+                            <div className="border border-border rounded-xl overflow-hidden mb-4">
+                                <div className="max-h-64 overflow-y-auto divide-y divide-border-subtle">
                                     {filteredEvents.length === 0 ? (
-                                        <p className="text-xs text-zinc-500 text-center py-4">No events in this date range.</p>
+                                        <p className="text-xs text-text-tertiary text-center py-4">No events in this date range.</p>
                                     ) : (
                                         filteredEvents.map(e => (
                                             <label
                                                 key={e.vtc_id}
-                                                className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors ${selected.has(e.vtc_id) ? "bg-red-950/20 hover:bg-red-950/30" : "hover:bg-zinc-900"}`}
+                                                className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors ${selected.has(e.vtc_id) ? "bg-error/10 hover:bg-error/15" : "hover:bg-overlay"}`}
                                             >
                                                 <input
                                                     type="checkbox"
                                                     checked={selected.has(e.vtc_id)}
                                                     onChange={() => toggleOne(e.vtc_id)}
-                                                    className="w-4 h-4 rounded accent-red-500 shrink-0"
+                                                    className="w-4 h-4 rounded accent-[var(--error)] shrink-0"
                                                 />
-                                                <span className="text-xs text-zinc-200 flex-1">{formatDate(e.startTime)}</span>
-                                                <span className="text-[11px] text-zinc-500">{formatTime(e.startTime)} – {formatTime(e.endTime)}</span>
+                                                <span className="text-xs text-foreground flex-1">{formatDate(e.startTime)}</span>
+                                                <span className="text-[11px] text-text-tertiary">{formatTime(e.startTime)} – {formatTime(e.endTime)}</span>
                                             </label>
                                         ))
                                     )}
@@ -300,7 +300,7 @@ export default function ManageEventsModal({ isOpen, onClose, courses, onRefresh 
                             <button
                                 onClick={handleDelete}
                                 disabled={isDeleting || selected.size === 0}
-                                className="w-full py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white font-bold text-sm rounded-xl transition-colors disabled:opacity-40"
+                                className="w-full py-2.5 px-4 bg-error hover:opacity-90 text-white font-bold text-sm rounded-xl transition-all disabled:opacity-40"
                             >
                                 {isDeleting ? "Deleting…" : selected.size === 0 ? "Select events to delete" : `Delete ${selected.size} Event${selected.size > 1 ? "s" : ""}`}
                             </button>

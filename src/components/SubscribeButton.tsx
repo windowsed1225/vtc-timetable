@@ -65,7 +65,7 @@ export default function SubscribeButton({ discordId }: SubscribeButtonProps) {
             {/* Instructions Modal */}
             {showInstructions && (
                 <div
-                    className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+                    className="fixed inset-0 bg-[rgba(2,8,16,0.65)] backdrop-blur-sm flex items-center justify-center z-50"
                     onClick={() => setShowInstructions(false)}
                 >
                     <div
@@ -73,7 +73,7 @@ export default function SubscribeButton({ discordId }: SubscribeButtonProps) {
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-full bg-success flex items-center justify-center">
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
                                     fill="none"

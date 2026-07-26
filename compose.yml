@@ -1,0 +1,70 @@
+# Dokploy deployment (Docker Compose service type).
+#
+# In Dokploy: create a "Compose" service pointing at this repo, set the
+# environment variables below in the Environment tab, then add a domain to the
+# `app` service on port 3000 (Traefik terminates HTTPS on dokploy-network).
+#
+# Required env vars (set in Dokploy, interpolated into this file):
+#   AUTH_SECRET          — better-auth secret (openssl rand -base64 32)
+#   BETTER_AUTH_URL      — public URL, e.g. https://timetable.example.com
+#   AUTH_DISCORD_ID      — Discord OAuth application id
+#   AUTH_DISCORD_SECRET  — Discord OAuth secret
+#   DISCORD_BOT_TOKEN    — optional, daily Discord avatar refresh
+#   MONGO_ROOT_USER / MONGO_ROOT_PASSWORD — MongoDB root credentials
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MONGODB_URI=mongodb://${MONGO_ROOT_USER:-vtc}:${MONGO_ROOT_PASSWORD:?set MONGO_ROOT_PASSWORD}@mongo:27017/vtc-timetable?authSource=admin
+      - AUTH_SECRET=${AUTH_SECRET:?set AUTH_SECRET}
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL:?set BETTER_AUTH_URL}
+      - AUTH_DISCORD_ID=${AUTH_DISCORD_ID}
+      - AUTH_DISCORD_SECRET=${AUTH_DISCORD_SECRET}
+      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
+    expose:
+      - 3000
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - dokploy-network
+      - internal
+
+  mongo:
+    image: mongo:8
+    restart: unless-stopped
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER:-vtc}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:?set MONGO_ROOT_PASSWORD}
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    # Not attached to dokploy-network on purpose — only the app can reach it.
+    networks:
+      - internal
+
+volumes:
+  mongo-data:
+
+networks:
+  # Dokploy's shared Traefik network; must pre-exist on the host.
+  dokploy-network:
+    external: true
+  internal:
