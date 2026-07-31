@@ -130,3 +130,20 @@ export function getSemesterDisplayLabel(semNum: number): string {
     };
     return labels[semNum] || "Unknown";
 }
+
+export type CalendarEventDensity = "compact" | "medium" | "full";
+
+export function getCalendarEventDensity(start: Date, end: Date): CalendarEventDensity {
+    const durationMinutes = Math.max(0, Math.round((end.getTime() - start.getTime()) / 60_000));
+    if (durationMinutes < 60) return "compact";
+    if (durationMinutes < 120) return "medium";
+    return "full";
+}
+
+export function getCalendarDateStrip(selectedDate: Date): Date[] {
+    return [-2, -1, 0, 1, 2].map((offset) => {
+        const date = new Date(selectedDate);
+        date.setDate(selectedDate.getDate() + offset);
+        return date;
+    });
+}
