@@ -729,14 +729,15 @@ body {
 /* Event blocks */
 .rbc-event {
 	border: 1px solid var(--border-strong) !important;
+	border-left: 4px solid var(--event-line, var(--accent-blue)) !important;
 	border-radius: 9px !important;
-	padding: 7px 10px 7px 15px !important;
+	padding: 0 !important;
 	font-size: 12px !important;
 	font-weight: 700 !important;
 	color: var(--foreground) !important;
-	background: var(--bg-overlay) !important;
+	background: color-mix(in srgb, var(--event-line, var(--accent-blue)) 9%, var(--bg-overlay)) !important;
 	cursor: pointer;
-	box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.04) !important;
+	box-shadow: 0 4px 14px rgba(2, 8, 16, 0.16) !important;
 	transition:
 		transform 0.12s ease,
 		box-shadow 0.12s ease,
@@ -759,9 +760,80 @@ body {
 	display: none;
 }
 .rbc-event-content {
+	height: 100%;
 	font-weight: 700;
 	color: inherit !important;
 }
+.calendar-event-card {
+	position: relative;
+	height: 100%;
+	padding: 8px 9px;
+	overflow: hidden;
+}
+.calendar-event-primary {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 6px;
+}
+.calendar-event-primary strong {
+	min-width: 0;
+	overflow: hidden;
+	font-size: 12px;
+	font-weight: 750;
+	letter-spacing: 0.025em;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.calendar-event-primary strong.is-cancelled { text-decoration: line-through; }
+.calendar-event-primary time {
+	flex: none;
+	color: var(--text-tertiary);
+	font-family: var(--font-mono);
+	font-size: 9px;
+	font-weight: 600;
+}
+.calendar-event-title,
+.calendar-event-room {
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.calendar-event-title {
+	margin-top: 3px;
+	color: var(--text-secondary);
+	font-size: 10px;
+	font-weight: 500;
+}
+.calendar-event-room {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	margin-top: 8px;
+	color: var(--text-tertiary);
+	font-size: 9px;
+	font-weight: 650;
+}
+.calendar-event-room svg { width: 11px; height: 11px; flex: none; }
+.calendar-event-adjusted {
+	position: absolute;
+	right: 7px;
+	bottom: 5px;
+	color: var(--warning);
+	font-size: 10px;
+}
+.density-compact { padding-top: 5px; }
+.density-compact .calendar-event-primary { align-items: center; }
+.calendar-deadline-card {
+	display: flex;
+	height: 100%;
+	flex-direction: column;
+	overflow: hidden;
+	padding: 6px 8px 6px 11px;
+}
+.calendar-deadline-card strong { display: flex; gap: 5px; font-size: 11px; line-height: 1.2; }
+.calendar-deadline-card small { margin-top: 3px; color: var(--text-tertiary); font-size: 9px; }
 .rbc-show-more {
 	font-size: 11px;
 	color: var(--accent-blue);
@@ -810,29 +882,22 @@ body {
 .event-color-9 { --event-line: var(--line-9); }
 
 [class*="event-color-"] {
-	background-color: var(--bg-overlay) !important;
+	background-color: color-mix(in srgb, var(--event-line) 9%, var(--bg-overlay)) !important;
 	color: var(--foreground) !important;
-	box-shadow:
-		inset 4px 0 0 var(--event-line),
-		inset 1px 1px 0 rgba(255, 255, 255, 0.04) !important;
+	box-shadow: 0 4px 14px rgba(2, 8, 16, 0.16) !important;
 }
 
 /* Hover: add line-colored glow */
 [class*="event-color-"]:hover {
-	box-shadow:
-		inset 4px 0 0 var(--event-line),
-		inset 1px 1px 0 rgba(255, 255, 255, 0.07),
-		0 4px 12px rgba(2, 8, 16, 0.28) !important;
+	box-shadow: 0 6px 16px rgba(2, 8, 16, 0.26) !important;
 }
 
 /* Light mode: white enamel plate, ink text, colored bar */
 .light [class*="event-color-"],
 :root:not(.dark) [class*="event-color-"] {
-	background-color: var(--bg-surface) !important;
+	background-color: color-mix(in srgb, var(--event-line) 7%, var(--bg-surface)) !important;
 	color: var(--foreground) !important;
-	box-shadow:
-		inset 6px 0 0 var(--event-line),
-		0 8px 18px rgba(11, 29, 51, 0.12) !important;
+	box-shadow: 0 5px 14px rgba(11, 29, 51, 0.12) !important;
 }
 
 /* Deadline events — Signal Red flag */
@@ -863,17 +928,17 @@ body {
 
 /* Status overrides */
 .event-finished {
-	opacity: 0.82 !important;
-	filter: grayscale(20%) !important;
+	opacity: 0.76 !important;
+	filter: saturate(72%) !important;
 }
 .event-canceled {
 	opacity: 0.72 !important;
-	filter: grayscale(30%) !important;
-	text-decoration: line-through;
+	filter: saturate(45%) !important;
 }
 .event-absent {
-	outline: 1px dashed var(--error) !important;
-	outline-offset: -1px;
+	border-left-color: var(--error) !important;
+	outline: 1px dashed color-mix(in srgb, var(--error) 70%, transparent) !important;
+	outline-offset: -2px;
 }
 
 /* ============================================
