@@ -1,10 +1,10 @@
 "use client";
 
-import { getCalendarEventDensity } from "@/lib/utils";
+import { getCalendarEventDensity, isCalendarActivationKey } from "@/lib/utils";
 import type { CalendarEvent } from "@/types/timetable";
 import dayjs from "dayjs";
 import "dayjs/locale/zh-hk";
-import { useEffect, useMemo } from "react";
+import { useMemo, type KeyboardEvent as ReactKeyboardEvent, type SyntheticEvent } from "react";
 import { useTranslations } from "next-intl";
 import { Calendar, dayjsLocalizer, type View, Views } from "react-big-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
@@ -38,9 +38,7 @@ export default function TimetableCalendar({
 	locale = "en",
 }: TimetableCalendarProps) {
 	const tEvent = useTranslations("event");
-	useEffect(() => {
-		dayjs.locale(locale === "zh-HK" ? "zh-hk" : "en");
-	}, [locale]);
+	const dayjsLocale = locale === "zh-HK" ? "zh-hk" : "en";
 
 	const { defaultDate, minTime, maxTime } = useMemo(
 		() => ({
@@ -80,12 +78,14 @@ export default function TimetableCalendar({
 
 		return {
 			className: `event-color-${colorIndex} ${isFinished ? "event-finished" : ""} ${isCancelled ? "event-canceled" : ""} ${isAbsent ? "event-absent" : ""}`,
-			style: {
-				backgroundImage: isAbsent
-					? "repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(220, 38, 38, 0.22) 4px, rgba(220, 38, 38, 0.22) 8px)"
-					: "none",
-			},
 		};
+	};
+
+	const handleKeyPressEvent = (event: CalendarEvent, keyEvent: SyntheticEvent<HTMLElement>) => {
+		const key = (keyEvent as ReactKeyboardEvent<HTMLElement>).key;
+		if (!isCalendarActivationKey(key)) return;
+		keyEvent.preventDefault();
+		onSelectEvent?.(event);
 	};
 
 	return (
@@ -104,6 +104,7 @@ export default function TimetableCalendar({
 			<div className="calendar-surface flex-1 bg-surface overflow-hidden">
 				<Calendar
 					localizer={localizer}
+					culture={dayjsLocale}
 					events={events}
 					startAccessor="start"
 					endAccessor="end"
@@ -119,6 +120,7 @@ export default function TimetableCalendar({
 					max={maxTime}
 					eventPropGetter={eventPropGetter}
 					onSelectEvent={onSelectEvent}
+					onKeyPressEvent={handleKeyPressEvent}
 					selectable
 					step={30}
 					timeslots={1}
@@ -130,10 +132,10 @@ export default function TimetableCalendar({
 					].filter(Boolean).join("\n")}
 					formats={{
 						eventTimeRangeFormat: () => "",
-						timeGutterFormat: (value: Date) => dayjs(value).format("HH:mm"),
-						dayHeaderFormat: (value: Date) => dayjs(value).format("ddd D"),
+						timeGutterFormat: (value: Date) => dayjs(value).locale(dayjsLocale).format("HH:mm"),
+						dayHeaderFormat: (value: Date) => dayjs(value).locale(dayjsLocale).format("ddd D"),
 						dayRangeHeaderFormat: ({ start, end }: { start: Date; end: Date }) =>
-							`${dayjs(start).format("MMM D")} – ${dayjs(end).format("MMM D, YYYY")}`,
+							`${dayjs(start).locale(dayjsLocale).format("MMM D")} – ${dayjs(end).locale(dayjsLocale).format("MMM D, YYYY")}`,
 					}}
 					components={{
 						toolbar: () => null,

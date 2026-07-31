@@ -147,3 +147,7 @@ export function getCalendarDateStrip(selectedDate: Date): Date[] {
         return date;
     });
 }
+
+export function isCalendarActivationKey(key: string): boolean {
+    return key === "Enter" || key === " ";
+}

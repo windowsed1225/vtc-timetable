@@ -1,8 +1,9 @@
 "use client";
 
 import dayjs from "dayjs";
+import "dayjs/locale/zh-hk";
 import { getCalendarDateStrip } from "@/lib/utils";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Views } from "react-big-calendar";
 
 type ViewType = (typeof Views)[keyof typeof Views];
@@ -27,7 +28,9 @@ export default function CalendarHeader({
     onViewChange,
 }: CalendarHeaderProps) {
     const t = useTranslations("calendar");
-    const formattedDate = dayjs(date).format(
+    const locale = useLocale();
+    const dayjsLocale = locale === "zh-HK" ? "zh-hk" : "en";
+    const formattedDate = dayjs(date).locale(dayjsLocale).format(
         view === Views.DAY ? "MMMM D, YYYY" : "MMMM YYYY"
     );
 
@@ -111,7 +114,8 @@ export default function CalendarHeader({
         </header>
 		<div className="calendar-mobile-dates" role="group" aria-label={t("selectCalendarDate")}>
 			{mobileDates.map((candidate) => {
-				const isActive = dayjs(candidate).isSame(date, "day");
+				const localizedDate = dayjs(candidate).locale(dayjsLocale);
+				const isActive = localizedDate.isSame(date, "day");
 				return (
 					<button
 						type="button"
@@ -119,10 +123,10 @@ export default function CalendarHeader({
 						className={isActive ? "is-active" : ""}
 						onClick={() => onDateSelect(candidate)}
 						aria-pressed={isActive}
-						aria-label={dayjs(candidate).format("dddd, MMMM D")}
+						aria-label={localizedDate.format("dddd, MMMM D")}
 					>
-						<span>{dayjs(candidate).format("ddd")}</span>
-						<strong>{dayjs(candidate).format("D")}</strong>
+						<span>{localizedDate.format("ddd")}</span>
+						<strong>{localizedDate.format("D")}</strong>
 					</button>
 				);
 			})}

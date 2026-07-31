@@ -66,7 +66,7 @@ export default function Home() {
     const [hasSavedToken, setHasSavedToken] = useState(false);
 
     // Calendar state
-    const [view, setView] = useState<View>(() => typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches ? Views.DAY : Views.WORK_WEEK);
+    const [view, setView] = useState<View>(Views.WORK_WEEK);
     const [date, setDate] = useState(new Date());
     const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [semesterFilter, setSemesterFilter] = useState<string>("all");
@@ -107,6 +107,14 @@ export default function Home() {
         if (savedUrl) {
             setVtcUrl(savedUrl);
         }
+    }, []);
+
+    useEffect(() => {
+        const mobileMedia = window.matchMedia("(max-width: 768px)");
+        const frame = window.requestAnimationFrame(() => {
+            if (mobileMedia.matches) setView(Views.DAY);
+        });
+        return () => window.cancelAnimationFrame(frame);
     }, []);
 
     const loadStoredData = async () => {

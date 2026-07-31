@@ -4,6 +4,7 @@ import * as utils from "./utils";
 type CalendarDisplayUtils = typeof utils & {
 	getCalendarEventDensity?: (start: Date, end: Date) => "compact" | "medium" | "full";
 	getCalendarDateStrip?: (selectedDate: Date) => Date[];
+	isCalendarActivationKey?: (key: string) => boolean;
 };
 
 const calendarUtils = utils as CalendarDisplayUtils;
@@ -23,5 +24,12 @@ describe("calendar display helpers", () => {
 		expect(dates).toHaveLength(5);
 		expect(dates.map((date) => date.getDate())).toEqual([29, 30, 31, 1, 2]);
 		expect(dates[2]?.getHours()).toBe(12);
+	});
+
+	test("accepts keyboard keys that activate calendar events", () => {
+		expect(typeof calendarUtils.isCalendarActivationKey).toBe("function");
+		expect(calendarUtils.isCalendarActivationKey?.("Enter")).toBe(true);
+		expect(calendarUtils.isCalendarActivationKey?.(" ")).toBe(true);
+		expect(calendarUtils.isCalendarActivationKey?.("ArrowDown")).toBe(false);
 	});
 });

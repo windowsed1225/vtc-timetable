@@ -18,9 +18,9 @@ export default function CalendarEventCard({ event, density }: CalendarEventCardP
 	const isCancelled = event.resource?.status === "CANCELED";
 
 	return (
-		<div className={`calendar-event-card density-${density}`}>
+		<div className={`calendar-event-card density-${density}${isCancelled ? " is-cancelled" : ""}`}>
 			<div className="calendar-event-primary">
-				<strong className={isCancelled ? "is-cancelled" : ""}>{courseCode}</strong>
+				<strong>{courseCode}</strong>
 				<time dateTime={event.start.toISOString()}>{time}</time>
 			</div>
 			{density !== "compact" && <span className="calendar-event-title">{courseTitle}</span>}
