@@ -5,6 +5,7 @@ import type { CalendarEvent } from "@/types/timetable";
 import dayjs from "dayjs";
 import "dayjs/locale/zh-hk";
 import { useEffect, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { Calendar, dayjsLocalizer, type View, Views } from "react-big-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import CalendarEventCard from "./CalendarEventCard";
@@ -36,6 +37,7 @@ export default function TimetableCalendar({
 	onSelectEvent,
 	locale = "en",
 }: TimetableCalendarProps) {
+	const tEvent = useTranslations("event");
 	useEffect(() => {
 		dayjs.locale(locale === "zh-HK" ? "zh-hk" : "en");
 	}, [locale]);
@@ -122,9 +124,9 @@ export default function TimetableCalendar({
 					timeslots={1}
 					tooltipAccessor={(event: CalendarEvent) => [
 						event.title,
-						event.resource?.location && `Room: ${event.resource.location}`,
-						event.resource?.lecturer && `Lecturer: ${event.resource.lecturer}`,
-						event.resource?.lessonType && `Type: ${event.resource.lessonType}`,
+						event.resource?.location && `${tEvent("location")}: ${event.resource.location}`,
+						event.resource?.lecturer && `${tEvent("lecturer")}: ${event.resource.lecturer}`,
+						event.resource?.lessonType && `${tEvent("type")}: ${event.resource.lessonType}`,
 					].filter(Boolean).join("\n")}
 					formats={{
 						eventTimeRangeFormat: () => "",

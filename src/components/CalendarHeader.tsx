@@ -47,7 +47,7 @@ export default function CalendarHeader({
                 <button
                     onClick={() => onNavigate("PREV")}
                     className="btn-icon"
-                    aria-label="Previous"
+                    aria-label={t("previous")}
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
@@ -56,7 +56,7 @@ export default function CalendarHeader({
                 <button
                     onClick={() => onNavigate("NEXT")}
                     className="btn-icon"
-                    aria-label="Next"
+                    aria-label={t("next")}
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                         <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
@@ -92,7 +92,7 @@ export default function CalendarHeader({
 					<option value="SEM 2">{t("spring")}</option>
 					<option value="SEM 3">{t("summer")}</option>
 				</select>
-			<div className="view-switcher" role="group" aria-label="Calendar view">
+			<div className="view-switcher" role="group" aria-label={t("calendarView")}>
                 {viewOptions.map((v) => (
                     <button
                         key={v.key}
@@ -109,7 +109,7 @@ export default function CalendarHeader({
             </div>
 			</div>
         </header>
-		<div className="calendar-mobile-dates" aria-label="Select calendar date">
+		<div className="calendar-mobile-dates" role="group" aria-label={t("selectCalendarDate")}>
 			{mobileDates.map((candidate) => {
 				const isActive = dayjs(candidate).isSame(date, "day");
 				return (

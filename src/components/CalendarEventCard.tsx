@@ -3,6 +3,7 @@
 import type { CalendarEventDensity } from "@/lib/utils";
 import type { CalendarEvent } from "@/types/timetable";
 import dayjs from "dayjs";
+import { useTranslations } from "next-intl";
 
 interface CalendarEventCardProps {
 	event: CalendarEvent;
@@ -10,6 +11,7 @@ interface CalendarEventCardProps {
 }
 
 export default function CalendarEventCard({ event, density }: CalendarEventCardProps) {
+	const t = useTranslations("calendar");
 	const courseCode = event.resource?.courseCode || event.title;
 	const courseTitle = event.resource?.courseTitle || event.title;
 	const time = `${dayjs(event.start).format("HH:mm")}–${dayjs(event.end).format("HH:mm")}`;
@@ -31,7 +33,7 @@ export default function CalendarEventCard({ event, density }: CalendarEventCardP
 					{event.resource.location}
 				</span>
 			)}
-			{event.resource?.isAdjusted && <span className="calendar-event-adjusted" title="Manually adjusted" aria-label="Manually adjusted">↯</span>}
+			{event.resource?.isAdjusted && <span className="calendar-event-adjusted" title={t("manuallyAdjusted")} aria-label={t("manuallyAdjusted")}>↯</span>}
 		</div>
 	);
 }
