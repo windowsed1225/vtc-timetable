@@ -10,13 +10,15 @@ VTC Timetable is a TypeScript web application for synchronizing VTC timetables a
 
 - VTC timetable synchronization across multiple semesters, including staged and background sync flows
 - Stored and live attendance tracking with per-course statistics, manual attendance overrides, and class-hour breakdowns
+- Spreadsheet-style attendance-hours grid with semester grouping and per-course detail links; this is an HTML view, not an `.xlsx` export
+- Course-detail pages and modals with class counts, total and remaining hours, minutes/hours display switching, attendance status, and the skipping calculator
 - Calendar event management, including status changes, actual-time corrections, course completion, and date-range deletion
-- Semester ICS downloads and live calendar subscription feeds
+- Semester `.ics` calendar downloads and Discord-linked live calendar subscription feeds; do not claim CSV or Excel export unless that functionality is implemented
 - Moodle deadline retrieval
 - VTC token validation, digital e-card access, programme information, and print-quota lookup
 - Email/password and Discord authentication through Better Auth
 - English and Traditional Chinese localization
-- Responsive calendar, attendance, settings, and course-detail interfaces with light and dark themes
+- Responsive calendar, attendance grid, settings, and course-detail interfaces with light and dark themes
 
 ## Current stack
 

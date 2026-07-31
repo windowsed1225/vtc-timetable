@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   description:
     "View your VTC class schedule on a beautiful calendar and export it to your favorite calendar app.",
   icons: {
-    icon: [{ url: "/vtctimetable.svg", type: "image/svg+xml", sizes: "any" }],
+    icon: [{ url: "/vtc-timetable.svg", type: "image/svg+xml", sizes: "any" }],
   },
 };
 

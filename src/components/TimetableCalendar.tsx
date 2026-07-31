@@ -124,7 +124,7 @@ export default function TimetableCalendar({
                 onViewChange={onViewChange}
             />
 
-            <div className="flex-1 bg-surface rounded-xl overflow-hidden shadow-sm border border-[var(--calendar-border)]">
+			<div className="calendar-surface flex-1 bg-surface overflow-hidden">
                 <Calendar
                     localizer={localizer}
                     events={events}

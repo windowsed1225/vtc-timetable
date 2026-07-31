@@ -3,7 +3,8 @@
 import { clearVtcData, getUserSettings, updateEmailPassword } from "@/app/actions/settings";
 import { checkStoredToken, getPrintQuota, registerEcard } from "@/app/actions/user";
 import { motion } from "framer-motion";
-import { useLocale } from "next-intl";
+import Image from "next/image";
+import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -40,6 +41,7 @@ const itemVariants = {
 
 export default function SettingsPage() {
 	const locale = useLocale();
+	const t = useTranslations("settings");
 	const [loading, setLoading] = useState(true);
 	const [settings, setSettings] = useState<{
 		email?: string;
@@ -97,6 +99,8 @@ export default function SettingsPage() {
 	useEffect(() => {
 		// eslint-disable-next-line react-hooks/immutability
 		loadSettings();
+		// Settings are intentionally loaded once on mount.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	const loadVtcLiveInfo = async () => {
@@ -207,37 +211,45 @@ export default function SettingsPage() {
 	}
 
 	return (
-		<div className="min-h-screen bg-[var(--background)]">
+		<div className="settings-page min-h-screen bg-[var(--background)]">
 			{/* Header */}
-			<header className="border-b" style={{ borderColor: "var(--border-default)", background: "var(--bg-subtle)" }}>
-				<div className="max-w-2xl mx-auto px-6 py-4">
-					<div className="flex items-center gap-3">
+			<header className="settings-page-header border-b" style={{ borderColor: "var(--border-default)", background: "var(--bg-subtle)" }}>
+				<div className="settings-page-header-inner">
+					<div className="flex items-center gap-3 min-w-0">
 						<Link
 							href={`/${locale}`}
 							className="btn-icon"
-							aria-label="Back to calendar"
+							aria-label={t("backToCalendar")}
 						>
 							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
 								<path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
 							</svg>
 						</Link>
-						<h1 className="text-lg font-semibold tracking-tight">Settings</h1>
+						<Image src="/vtc-timetable.svg" alt="" width={34} height={34} className="settings-page-logo" />
+						<div className="min-w-0"><h1 className="text-lg font-semibold tracking-tight">{t("title")}</h1><p className="settings-page-subtitle">VTC Timetable</p></div>
 					</div>
 				</div>
 			</header>
 
 			{/* Content */}
+			<div className="settings-layout">
+				<aside className="settings-nav" aria-label={t("title")}>
+					<a href="#account"><strong>{t("account")}</strong><span>{t("accountDescription")}</span></a>
+					<a href="#connection"><strong>{t("vtcConnection")}</strong><span>{t("vtcConnectionDescription")}</span></a>
+					<a href="#security"><strong>{t("loginSecurity")}</strong><span>{t("loginSecurityDescription")}</span></a>
+					<a href="#data"><strong>{t("storedData")}</strong><span>{t("storedDataDescription")}</span></a>
+				</aside>
 			<motion.main
-				className="max-w-2xl mx-auto px-6 py-8 space-y-6"
+				className="settings-content space-y-6"
 				variants={containerVariants}
 				initial="hidden"
 				animate="visible"
 			>
 				{/* ── Account Information ────────────────── */}
-				<motion.div className="settings-section" variants={itemVariants}>
+				<motion.div id="account" className="settings-section scroll-mt-24" variants={itemVariants}>
 					<div className="settings-section-header">
-						<h2>Account</h2>
-						<p>Your profile and connected identifiers.</p>
+						<h2>{t("account")}</h2>
+						<p>{t("accountDescription")}</p>
 					</div>
 					<div className="settings-section-body">
 						<div className="settings-row">
@@ -248,6 +260,11 @@ export default function SettingsPage() {
 								</svg>
 								{settings?.discordUsername || "N/A"}
 							</span>
+						</div>
+
+						<div id="connection" className="settings-subsection-heading scroll-mt-24">
+							<h3>{t("vtcConnection")}</h3>
+							<p>{t("vtcConnectionDescription")}</p>
 						</div>
 
 						<div className="settings-row">
@@ -386,9 +403,9 @@ export default function SettingsPage() {
 				</motion.div>
 
 				{/* ── Security ────────────────────────────── */}
-				<motion.div className="settings-section" variants={itemVariants}>
+				<motion.div id="security" className="settings-section scroll-mt-24" variants={itemVariants}>
 					<div className="settings-section-header">
-						<h2>Security</h2>
+						<h2>{t("loginSecurity")}</h2>
 						<p>
 							{settings?.hasPassword
 								? "Update your email and password for credential-based login."
@@ -473,13 +490,14 @@ export default function SettingsPage() {
 
 				{/* ── Danger Zone ─────────────────────────── */}
 				<motion.div
-					className="settings-section"
+					id="data"
+					className="settings-section scroll-mt-24"
 					style={{ borderColor: "rgba(245, 83, 83, 0.18)" }}
 					variants={itemVariants}
 				>
 					<div className="settings-section-header" style={{ borderBottomColor: "rgba(245, 83, 83, 0.10)" }}>
-						<h2 className="text-[var(--error)]">Danger Zone</h2>
-						<p>Irreversible actions. Proceed with caution.</p>
+						<h2 className="text-[var(--error)]">{t("storedData")}</h2>
+						<p>{t("storedDataDescription")}</p>
 					</div>
 					<div className="settings-section-body">
 						<div className="flex items-center justify-between gap-4">
@@ -516,6 +534,7 @@ export default function SettingsPage() {
 					</div>
 				</motion.div>
 			</motion.main>
+			</div>
 		</div>
 	);
 }

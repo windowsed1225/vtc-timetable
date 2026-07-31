@@ -75,12 +75,12 @@ export default function AttendanceModal({ course, onClose }: AttendanceModalProp
 	const onTime = attended - late;
 
 	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+		<div className="attendance-modal-shell fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
 			{/* Backdrop */}
 			<div className="absolute inset-0 bg-[rgba(2,8,16,0.65)] backdrop-blur-sm" />
 
 			{/* Modal */}
-			<div className="relative bg-surface border border-border rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-hidden animate-scaleIn" onClick={(e) => e.stopPropagation()}>
+			<div className="attendance-modal-panel relative bg-surface border border-border rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-hidden animate-scaleIn" onClick={(e) => e.stopPropagation()}>
 				{/* Header */}
 				<div className="flex items-center justify-between p-4 border-b border-[var(--sidebar-border)]">
 					<div className="flex-1 min-w-0">

@@ -176,7 +176,7 @@ export default function ManageEventsModal({ isOpen, onClose, courses, onRefresh 
                         <h2 className="font-display text-base font-semibold text-[var(--foreground)]">Manage Events</h2>
                         <p className="text-xs text-text-tertiary mt-0.5">Remove unattended scheduled events</p>
                     </div>
-                    <button onClick={handleClose} className="btn-icon shrink-0">
+                    <button onClick={handleClose} className="btn-icon shrink-0" aria-label="Close event manager">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
                         </svg>
@@ -185,7 +185,7 @@ export default function ManageEventsModal({ isOpen, onClose, courses, onRefresh 
 
                 {/* Semester selector */}
                 <div className="mb-3">
-                    <p className="text-[10px] text-text-tertiary uppercase tracking-wider mb-1.5">Semester</p>
+                    <p className="text-xs font-medium text-text-tertiary uppercase tracking-wider mb-1.5">Semester</p>
                     <select
                         value={selectedSemester}
                         onChange={e => setSelectedSemester(e.target.value)}
@@ -201,7 +201,7 @@ export default function ManageEventsModal({ isOpen, onClose, courses, onRefresh 
                 {/* Course selector */}
                 {selectedSemester && (
                     <div className="mb-4">
-                        <p className="text-[10px] text-text-tertiary uppercase tracking-wider mb-1.5">Course</p>
+                        <p className="text-xs font-medium text-text-tertiary uppercase tracking-wider mb-1.5">Course</p>
                         <select
                             value={selectedKey}
                             onChange={e => setSelectedKey(e.target.value)}

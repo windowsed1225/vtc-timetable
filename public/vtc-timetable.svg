@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background rounded square -->
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0A1F44;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#001a33;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="prismGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E91E63"/>
+      <stop offset="33%" style="stop-color:#FF9800"/>
+      <stop offset="66%" style="stop-color:#2196F3"/>
+      <stop offset="100%" style="stop-color:#4CAF50"/>
+    </linearGradient>
+    <!-- Soft shadow -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- App icon background -->
+  <rect x="0" y="0" width="512" height="512" rx="96" ry="96" fill="#0A1F44"/>
+
+  <!-- Subtle inner highlight -->
+  <rect x="16" y="16" width="480" height="480" rx="80" ry="80" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2"/>
+
+  <!-- Calendar body with shadow -->
+  <g filter="url(#shadow)">
+    <!-- Calendar base -->
+    <rect x="96" y="120" width="320" height="300" rx="28" ry="28" fill="#FFFFFF"/>
+    
+    <!-- Calendar header bar -->
+    <rect x="96" y="120" width="320" height="64" rx="28" ry="28" fill="#1A365D"/>
+    <rect x="96" y="152" width="320" height="32" fill="#1A365D"/>
+    
+    <!-- Calendar rings (binding) -->
+    <circle cx="160" cy="120" r="14" fill="#E2E8F0"/>
+    <circle cx="160" cy="120" r="8" fill="#1A365D"/>
+    <circle cx="256" cy="120" r="14" fill="#E2E8F0"/>
+    <circle cx="256" cy="120" r="8" fill="#1A365D"/>
+    <circle cx="352" cy="120" r="14" fill="#E2E8F0"/>
+    <circle cx="352" cy="120" r="8" fill="#1A365D"/>
+  </g>
+
+  <!-- Timetable grid lines -->
+  <!-- Horizontal lines (time slots) -->
+  <line x1="120" y1="220" x2="392" y2="220" stroke="#CBD5E1" stroke-width="3" stroke-linecap="round"/>
+  <line x1="120" y1="270" x2="392" y2="270" stroke="#CBD5E1" stroke-width="3" stroke-linecap="round"/>
+  <line x1="120" y1="320" x2="392" y2="320" stroke="#CBD5E1" stroke-width="3" stroke-linecap="round"/>
+  <line x1="120" y1="370" x2="392" y2="370" stroke="#CBD5E1" stroke-width="3" stroke-linecap="round"/>
+  
+  <!-- Vertical lines (days / columns) -->
+  <line x1="192" y1="200" x2="192" y2="400" stroke="#E2E8F0" stroke-width="2.5"/>
+  <line x1="256" y1="200" x2="256" y2="400" stroke="#E2E8F0" stroke-width="2.5"/>
+  <line x1="320" y1="200" x2="320" y2="400" stroke="#E2E8F0" stroke-width="2.5"/>
+
+  <!-- Colored timetable blocks (sample classes) -->
+  <rect x="128" y="230" width="52" height="28" rx="6" fill="#E91E63" opacity="0.85"/>
+  <rect x="204" y="280" width="40" height="28" rx="6" fill="#FF9800" opacity="0.85"/>
+  <rect x="268" y="230" width="40" height="28" rx="6" fill="#2196F3" opacity="0.85"/>
+  <rect x="332" y="330" width="48" height="28" rx="6" fill="#4CAF50" opacity="0.85"/>
+  <rect x="128" y="330" width="52" height="28" rx="6" fill="#9C27B0" opacity="0.75"/>
+
+  <!-- Prismatic V logo (inspired by official VTC logo - prism concept) -->
+  <g transform="translate(188, 138)">
+    <!-- Outer white V shape for contrast -->
+    <path d="M 8,52 L 40,4 L 72,52 L 58,52 L 40,22 L 22,52 Z" fill="white"/>
+    <!-- Colorful prism segments inside V -->
+    <path d="M 22,48 L 40,18 L 40,48 Z" fill="#E91E63"/>
+    <path d="M 40,18 L 58,48 L 40,48 Z" fill="#FF9800"/>
+    <!-- Lower accent bands for more prism feel -->
+    <path d="M 26,48 L 40,32 L 40,48 Z" fill="#00BCD4" opacity="0.95"/>
+    <path d="M 40,32 L 54,48 L 40,48 Z" fill="#4CAF50" opacity="0.95"/>
+  </g>
+
+  <!-- TC text next to V -->
+  <text x="270" y="178" font-family="Arial, Helvetica, sans-serif" font-size="40" font-weight="700" fill="white" letter-spacing="2">TC</text>
+
+  <!-- Small clock accent in bottom right of calendar -->
+  <g transform="translate(360, 380)">
+    <circle cx="0" cy="0" r="28" fill="#1A365D"/>
+    <circle cx="0" cy="0" r="22" fill="#FFFFFF"/>
+    <!-- Clock hands -->
+    <line x1="0" y1="0" x2="0" y2="-12" stroke="#1A365D" stroke-width="3.5" stroke-linecap="round"/>
+    <line x1="0" y1="0" x2="10" y2="6" stroke="#E91E63" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="0" cy="0" r="3" fill="#1A365D"/>
+  </g>
+
+  <!-- Subtle "TIMETABLE" label under calendar -->
+  <text x="256" y="460" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="600" fill="rgba(255,255,255,0.7)" text-anchor="middle" letter-spacing="3">TIMETABLE</text>
+</svg>

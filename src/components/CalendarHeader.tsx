@@ -32,9 +32,9 @@ export default function CalendarHeader({
     ];
 
     return (
-        <header className="calendar-header flex items-center justify-between px-4 py-3 mb-4">
+		<header className="calendar-header">
             {/* Left: Navigation */}
-            <div className="flex items-center gap-1">
+			<div className="calendar-navigation flex items-center gap-1">
                 <button
                     onClick={() => onNavigate("PREV")}
                     className="btn-icon"
@@ -55,7 +55,7 @@ export default function CalendarHeader({
                 </button>
                 <button
                     onClick={() => onNavigate("TODAY")}
-                    className="btn-secondary ml-2 text-sm active:scale-95"
+					className="btn-secondary ml-2 text-sm"
                 >
                     {t("today")}
                 </button>
@@ -64,21 +64,22 @@ export default function CalendarHeader({
             {/* Center: Date — animates on change */}
             <h2
                 key={formattedDate}
-                className="calendar-title font-display text-lg font-semibold md:absolute md:left-1/2 md:-translate-x-1/2 animate-fadeIn"
+				className="calendar-title font-display animate-fadeIn"
             >
                 {formattedDate}
             </h2>
 
             {/* Right: View Switcher */}
-            <div className="view-switcher flex items-center bg-[var(--calendar-header-bg)] rounded-lg p-1">
+			<div className="view-switcher" role="group" aria-label="Calendar view">
                 {viewOptions.map((v) => (
                     <button
                         key={v.key}
                         onClick={() => onViewChange(v.key)}
-                        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 active:scale-95 ${view === v.key
-                            ? "bg-active text-[var(--foreground)] shadow-sm scale-[1.02]"
-                            : "text-[var(--text-secondary)] hover:text-[var(--foreground)] hover:bg-overlay"
-                            }`}
+						className={`view-switcher-button ${view === v.key
+							? "is-active"
+							: "text-[var(--text-secondary)] hover:text-[var(--foreground)] hover:bg-overlay"
+							}`}
+						aria-pressed={view === v.key}
                     >
                         {v.label}
                     </button>

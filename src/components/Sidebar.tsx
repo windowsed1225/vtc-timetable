@@ -1,15 +1,13 @@
 ﻿"use client";
 
-import { exportSemesterIcs, HybridAttendanceStats } from "@/app/actions";
+import { HybridAttendanceStats } from "@/app/actions";
 import { LINE_COLORS } from "@/lib/colors";
 import { Link } from "@/lib/navigation";
-import { getDefaultSemester, getSemesterDisplayLabel, getSemesterLabel } from "@/lib/utils";
 import { CalendarEvent } from "@/types/timetable";
 import { useTranslations } from "next-intl";
 import { useMemo, useState, type CSSProperties } from "react";
 import AttendanceModal from "./AttendanceModal";
 import CourseDetailsModal from "./CourseDetailsModal";
-import ManageEventsSection from "./ManageEventsSection";
 import SemesterSummaryCard from "./SemesterSummaryCard";
 import SubscribeButton from "./SubscribeButton";
 
@@ -53,79 +51,6 @@ interface SidebarProps {
 	} | null;
 	sidebarOpen?: boolean;
 	onStartTour?: () => void;
-}
-
-/** Calendar Tools - Vercel-style action card for dynamic semester export */
-function CalendarToolsCard() {
-	const t = useTranslations("calendar");
-	const [isExporting, setIsExporting] = useState(false);
-	const [selectedSem, setSelectedSem] = useState(getDefaultSemester());
-
-	const filenameMap: Record<number, string> = {
-		1: "VTC_Schedule_Fall",
-		2: "VTC_Schedule_Spring",
-		3: "VTC_Schedule_Summer",
-	};
-
-	const semKey = getSemesterLabel(selectedSem);
-	const semDisplay = getSemesterDisplayLabel(selectedSem);
-
-	const handleExport = async () => {
-		setIsExporting(true);
-		try {
-			const result = await exportSemesterIcs(semKey);
-			if (!result.success || !result.data) {
-				alert(result.error || "Failed to export calendar");
-				return;
-			}
-			const blob = new Blob([result.data], { type: "text/calendar;charset=utf-8" });
-			const url = URL.createObjectURL(blob);
-			const link = document.createElement("a");
-			link.href = url;
-			link.download = `${filenameMap[selectedSem] || "VTC_Schedule"}.ics`;
-			document.body.appendChild(link);
-			link.click();
-			document.body.removeChild(link);
-			URL.revokeObjectURL(url);
-		} catch (error) {
-			console.error("Export error:", error);
-			alert("Failed to export calendar");
-		} finally {
-			setIsExporting(false);
-		}
-	};
-
-	return (
-		<div className="action-card p-3 rounded-xl border space-y-3 transition-colors">
-			<div className="space-y-1">
-				<h4 className="action-card-title text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider">{t("calendarTools")}</h4>
-				<p className="text-[11px] text-[var(--text-tertiary)] leading-relaxed">{t("exportDesc", { semester: semDisplay })}</p>
-			</div>
-			<select value={selectedSem} onChange={(e) => setSelectedSem(Number(e.target.value))} className="w-full px-2 py-1.5 bg-overlay border border-border rounded-lg text-xs text-foreground focus:outline-none focus:border-border-strong">
-				<option value={1}>Fall (SEM 1)</option>
-				<option value={2}>Spring (SEM 2)</option>
-				<option value={3}>Summer (SEM 3)</option>
-			</select>
-			<button onClick={handleExport} disabled={isExporting} className="action-card-button btn-primary w-full text-xs">
-				{isExporting ? (
-					<>
-						<svg className="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-							<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-							<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-						</svg>
-						{t("exporting")}
-					</>
-				) : (
-					<>
-						<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
-							<path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
-						</svg>
-						{t("exportBtn", { semester: semDisplay })}
-					</>
-				)}
-			</button>
-		</div>
-	);
 }
 
 export default function Sidebar({ courses, events, attendance, onSyncClick, onRefreshAttendance, onRefreshCalendar, isSyncing, isRefreshingAttendance, isRefreshingCalendar, user, sidebarOpen, onStartTour }: SidebarProps) {
@@ -283,14 +208,14 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 
 	return (
 		<>
-			<aside className={`glass w-[280px] min-w-[280px] h-full flex flex-col border-r border-border overflow-hidden ${sidebarOpen ? "sidebar-open" : ""}`}>
+			<aside className={`glass dashboard-sidebar h-full flex flex-col overflow-hidden ${sidebarOpen ? "sidebar-open" : ""}`}>
 				{/* Header */}
-				<div className="p-4 border-b border-border">
-					<h1 className="font-display text-base font-semibold tracking-tight">{t("calendarHeader")}</h1>
+				<div className="sidebar-heading">
+					<h1 className="font-display text-lg font-semibold tracking-tight">{t("calendarHeader")}</h1>
 				</div>
 
 				{/* Scrollable content */}
-				<div className="flex-1 overflow-y-auto p-4 space-y-6">
+				<div className="sidebar-scroll flex-1 overflow-y-auto space-y-5">
 					{/* My Calendars Section */}
 					<section>
 						<div className="flex items-center justify-between mb-3">
@@ -478,17 +403,10 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 							)}
 						</section>
 					)}
-					{/* Manage Events Section */}
-					{user && courses.length > 0 && (
-						<ManageEventsSection
-							courses={courses}
-							onRefresh={onRefreshCalendar}
-						/>
-					)}
 				</div>
 
 				{/* Footer Actions */}
-				<div className="p-4 border-t border-[var(--sidebar-border)] space-y-2">
+				<div className="sidebar-footer border-t border-[var(--sidebar-border)] space-y-2">
 					{/* Sync button — only available once signed in */}
 					{user && (
 						<button data-tour="sync-button" onClick={onSyncClick} disabled={isSyncing} className={`btn-primary w-full flex items-center justify-center gap-2 ${isSyncing ? "btn-syncing" : ""}`}>
@@ -510,9 +428,6 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 							)}
 						</button>
 					)}
-
-					{/* Calendar Tools â€” Dynamic Export */}
-					{groupedCourses.length > 0 && <CalendarToolsCard />}
 
 					{/* Calendar Subscription - auto-detects current semester */}
 					{user?.discordId && <SubscribeButton discordId={user.discordId} />}

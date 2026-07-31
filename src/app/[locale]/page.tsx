@@ -25,12 +25,16 @@ import SyncModal, { type SyncProgress } from "@/components/SyncModal";
 import TutorialSimulation from "@/components/TutorialSimulation";
 import TopNavbar from "@/components/TopNavbar";
 import TimetableCalendar from "@/components/TimetableCalendar";
+import CalendarTopActions from "@/components/CalendarTopActions";
+import MobileAttendanceView from "@/components/MobileAttendanceView";
+import MobileBottomNav from "@/components/MobileBottomNav";
+import UpcomingClasses from "@/components/UpcomingClasses";
 import { getDateArray, getSemestersToSync } from "@/lib/utils";
 import { CalendarEvent } from "@/types/timetable";
 import { createEvents, EventAttributes } from "ics";
 import { useSession } from "@/lib/auth-client";
 import { useLocale, useTranslations } from "next-intl";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Views } from "react-big-calendar";
 
 const SEMESTER_PROGRESS_LABELS: Record<number, string> = { 1: "Fall (SEM 1)", 2: "Spring (SEM 2)", 3: "Summer (SEM 3)" };
@@ -63,10 +67,11 @@ export default function Home() {
     const [hasSavedToken, setHasSavedToken] = useState(false);
 
     // Calendar state
-    const [view, setView] = useState<View>(Views.WORK_WEEK);
+    const [view, setView] = useState<View>(() => typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches ? Views.DAY : Views.WORK_WEEK);
     const [date, setDate] = useState(new Date());
     const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [semesterFilter, setSemesterFilter] = useState<string>("all");
+    const [mobileTab, setMobileTab] = useState<"calendar" | "attendance">("calendar");
 
     // Data state
     const [courses, setCourses] = useState<
@@ -473,6 +478,10 @@ export default function Home() {
 
     // Mobile sidebar state
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const filteredEvents = useMemo(
+        () => semesterFilter === "all" ? events : events.filter((event) => event.resource?.semester === semesterFilter),
+        [events, semesterFilter],
+    );
 
     // Session gate: splash while the session resolves (isPending is true on both the
     // server render and the first client render, so there is no hydration flash),
@@ -481,12 +490,13 @@ export default function Home() {
     if (!session) return <LandingPage />;
 
     return (
-        <div className="h-screen flex flex-col bg-[var(--background)] overflow-hidden">
+        <div className="dashboard-shell h-screen flex flex-col bg-[var(--background)] overflow-hidden">
             {/* Top Navbar */}
             <TopNavbar
                 onSignIn={() => setShowSignInModal(true)}
                 onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
                 sidebarOpen={sidebarOpen}
+                actions={courses.length > 0 ? <CalendarTopActions courses={courses} onRefresh={handleRefreshCalendar} /> : undefined}
             />
 
             {/* Body: Sidebar + Main */}
@@ -514,7 +524,8 @@ export default function Home() {
             />
 
             {/* Main Content */}
-            <main data-tour="calendar" className="flex-1 flex flex-col p-6 overflow-hidden relative">
+            <main data-tour="calendar" className={`dashboard-main flex-1 flex flex-col overflow-hidden relative mobile-tab-${mobileTab}`}>
+                <div className="calendar-workspace-content">
                 {/* Token Expired Warning Banner */}
                 {showTokenExpiredWarning && (
                     <div className="mb-4 flex items-center gap-3 px-4 py-3 rounded-xl bg-warning/15 border border-warning/30 text-warning animate-slideIn">
@@ -544,9 +555,10 @@ export default function Home() {
                 {events.length > 0 ? (
                     <>
                         {/* Semester Filter */}
-                        <div className="flex items-center justify-end gap-3 mb-4">
-                            <label className="text-sm text-[var(--text-secondary)]">{tc("semester")}:</label>
+                        <div className="semester-toolbar">
+                            <label className="semester-toolbar-label" htmlFor="semester-filter">{tc("semester")}</label>
                             <select
+                                id="semester-filter"
                                 value={semesterFilter}
                                 onChange={(e) => {
                                     const val = e.target.value;
@@ -561,7 +573,7 @@ export default function Home() {
                                         setDate(new Date(now.getFullYear(), 4, 1));
                                     }
                                 }}
-                                className="px-3 py-1.5 rounded-lg bg-[var(--calendar-header-bg)] border border-[var(--calendar-border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--calendar-today)]"
+                                className="semester-select"
                             >
                                 <option value="all">{tc("allSemesters")}</option>
                                 <option value="SEM 1">{tc("fall")}</option>
@@ -569,11 +581,9 @@ export default function Home() {
                                 <option value="SEM 3">{tc("summer")}</option>
                             </select>
                         </div>
+                        <UpcomingClasses events={filteredEvents} onSelect={setSelectedEvent} />
                         <TimetableCalendar
-                            events={semesterFilter === "all"
-                                ? events
-                                : events.filter(e => e.resource?.semester === semesterFilter)
-                            }
+                            events={filteredEvents}
                             view={view}
                             date={date}
                             onViewChange={setView}
@@ -637,6 +647,9 @@ export default function Home() {
                         </div>
                     </div>
                 )}
+                </div>
+
+                <MobileAttendanceView attendance={attendance} onRefresh={handleRefreshAttendance} isRefreshing={isRefreshingAttendance} />
 
                 {/* Notification Toast */}
                 {notification && (
@@ -727,6 +740,13 @@ export default function Home() {
                     )
                 )}
             </main>
+
+            <MobileBottomNav
+                active={mobileTab}
+                onCalendar={() => setMobileTab("calendar")}
+                onAttendance={() => setMobileTab("attendance")}
+                onMore={() => setSidebarOpen(true)}
+            />
 
             {/* Sync Modal */}
             <SyncModal
