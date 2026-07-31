@@ -48,6 +48,7 @@ next-env.d.ts
 .vscode
 
 package-lock.json
+photos.json
 
 .claude/
 /dist/
