@@ -1,6 +1,7 @@
 "use client";
 
 import dayjs from "dayjs";
+import { getCalendarDateStrip } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import { Views } from "react-big-calendar";
 
@@ -9,14 +10,20 @@ type ViewType = (typeof Views)[keyof typeof Views];
 interface CalendarHeaderProps {
     date: Date;
     view: ViewType;
+    semesterFilter: string;
+    onSemesterFilterChange: (semester: string) => void;
     onNavigate: (action: "PREV" | "NEXT" | "TODAY") => void;
+    onDateSelect: (date: Date) => void;
     onViewChange: (view: ViewType) => void;
 }
 
 export default function CalendarHeader({
     date,
     view,
+    semesterFilter,
+    onSemesterFilterChange,
     onNavigate,
+    onDateSelect,
     onViewChange,
 }: CalendarHeaderProps) {
     const t = useTranslations("calendar");
@@ -30,8 +37,10 @@ export default function CalendarHeader({
         { key: "day", label: t("day") },
         { key: "agenda", label: t("agenda") },
     ];
+    const mobileDates = getCalendarDateStrip(date);
 
     return (
+		<div className="calendar-header-shell">
 		<header className="calendar-header">
             {/* Left: Navigation */}
 			<div className="calendar-navigation flex items-center gap-1">
@@ -70,6 +79,19 @@ export default function CalendarHeader({
             </h2>
 
             {/* Right: View Switcher */}
+			<div className="calendar-header-tools">
+				<label className="sr-only" htmlFor="calendar-semester-filter">{t("semester")}</label>
+				<select
+					id="calendar-semester-filter"
+					value={semesterFilter}
+					onChange={(event) => onSemesterFilterChange(event.target.value)}
+					className="semester-select"
+				>
+					<option value="all">{t("allSemesters")}</option>
+					<option value="SEM 1">{t("fall")}</option>
+					<option value="SEM 2">{t("spring")}</option>
+					<option value="SEM 3">{t("summer")}</option>
+				</select>
 			<div className="view-switcher" role="group" aria-label="Calendar view">
                 {viewOptions.map((v) => (
                     <button
@@ -85,6 +107,26 @@ export default function CalendarHeader({
                     </button>
                 ))}
             </div>
+			</div>
         </header>
+		<div className="calendar-mobile-dates" aria-label="Select calendar date">
+			{mobileDates.map((candidate) => {
+				const isActive = dayjs(candidate).isSame(date, "day");
+				return (
+					<button
+						type="button"
+						key={candidate.toISOString()}
+						className={isActive ? "is-active" : ""}
+						onClick={() => onDateSelect(candidate)}
+						aria-pressed={isActive}
+						aria-label={dayjs(candidate).format("dddd, MMMM D")}
+					>
+						<span>{dayjs(candidate).format("ddd")}</span>
+						<strong>{dayjs(candidate).format("D")}</strong>
+					</button>
+				);
+			})}
+		</div>
+		</div>
     );
 }

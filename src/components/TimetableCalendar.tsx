@@ -14,6 +14,8 @@ interface TimetableCalendarProps {
     events: CalendarEvent[];
     view: View;
     date: Date;
+    semesterFilter: string;
+    onSemesterFilterChange: (semester: string) => void;
     onViewChange: (view: View) => void;
     onNavigate: (date: Date) => void;
     onSelectEvent?: (event: CalendarEvent) => void;
@@ -24,6 +26,8 @@ export default function TimetableCalendar({
     events,
     view,
     date,
+    semesterFilter,
+    onSemesterFilterChange,
     onViewChange,
     onNavigate,
     onSelectEvent,
@@ -120,7 +124,10 @@ export default function TimetableCalendar({
             <CalendarHeader
                 date={date}
                 view={view}
+                semesterFilter={semesterFilter}
+                onSemesterFilterChange={onSemesterFilterChange}
                 onNavigate={handleNavigate}
+                onDateSelect={onNavigate}
                 onViewChange={onViewChange}
             />
 

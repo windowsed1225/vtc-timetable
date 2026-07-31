@@ -482,6 +482,18 @@ export default function Home() {
         () => semesterFilter === "all" ? events : events.filter((event) => event.resource?.semester === semesterFilter),
         [events, semesterFilter],
     );
+    const handleSemesterFilterChange = (semester: string) => {
+        setSemesterFilter(semester);
+        const now = new Date();
+        if (semester === "SEM 1") {
+            const year = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
+            setDate(new Date(year, 8, 1));
+        } else if (semester === "SEM 2") {
+            setDate(new Date(now.getFullYear(), 0, 1));
+        } else if (semester === "SEM 3") {
+            setDate(new Date(now.getFullYear(), 4, 1));
+        }
+    };
 
     // Session gate: splash while the session resolves (isPending is true on both the
     // server render and the first client render, so there is no hydration flash),
@@ -554,38 +566,13 @@ export default function Home() {
                 )}
                 {events.length > 0 ? (
                     <>
-                        {/* Semester Filter */}
-                        <div className="semester-toolbar">
-                            <label className="semester-toolbar-label" htmlFor="semester-filter">{tc("semester")}</label>
-                            <select
-                                id="semester-filter"
-                                value={semesterFilter}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    setSemesterFilter(val);
-                                    const now = new Date();
-                                    if (val === "SEM 1") {
-                                        const year = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
-                                        setDate(new Date(year, 8, 1));
-                                    } else if (val === "SEM 2") {
-                                        setDate(new Date(now.getFullYear(), 0, 1));
-                                    } else if (val === "SEM 3") {
-                                        setDate(new Date(now.getFullYear(), 4, 1));
-                                    }
-                                }}
-                                className="semester-select"
-                            >
-                                <option value="all">{tc("allSemesters")}</option>
-                                <option value="SEM 1">{tc("fall")}</option>
-                                <option value="SEM 2">{tc("spring")}</option>
-                                <option value="SEM 3">{tc("summer")}</option>
-                            </select>
-                        </div>
                         <UpcomingClasses events={filteredEvents} onSelect={setSelectedEvent} />
                         <TimetableCalendar
                             events={filteredEvents}
                             view={view}
                             date={date}
+                            semesterFilter={semesterFilter}
+                            onSemesterFilterChange={handleSemesterFilterChange}
                             onViewChange={setView}
                             onNavigate={setDate}
                             onSelectEvent={(event) => setSelectedEvent(event)}
