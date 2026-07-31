@@ -515,7 +515,7 @@ export default function Home() {
                 onSignIn={() => setShowSignInModal(true)}
                 onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
                 sidebarOpen={sidebarOpen}
-                actions={courses.length > 0 ? <CalendarTopActions courses={courses} onRefresh={handleRefreshCalendar} /> : undefined}
+                actions={<CalendarTopActions courses={courses} onRefresh={handleRefreshCalendar} />}
             />
 
             {/* Body: Sidebar + Main */}
