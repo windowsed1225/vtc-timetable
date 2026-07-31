@@ -2,6 +2,7 @@
 
 import { exportSemesterIcs } from "@/app/actions";
 import { getDefaultSemester, getSemesterDisplayLabel, getSemesterLabel } from "@/lib/utils";
+import { Link } from "@/lib/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import ManageEventsModal from "./ManageEventsModal";
@@ -25,6 +26,7 @@ const filenames: Record<number, string> = {
 
 export default function CalendarTopActions({ courses, onRefresh }: CalendarTopActionsProps) {
 	const t = useTranslations("calendar");
+	const tAttendanceGrid = useTranslations("attendanceGrid");
 	const [manageOpen, setManageOpen] = useState(false);
 	const [semester, setSemester] = useState(getDefaultSemester());
 	const [exporting, setExporting] = useState(false);
@@ -73,6 +75,13 @@ export default function CalendarTopActions({ courses, onRefresh }: CalendarTopAc
 						{t("calendarTools")}
 					</summary>
 					<div className="calendar-tools-popover">
+						<Link href="/attendance-grid" className="calendar-tools-link">
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} aria-hidden="true">
+								<path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75h16.5v16.5H3.75zM3.75 9h16.5M3.75 14.25h16.5M9 3.75v16.5M15 3.75v16.5" />
+							</svg>
+							<span>{tAttendanceGrid("navLabel")}</span>
+							<span aria-hidden="true">→</span>
+						</Link>
 						<p>{t("exportDesc", { semester: getSemesterDisplayLabel(semester) })}</p>
 						<select value={semester} onChange={(event) => setSemester(Number(event.target.value))} aria-label={t("semester")}>
 							<option value={1}>{t("fall")}</option>

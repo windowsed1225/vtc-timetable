@@ -1366,6 +1366,22 @@ body {
 	color: var(--foreground);
 	font-size: 12px;
 }
+.calendar-tools-link {
+	display: grid;
+	grid-template-columns: 18px 1fr auto;
+	align-items: center;
+	gap: 9px;
+	min-height: 44px;
+	margin: -4px -4px 12px;
+	padding: 8px 10px 12px;
+	border-bottom: 1px solid var(--border-default);
+	color: var(--foreground);
+	font-size: 12px;
+	font-weight: 650;
+}
+.calendar-tools-link svg { width: 17px; height: 17px; color: var(--accent-blue); }
+.calendar-tools-link:hover { color: var(--accent-blue); }
+.calendar-tools-link:focus-visible { border-radius: 8px; outline: 2px solid var(--accent-blue); outline-offset: 2px; }
 
 /* ============================================
    DASHBOARD SHELL

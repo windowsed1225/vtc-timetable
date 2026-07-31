@@ -2,7 +2,6 @@
 
 import { HybridAttendanceStats } from "@/app/actions";
 import { LINE_COLORS } from "@/lib/colors";
-import { Link } from "@/lib/navigation";
 import { CalendarEvent } from "@/types/timetable";
 import { useTranslations } from "next-intl";
 import { useMemo, useState, type CSSProperties } from "react";
@@ -56,7 +55,6 @@ interface SidebarProps {
 export default function Sidebar({ courses, events, attendance, onSyncClick, onRefreshAttendance, onRefreshCalendar, isSyncing, isRefreshingAttendance, isRefreshingCalendar, user, sidebarOpen, onStartTour }: SidebarProps) {
 	const t = useTranslations("calendar");
 	const tAtt = useTranslations("attendance");
-	const tGrid = useTranslations("attendanceGrid");
 	const tTour = useTranslations("tour");
 	const semLabel = (sem: string) => t(SEMESTER_KEY_MAP[sem] ?? "sem1Label");
 	const [selectedCourse, setSelectedCourse] = useState<HybridAttendanceStats | null>(null);
@@ -288,20 +286,6 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 									</svg>
 								</button>
 							</div>
-
-							{/* Bulk attendance entry — grid/spreadsheet view */}
-							<Link
-								href="/attendance-grid"
-								className="mb-3 flex items-center gap-2.5 w-full py-2 px-2 rounded-lg text-[var(--text-secondary)] hover:bg-overlay hover:text-[var(--foreground)] transition-colors"
-							>
-								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-[var(--accent-blue)] shrink-0">
-									<path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75h16.5v16.5H3.75zM3.75 9h16.5M3.75 14.25h16.5M9 3.75v16.5M15 3.75v16.5" />
-								</svg>
-								<span className="text-sm font-medium">{tGrid("navLabel")}</span>
-								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5 ml-auto text-[var(--text-tertiary)]">
-									<path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-								</svg>
-							</Link>
 
 							{attendance.length === 0 ? (
 								<p className="text-sm text-[var(--text-tertiary)]">No attendance data. Sync your schedule first.</p>
