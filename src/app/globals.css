@@ -599,8 +599,12 @@ body {
 	border-left: none;
 }
 .rbc-timeslot-group {
-	border-bottom: 1px solid var(--grid-line);
-	min-height: 60px;
+	border-bottom: 1px solid color-mix(in srgb, var(--grid-line) 62%, transparent);
+	min-height: 54px;
+}
+.rbc-day-slot .rbc-timeslot-group:nth-child(2n),
+.rbc-time-gutter .rbc-timeslot-group:nth-child(2n) {
+	border-bottom-color: var(--calendar-border);
 }
 .rbc-time-slot {
 	border-top: 1px solid transparent !important;
@@ -632,8 +636,8 @@ body {
 	border-bottom: 1px solid var(--calendar-border);
 }
 .rbc-header {
-	padding: 12px 8px;
-	font-size: 12px;
+	padding: 10px 8px;
+	font-size: 11px;
 	font-weight: 600;
 	font-family: var(--font-display);
 	text-transform: uppercase;
@@ -710,20 +714,20 @@ body {
 
 /* Current time indicator — Signal Red */
 .rbc-current-time-indicator {
-	height: 2px;
+	height: 1px;
 	background: var(--error);
-	box-shadow: 0 0 6px var(--error);
+	box-shadow: none;
 }
 .rbc-current-time-indicator::before {
 	content: "";
 	position: absolute;
 	left: -4px;
-	top: -4px;
-	width: 9px;
-	height: 9px;
+	top: -3px;
+	width: 7px;
+	height: 7px;
 	background: var(--error);
 	border-radius: 50%;
-	box-shadow: 0 0 6px var(--error);
+	box-shadow: none;
 }
 
 /* Event blocks */
@@ -834,6 +838,11 @@ body {
 }
 .calendar-deadline-card strong { display: flex; gap: 5px; font-size: 11px; line-height: 1.2; }
 .calendar-deadline-card small { margin-top: 3px; color: var(--text-tertiary); font-size: 9px; }
+.rbc-month-view .calendar-event-card { padding: 3px 5px; }
+.rbc-month-view .calendar-event-primary time,
+.rbc-month-view .calendar-event-title,
+.rbc-month-view .calendar-event-room { display: none; }
+.rbc-month-view .calendar-event-primary strong { font-size: 9px; line-height: 1.15; }
 .rbc-show-more {
 	font-size: 11px;
 	color: var(--accent-blue);
@@ -1407,20 +1416,6 @@ body {
 	min-height: 0;
 	flex-direction: column;
 }
-.semester-toolbar {
-	display: flex;
-	align-items: center;
-	justify-content: flex-end;
-	gap: 10px;
-	margin-bottom: 14px;
-}
-.semester-toolbar-label {
-	font-size: 12px;
-	font-weight: 600;
-	letter-spacing: 0.06em;
-	text-transform: uppercase;
-	color: var(--text-tertiary);
-}
 .semester-select {
 	min-height: 38px;
 	padding: 0 34px 0 12px;
@@ -1435,17 +1430,25 @@ body {
 	border-color: var(--accent-blue);
 	box-shadow: 0 0 0 3px var(--accent-blue-glow);
 }
+.calendar-header-shell { margin-bottom: 8px; }
 .calendar-header {
 	display: grid;
 	grid-template-columns: 1fr auto 1fr;
 	align-items: center;
 	gap: 16px;
 	padding: 12px;
-	margin-bottom: 12px;
+	margin-bottom: 0;
 	border: 1px solid var(--border-default);
 	border-radius: 12px;
 	background: var(--bg-subtle);
 }
+.calendar-header-tools {
+	display: flex;
+	align-items: center;
+	justify-self: end;
+	gap: 9px;
+}
+.calendar-mobile-dates { display: none; }
 .calendar-title {
 	font-size: 18px;
 	font-weight: 650;
@@ -1758,14 +1761,15 @@ body {
 		color: var(--accent-blue);
 	}
 	.mobile-bottom-nav svg { width: 19px; height: 19px; }
-	.semester-toolbar {
-		justify-content: space-between;
-		margin-bottom: 10px;
-	}
 	.semester-select {
 		min-height: 44px;
 	}
-	.upcoming-classes { margin-bottom: 10px; }
+	.upcoming-classes { margin-bottom: 8px; }
+	.upcoming-classes.is-empty {
+		min-height: 38px;
+		padding: 0 10px;
+	}
+	.upcoming-classes.is-empty small { display: none; }
 	.upcoming-classes-list {
 		display: flex;
 		gap: 8px;
@@ -1773,11 +1777,11 @@ body {
 		scroll-snap-type: x mandatory;
 		padding-bottom: 4px;
 	}
-	.upcoming-class-card {
-		min-width: min(82vw, 300px);
+	.upcoming-class-chip {
+		min-width: min(72vw, 270px);
+		min-height: 40px;
 		scroll-snap-align: start;
 	}
-	.upcoming-classes-empty { min-width: 100%; }
 	.mobile-attendance-view {
 		height: 100%;
 		overflow-y: auto;
@@ -1862,27 +1866,39 @@ body {
 		border-radius: 0 !important;
 	}
 
+	.calendar-header-shell { margin-bottom: 8px; }
 	.calendar-header {
 		display: grid;
-		grid-template-columns: 1fr;
-		gap: 10px;
-		padding: 10px;
-		margin-bottom: 10px;
+		grid-template-columns: 1fr auto;
+		gap: 9px;
+		padding: 9px;
+		border-radius: 11px 11px 0 0;
 	}
 	.calendar-title {
+		grid-column: 2;
 		grid-row: 1;
-		font-size: 15px !important;
+		font-size: 13px !important;
 		font-weight: 600;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
 	.calendar-navigation {
+		grid-column: 1;
+		grid-row: 1;
+		justify-content: flex-start;
+	}
+	.calendar-navigation .btn-icon { width: 38px; height: 38px; }
+	.calendar-navigation .btn-secondary { min-height: 38px; padding: 0 10px; }
+	.calendar-header-tools {
+		grid-column: 1 / -1;
 		grid-row: 2;
-		justify-content: center;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+		justify-self: stretch;
+		gap: 7px;
 	}
 	.view-switcher {
-		grid-row: 3;
 		justify-self: stretch;
 		justify-content: center;
 		gap: 2px;
@@ -1893,12 +1909,41 @@ body {
 		font-size: 11px !important;
 		text-align: center;
 	}
+	.calendar-mobile-dates {
+		display: grid;
+		grid-template-columns: repeat(5, 1fr);
+		gap: 5px;
+		padding: 7px;
+		border: 1px solid var(--border-default);
+		border-top: 0;
+		border-radius: 0 0 11px 11px;
+		background: var(--bg-subtle);
+	}
+	.calendar-mobile-dates button {
+		display: flex;
+		min-height: 44px;
+		align-items: center;
+		justify-content: center;
+		flex-direction: column;
+		gap: 2px;
+		border-radius: 8px;
+		color: var(--text-tertiary);
+	}
+	.calendar-mobile-dates button.is-active {
+		background: color-mix(in srgb, var(--accent-blue) 20%, var(--bg-active));
+		color: var(--foreground);
+	}
+	.calendar-mobile-dates span { font-size: 8px; font-weight: 650; text-transform: uppercase; }
+	.calendar-mobile-dates strong { font-size: 12px; }
 
 	.rbc-event {
 		font-size: 10px !important;
-		padding: 3px 5px 3px 11px !important;
+		padding: 0 !important;
 		border-radius: 6px !important;
 	}
+	.calendar-event-card { padding: 7px 8px; }
+	.calendar-event-primary strong { font-size: 11px; }
+	.calendar-event-primary time { font-size: 8px; }
 	.rbc-time-gutter {
 		font-size: 10px !important;
 		width: 36px !important;
@@ -1931,7 +1976,7 @@ body {
 	}
 	.rbc-event {
 		font-size: 9px !important;
-		padding: 2px 4px 2px 10px !important;
+		padding: 0 !important;
 		border-radius: 6px !important;
 	}
 	.calendar-title {
@@ -1941,7 +1986,7 @@ body {
 	/* Compact month-view event pills */
 	.rbc-month-view .rbc-event {
 		font-size: 6px !important;
-		padding: 0px 2px 0px 5px !important;
+		padding: 0 !important;
 		border-radius: 3px !important;
 		min-height: unset !important;
 		line-height: 1.1 !important;
@@ -1949,6 +1994,12 @@ body {
 	.rbc-month-view .rbc-event-content {
 		line-height: 1.1 !important;
 	}
+	.rbc-month-view .calendar-event-card { padding: 2px 4px; }
+	.rbc-month-view .calendar-event-primary time,
+	.rbc-month-view .calendar-event-title,
+	.rbc-month-view .calendar-event-room,
+	.rbc-month-view .calendar-event-adjusted { display: none; }
+	.rbc-month-view .calendar-event-primary strong { font-size: 7px; line-height: 1.15; }
 	.rbc-month-view .rbc-row-segment {
 		padding: 0 1px 1px !important;
 	}

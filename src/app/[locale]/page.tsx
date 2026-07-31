@@ -28,7 +28,6 @@ import TimetableCalendar from "@/components/TimetableCalendar";
 import CalendarTopActions from "@/components/CalendarTopActions";
 import MobileAttendanceView from "@/components/MobileAttendanceView";
 import MobileBottomNav from "@/components/MobileBottomNav";
-import UpcomingClasses from "@/components/UpcomingClasses";
 import { getDateArray, getSemestersToSync } from "@/lib/utils";
 import { CalendarEvent } from "@/types/timetable";
 import { createEvents, EventAttributes } from "ics";
@@ -566,7 +565,6 @@ export default function Home() {
                 )}
                 {events.length > 0 ? (
                     <>
-                        <UpcomingClasses events={filteredEvents} onSelect={setSelectedEvent} />
                         <TimetableCalendar
                             events={filteredEvents}
                             view={view}

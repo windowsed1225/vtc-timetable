@@ -9,6 +9,7 @@ import { Calendar, dayjsLocalizer, type View, Views } from "react-big-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import CalendarEventCard from "./CalendarEventCard";
 import CalendarHeader from "./CalendarHeader";
+import UpcomingClasses from "./UpcomingClasses";
 
 const localizer = dayjsLocalizer(dayjs);
 
@@ -96,6 +97,7 @@ export default function TimetableCalendar({
 				onDateSelect={onNavigate}
 				onViewChange={onViewChange}
 			/>
+			<UpcomingClasses events={events} onSelect={(event) => onSelectEvent?.(event)} />
 
 			<div className="calendar-surface flex-1 bg-surface overflow-hidden">
 				<Calendar
