@@ -15,18 +15,24 @@ const serverExternals = ["mongodb", "mongoose"];
 const deploying = Boolean(process.env.VERCEL || process.env.NITRO_PRESET);
 
 export default defineConfig({
-  plugins: [tailwindcss(), vinext(), ...(deploying ? [nitro()] : [])],
-  ssr: { external: serverExternals },
-  // next-intl ships a "use client" component (NextIntlClientProvider) whose React
-  // context lives in `use-intl`. plugin-rsc must transform that client boundary
-  // itself; if Vite pre-bundles next-intl, the provider and `useTranslations` end
-  // up reading different context instances and translations fail with "context was
-  // not found". Excluding it from optimizeDeps (per the rsc plugin's own warning)
-  // plus deduping keeps a single copy across the client graph.
-  resolve: { dedupe: ["next-intl", "use-intl", "react", "react-dom"] },
-  optimizeDeps: { exclude: ["next-intl", "use-intl"] },
-  environments: {
-    rsc: { resolve: { external: serverExternals } },
-    ssr: { resolve: { external: serverExternals } },
-  },
+	plugins: [tailwindcss(), vinext(), ...(deploying ? [nitro()] : [])],
+	server: {
+		host: "0.0.0.0",
+		// This app is intentionally reachable through arbitrary LAN and Tailscale
+		// IP addresses/hostnames while developing.
+		allowedHosts: true,
+	},
+	ssr: { external: serverExternals },
+	// next-intl ships a "use client" component (NextIntlClientProvider) whose React
+	// context lives in `use-intl`. plugin-rsc must transform that client boundary
+	// itself; if Vite pre-bundles next-intl, the provider and `useTranslations` end
+	// up reading different context instances and translations fail with "context was
+	// not found". Excluding it from optimizeDeps (per the rsc plugin's own warning)
+	// plus deduping keeps a single copy across the client graph.
+	resolve: { dedupe: ["next-intl", "use-intl", "react", "react-dom"] },
+	optimizeDeps: { exclude: ["next-intl", "use-intl"] },
+	environments: {
+		rsc: { resolve: { external: serverExternals } },
+		ssr: { resolve: { external: serverExternals } },
+	},
 });

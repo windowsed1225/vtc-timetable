@@ -3,6 +3,7 @@
 import { deleteEventsByDateRange, previewDeleteEventsByDateRange } from "@/app/actions";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 
 const SEM_KEY_MAP: Record<string, "sem1Label" | "sem2Label" | "sem3Label"> = {
     "SEM 1": "sem1Label",
@@ -163,7 +164,7 @@ export default function ManageEventsModal({ isOpen, onClose, courses, onRefresh 
     const allVisibleChecked = filteredEvents.length > 0 && filteredEvents.every(e => selected.has(e.vtc_id));
     const someChecked = filteredEvents.some(e => selected.has(e.vtc_id));
 
-    return (
+    return createPortal(
         <div className={`modal-overlay ${isClosing ? "modal-closing" : ""}`} onClick={handleClose}>
             <div
                 className={`modal-content max-w-md w-full ${isClosing ? "modal-closing" : ""}`}
@@ -308,6 +309,7 @@ export default function ManageEventsModal({ isOpen, onClose, courses, onRefresh 
                     )
                 )}
             </div>
-        </div>
+        </div>,
+        document.body,
     );
 }
