@@ -1480,8 +1480,21 @@ body {
 	box-shadow: var(--shadow-sm);
 }
 .upcoming-classes {
-	margin-bottom: 14px;
+	margin-bottom: 10px;
 }
+.upcoming-classes.is-empty {
+	display: flex;
+	min-height: 34px;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0 11px;
+	border: 1px dashed var(--border-default);
+	border-radius: 9px;
+	color: var(--text-tertiary);
+	font-size: 10px;
+}
+.upcoming-classes.is-empty strong { color: var(--text-secondary); font-weight: 700; }
+.upcoming-classes.is-empty small { color: var(--text-tertiary); font-size: 9px; }
 .upcoming-classes-heading {
 	display: flex;
 	align-items: baseline;
@@ -1501,52 +1514,47 @@ body {
 .upcoming-classes-list {
 	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
-	gap: 9px;
+	gap: 7px;
 }
-.upcoming-class-card {
-	display: grid;
-	grid-template-columns: auto minmax(0, 1fr) auto;
+.upcoming-class-chip {
+	display: flex;
 	align-items: center;
-	gap: 10px;
-	min-height: 68px;
-	padding: 10px 12px;
+	gap: 8px;
+	min-width: 0;
+	min-height: 36px;
+	padding: 7px 9px;
 	border: 1px solid var(--border-default);
-	border-radius: 11px;
+	border-radius: 9px;
 	background: var(--bg-subtle);
 	text-align: left;
 	transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
-.upcoming-class-card:hover {
+.upcoming-class-chip:hover {
 	transform: translateY(-1px);
 	border-color: var(--border-strong);
 	background: var(--bg-active);
 }
-.upcoming-class-time {
+.upcoming-class-chip time {
 	color: var(--accent-blue);
 	font-family: var(--font-mono);
-	font-size: 12px;
+	font-size: 10px;
 	font-weight: 700;
 }
-.upcoming-class-content { min-width: 0; }
-.upcoming-class-content strong,
-.upcoming-class-content small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.upcoming-class-content strong { font-size: 12px; }
-.upcoming-class-content small { margin-top: 2px; color: var(--text-tertiary); font-size: 10px; }
-.upcoming-class-room {
-	padding: 3px 6px;
-	border-radius: 6px;
-	background: var(--bg-active);
-	color: var(--text-secondary);
-	font-size: 10px;
+.upcoming-class-chip strong {
+	min-width: 0;
+	overflow: hidden;
+	font-size: 11px;
+	font-weight: 750;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
-.upcoming-classes-empty {
-	grid-column: 1 / -1;
-	padding: 14px;
-	border: 1px dashed var(--border-default);
-	border-radius: 10px;
+.upcoming-class-chip span {
+	margin-left: auto;
+	overflow: hidden;
 	color: var(--text-tertiary);
-	font-size: 12px;
-	text-align: center;
+	font-size: 9px;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 .mobile-attendance-view,
 .mobile-bottom-nav { display: none; }

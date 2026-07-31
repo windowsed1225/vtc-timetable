@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarEvent } from "@/types/timetable";
+import type { CalendarEvent } from "@/types/timetable";
 import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
@@ -13,16 +13,23 @@ export default function UpcomingClasses({ events, onSelect }: UpcomingClassesPro
 	const locale = useLocale();
 	const t = useTranslations("calendar");
 	const [now] = useState(() => Date.now());
-	const upcoming = useMemo(() => {
-		return events
-			.filter((event) => event.start.getTime() > now)
-			.filter((event) => event.resource?.status !== "CANCELED" && event.resource?.eventType !== "deadline")
-			.sort((a, b) => a.start.getTime() - b.start.getTime())
-			.slice(0, 3);
-	}, [events, now]);
+	const upcoming = useMemo(() => events
+		.filter((event) => event.start.getTime() > now)
+		.filter((event) => event.resource?.status !== "CANCELED" && event.resource?.eventType !== "deadline")
+		.sort((a, b) => a.start.getTime() - b.start.getTime())
+		.slice(0, 3), [events, now]);
 
 	const dateFormatter = useMemo(() => new Intl.DateTimeFormat(locale, { weekday: "short", month: "short", day: "numeric" }), [locale]);
 	const timeFormatter = useMemo(() => new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit", hour12: false }), [locale]);
+
+	if (upcoming.length === 0) {
+		return (
+			<section className="upcoming-classes is-empty" aria-labelledby="upcoming-classes-title">
+				<span><strong id="upcoming-classes-title">{t("upcomingClasses")}</strong><span aria-hidden="true"> · </span>{t("upcomingCompactEmpty")}</span>
+				<small>{t("upcomingClear")}</small>
+			</section>
+		);
+	}
 
 	return (
 		<section className="upcoming-classes" aria-labelledby="upcoming-classes-title">
@@ -31,20 +38,19 @@ export default function UpcomingClasses({ events, onSelect }: UpcomingClassesPro
 				<span>{t("nextClasses", { count: upcoming.length })}</span>
 			</div>
 			<div className="upcoming-classes-list">
-				{upcoming.length === 0 ? <p className="upcoming-classes-empty">{t("noUpcomingClasses")}</p> : upcoming.map((event) => {
-					const durationMinutes = Math.max(0, Math.round((event.end.getTime() - event.start.getTime()) / 60000));
-					return (
-						<button type="button" key={`${event.resource?.courseCode ?? event.title}-${event.start.toISOString()}`} className="upcoming-class-card" onClick={() => onSelect(event)}>
-							<span className="upcoming-class-time">{timeFormatter.format(event.start)}</span>
-							<span className="upcoming-class-content">
-								<strong>{event.resource?.courseCode || event.title}</strong>
-								<small>{event.resource?.courseTitle || event.title}</small>
-								<small>{dateFormatter.format(event.start)} · {durationMinutes} min</small>
-							</span>
-							{event.resource?.location && <span className="upcoming-class-room">{event.resource.location}</span>}
-						</button>
-					);
-				})}
+				{upcoming.map((event) => (
+					<button
+						type="button"
+						key={`${event.resource?.courseCode ?? event.title}-${event.start.toISOString()}-${event.end.toISOString()}`}
+						className="upcoming-class-chip"
+						onClick={() => onSelect(event)}
+						aria-label={`${event.resource?.courseCode || event.title}, ${dateFormatter.format(event.start)}, ${timeFormatter.format(event.start)}`}
+					>
+						<time dateTime={event.start.toISOString()}>{timeFormatter.format(event.start)}</time>
+						<strong>{event.resource?.courseCode || event.title}</strong>
+						{event.resource?.location && <span>{event.resource.location}</span>}
+					</button>
+				))}
 			</div>
 		</section>
 	);
