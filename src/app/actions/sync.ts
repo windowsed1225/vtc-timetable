@@ -3,14 +3,14 @@
 import { auth } from "@/auth";
 import { getColorIndex } from "@/lib/colors";
 import connectDB from "@/lib/db";
-import { getCurrentSemester, getSemestersToSync } from "@/lib/utils";
+import { getCurrentSemester, getSemestersToSync, getTimetableYearForSemester } from "@/lib/utils";
 import Attendance, { IClassRecord } from "@/models/Attendance";
 import Event from "@/models/Event";
 import User from "@/models/User";
 import { TimetableEvent } from "@/types/timetable";
 import { revalidatePath } from "next/cache";
 import { API } from "../../../vtc-api/src/core/api";
-import { buildCompositeEventId, extractToken, getAttendancePresence, getDurationInMinutes, parseVtcLessonTime, SEMESTER_CATEGORY_MAP, SEMESTER_END_DATES, SEMESTER_MAP } from "./_helpers";
+import { buildCompositeEventId, extractToken, getAttendancePresence, getDurationInMinutes, getTimetableTargets, parseVtcLessonTime, SEMESTER_CATEGORY_MAP, SEMESTER_END_DATES, SEMESTER_MAP } from "./_helpers";
 import type { VtcApiResponse } from "./types";
 
 type UpsertAttendanceEventInput = {
@@ -117,34 +117,6 @@ type AttendanceBulkOp = {
 		upsert: boolean;
 	};
 };
-
-// Which (semester, category, year) timetables to fetch for a given semester number,
-// including the backfill rules (Spring also pulls previous Fall, Summer also pulls
-// current Spring). Shared by syncVtcData and the granular per-semester action.
-function getTimetableTargets(
-	semesterNum: number,
-	currentYear: number,
-): Array<{ semNum: number; semCategory: "SEM 1" | "SEM 2" | "SEM 3"; year: number }> {
-	switch (semesterNum) {
-		case 1: {
-			// If current month is Jan–Aug (0–7), Fall was in the previous calendar year
-			const sem1Year = new Date().getMonth() >= 8 ? currentYear : currentYear - 1;
-			return [{ semNum: 1, semCategory: "SEM 1", year: sem1Year }];
-		}
-		case 2:
-			return [
-				{ semNum: 2, semCategory: "SEM 2", year: currentYear },
-				{ semNum: 1, semCategory: "SEM 1", year: currentYear - 1 },
-			];
-		case 3:
-			return [
-				{ semNum: 3, semCategory: "SEM 3", year: currentYear },
-				{ semNum: 2, semCategory: "SEM 2", year: currentYear },
-			];
-		default:
-			return [];
-	}
-}
 
 // Fetch and persist the timetable for one semester/category/year.
 // "Check then insert" — only inserts new events, never updates existing ones.
@@ -422,7 +394,7 @@ export async function syncVtcData(
 		// Step 6: Fetch timetables with backfill logic (Fall only; Spring + prev Fall;
 		// Summer + current Spring). Executed in parallel.
 		const results = await Promise.all(
-			getTimetableTargets(semesterNum, currentYear).map((tt) =>
+			getTimetableTargets(semesterNum, now).map((tt) =>
 				fetchSemesterTimetableEvents(api, vtcStudentId, tt.semNum, tt.semCategory, tt.year, now),
 			),
 		);
@@ -689,15 +661,11 @@ export async function fetchTimetable(token: string, semesterNum: number = getCur
 		}
 
 		const api = new API({ token });
-		const currentYear = new Date().getFullYear();
+		const now = new Date();
 		const lectureList: TimetableEvent[] = [];
 
 		for (const month of months) {
-			let effectiveYear = currentYear;
-
-			if (semesterNum === 1 && [9, 10, 11, 12].includes(month)) {
-				effectiveYear = currentYear - 1;
-			}
+			const effectiveYear = getTimetableYearForSemester(semesterNum, now);
 
 			console.log(`Fetching Semester ${semesterNum}: Month ${month}, Year ${effectiveYear}`);
 
@@ -808,11 +776,10 @@ export async function syncSemesterTimetableStored(semesterNum: number): Promise<
 		if (!ctx.ok) return { success: false, error: ctx.error };
 
 		const api = new API({ token: ctx.token });
-		const currentYear = new Date().getFullYear();
 		const now = new Date();
 
 		const results = await Promise.all(
-			getTimetableTargets(semesterNum, currentYear).map((tt) =>
+			getTimetableTargets(semesterNum, now).map((tt) =>
 				fetchSemesterTimetableEvents(api, ctx.vtcStudentId, tt.semNum, tt.semCategory, tt.year, now),
 			),
 		);

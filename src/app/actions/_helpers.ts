@@ -3,6 +3,8 @@
  * Not exported from the barrel; these are implementation details.
  */
 
+import { getTimetableYearForSemester } from "@/lib/utils";
+
 export const SEMESTER_MAP: Record<number, number[]> = {
     1: [9, 10, 11, 12],
     2: [1, 2, 3, 4],
@@ -26,6 +28,34 @@ export const SEMESTER_ORDER_MAP: Record<string, number> = {
     "SEM 2": 2,
     "SEM 3": 3,
 };
+
+/**
+ * Which (semester, category, year) timetables to fetch for a given semester number,
+ * including the backfill rules (Spring also pulls previous Fall, Summer also pulls
+ * current Spring).
+ */
+export function getTimetableTargets(
+    semesterNum: number,
+    date: Date = new Date(),
+): Array<{ semNum: number; semCategory: "SEM 1" | "SEM 2" | "SEM 3"; year: number }> {
+    const currentYear = date.getFullYear();
+    switch (semesterNum) {
+        case 1:
+            return [{ semNum: 1, semCategory: "SEM 1", year: getTimetableYearForSemester(1, date) }];
+        case 2:
+            return [
+                { semNum: 2, semCategory: "SEM 2", year: currentYear },
+                { semNum: 1, semCategory: "SEM 1", year: currentYear - 1 },
+            ];
+        case 3:
+            return [
+                { semNum: 3, semCategory: "SEM 3", year: currentYear },
+                { semNum: 2, semCategory: "SEM 2", year: currentYear },
+            ];
+        default:
+            return [];
+    }
+}
 
 export type AttendancePresence = "attended" | "late" | "absent";
 

@@ -94,6 +94,19 @@ export function autoSemesterToNum(label: "Sem 1" | "Sem 2" | "Summer"): number {
 export const getDefaultSemester = getCurrentSemester;
 
 /**
+ * Calendar year to send to getTimeTableAndReminderList for a semester.
+ * SEM 1 (Fall) is requested as Sep–Dec of the year that semester starts.
+ * From August onward we look ahead to / use the Fall that starts this calendar year.
+ * Jan–July still belong to last year's Fall.
+ */
+export function getTimetableYearForSemester(semesterNum: number, date: Date = new Date()): number {
+    const year = date.getFullYear();
+    if (semesterNum !== 1) return year;
+    const month = date.getMonth() + 1; // 1-12
+    return month >= 8 ? year : year - 1;
+}
+
+/**
  * Returns the list of semester numbers to sync for the current month.
  * During transition months, includes the upcoming semester so users can
  * pre-fetch the next semester's timetable before it officially starts.
