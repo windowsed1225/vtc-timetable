@@ -8,7 +8,6 @@ import { useMemo, useState, type CSSProperties } from "react";
 import AttendanceModal from "./AttendanceModal";
 import CourseDetailsModal from "./CourseDetailsModal";
 import SemesterSummaryCard from "./SemesterSummaryCard";
-import SubscribeButton from "./SubscribeButton";
 
 // Semester display names — resolved at runtime via translations
 const SEMESTER_KEY_MAP: Record<string, "sem1Label" | "sem2Label" | "sem3Label"> = {
@@ -46,7 +45,6 @@ interface SidebarProps {
 	user?: {
 		name?: string | null;
 		image?: string | null;
-		discordId?: string | null;
 	} | null;
 	sidebarOpen?: boolean;
 	onStartTour?: () => void;
@@ -412,9 +410,6 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 							)}
 						</button>
 					)}
-
-					{/* Calendar Subscription - auto-detects current semester */}
-					{user?.discordId && <SubscribeButton discordId={user.discordId} />}
 
 					{/* Help / replay the product tour */}
 					{onStartTour && (

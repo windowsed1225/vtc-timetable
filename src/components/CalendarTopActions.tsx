@@ -6,6 +6,7 @@ import { Link } from "@/lib/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import ManageEventsModal from "./ManageEventsModal";
+import SubscribeButton from "./SubscribeButton";
 
 interface CourseOption {
 	courseCode: string;
@@ -15,6 +16,7 @@ interface CourseOption {
 
 interface CalendarTopActionsProps {
 	courses: CourseOption[];
+	discordId?: string | null;
 	onRefresh: () => void;
 }
 
@@ -24,7 +26,7 @@ const filenames: Record<number, string> = {
 	3: "VTC_Schedule_Summer",
 };
 
-export default function CalendarTopActions({ courses, onRefresh }: CalendarTopActionsProps) {
+export default function CalendarTopActions({ courses, discordId, onRefresh }: CalendarTopActionsProps) {
 	const t = useTranslations("calendar");
 	const tAttendanceGrid = useTranslations("attendanceGrid");
 	const [manageOpen, setManageOpen] = useState(false);
@@ -82,7 +84,12 @@ export default function CalendarTopActions({ courses, onRefresh }: CalendarTopAc
 							<span>{tAttendanceGrid("navLabel")}</span>
 							<span aria-hidden="true">→</span>
 						</Link>
-						<p>{t("exportDesc", { semester: getSemesterDisplayLabel(semester) })}</p>
+						{discordId && (
+							<div className="calendar-tools-subscribe">
+								<SubscribeButton discordId={discordId} />
+							</div>
+						)}
+						<p className="calendar-tools-export-description">{t("exportDesc", { semester: getSemesterDisplayLabel(semester) })}</p>
 						<select value={semester} onChange={(event) => setSemester(Number(event.target.value))} aria-label={t("semester")}>
 							<option value={1}>{t("fall")}</option>
 							<option value={2}>{t("spring")}</option>

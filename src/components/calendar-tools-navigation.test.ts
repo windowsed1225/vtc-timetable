@@ -13,7 +13,25 @@ describe("attendance entry navigation", () => {
 	});
 
 	test("is available when the signed-in user has no courses", () => {
-		expect(page).toContain("<CalendarTopActions courses={courses} onRefresh={handleRefreshCalendar} />");
+		expect(page).toMatch(/<CalendarTopActions\s+courses=\{courses\}[\s\S]*?\/>/);
 		expect(page).not.toMatch(/courses\.length\s*>\s*0\s*\?\s*<CalendarTopActions/);
+	});
+});
+
+describe("calendar subscription navigation", () => {
+	const topActions = readFileSync(new URL("./CalendarTopActions.tsx", import.meta.url), "utf8");
+	const sidebar = readFileSync(new URL("./Sidebar.tsx", import.meta.url), "utf8");
+	const page = readFileSync(new URL("../app/[locale]/page.tsx", import.meta.url), "utf8");
+
+	test("is owned by Calendar Tools instead of the desktop Sidebar", () => {
+		expect(topActions).toContain('import SubscribeButton from "./SubscribeButton"');
+		expect(topActions).toMatch(/\{discordId && \([\s\S]*?<SubscribeButton discordId=\{discordId\} \/>[\s\S]*?\)\}/);
+		expect(topActions.indexOf('href="/attendance-grid"')).toBeLessThan(topActions.indexOf("<SubscribeButton"));
+		expect(topActions.indexOf("<SubscribeButton")).toBeLessThan(topActions.indexOf('aria-label={t("semester")}'));
+		expect(sidebar).not.toContain("SubscribeButton");
+	});
+
+	test("receives the signed-in user's Discord ID", () => {
+		expect(page).toContain("discordId={session.user.discordId}");
 	});
 });

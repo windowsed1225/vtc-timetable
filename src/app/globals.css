@@ -1256,6 +1256,7 @@ body {
    ============================================ */
 
 .top-navbar {
+	position: relative;
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -1264,6 +1265,7 @@ body {
 	background: var(--bg-subtle);
 	border-bottom: 1px solid var(--border-default);
 	flex-shrink: 0;
+	/* Keep overflowing Calendar Tools popover above the main calendar */
 	z-index: 40;
 }
 .top-navbar-brand {
@@ -1313,7 +1315,7 @@ body {
 	align-items: center;
 	justify-content: center;
 	gap: 7px;
-	min-height: 36px;
+	min-height: 44px;
 	padding: 0 12px;
 	border: 1px solid var(--border-default);
 	border-radius: 9px;
@@ -1331,6 +1333,10 @@ body {
 	background: var(--bg-active);
 	color: var(--foreground);
 }
+.calendar-action-button:focus-visible {
+	outline: 2px solid var(--accent-blue);
+	outline-offset: 2px;
+}
 .calendar-action-button.is-primary {
 	border-color: color-mix(in srgb, var(--accent-blue) 45%, var(--border-default));
 	background: color-mix(in srgb, var(--accent-blue) 15%, var(--bg-surface));
@@ -1346,10 +1352,12 @@ body {
 	padding: 14px;
 	border: 1px solid var(--border-default);
 	border-radius: 12px;
+	/* Solid surface so calendar content cannot show through */
 	background: var(--bg-surface);
 	box-shadow: var(--shadow-lg);
+	isolation: isolate;
 }
-.calendar-tools-popover p {
+.calendar-tools-export-description {
 	margin-bottom: 10px;
 	color: var(--text-tertiary);
 	font-size: 11px;
@@ -1382,6 +1390,13 @@ body {
 .calendar-tools-link svg { width: 17px; height: 17px; color: var(--accent-blue); }
 .calendar-tools-link:hover { color: var(--accent-blue); }
 .calendar-tools-link:focus-visible { border-radius: 8px; outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+.calendar-tools-subscribe {
+	margin: 0 -4px 12px;
+	padding: 0 4px 12px;
+	border-bottom: 1px solid var(--border-default);
+}
+.calendar-tools-subscribe .btn-secondary { min-height: 44px; }
+.calendar-tools-subscribe .btn-secondary:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
 
 /* ============================================
    DASHBOARD SHELL

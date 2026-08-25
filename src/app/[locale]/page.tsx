@@ -515,7 +515,7 @@ export default function Home() {
                 onSignIn={() => setShowSignInModal(true)}
                 onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
                 sidebarOpen={sidebarOpen}
-                actions={<CalendarTopActions courses={courses} onRefresh={handleRefreshCalendar} />}
+                actions={<CalendarTopActions courses={courses} discordId={session.user.discordId} onRefresh={handleRefreshCalendar} />}
             />
 
             {/* Body: Sidebar + Main */}
