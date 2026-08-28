@@ -7,6 +7,7 @@ import {
 	parseMonthYear,
 	parsePlaygroundPath,
 	rememberEcardPlaygroundSession,
+	resolvePlaygroundRequestUrl,
 	stripPhotoStr,
 } from "./vtc-playground";
 
@@ -85,7 +86,7 @@ describe("photo stripping", () => {
 
 describe("OpenAPI document", () => {
 	test("omits e-card paths for normal visitors", () => {
-		const spec = buildOpenApiDocument({ isOwner: false, origin: "https://example.com" });
+		const spec = buildOpenApiDocument({ isOwner: false });
 		const paths = spec.paths as Record<string, unknown>;
 		expect(paths["/timetable"]).toBeDefined();
 		expect(paths["/ecard"]).toBeUndefined();
@@ -95,7 +96,6 @@ describe("OpenAPI document", () => {
 	test("includes e-card paths for the owner", () => {
 		const spec = buildOpenApiDocument({
 			isOwner: true,
-			origin: "https://example.com",
 			dummyDeviceId: "AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA",
 		});
 		const paths = spec.paths as Record<string, unknown>;
@@ -105,6 +105,34 @@ describe("OpenAPI document", () => {
 		expect(JSON.stringify(paths["/ecard/register"])).toContain("dummy");
 		expect(JSON.stringify(paths["/ecard"])).toContain('"required":false');
 		expect(JSON.stringify(paths["/ecard/register"])).toContain("AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA");
+	});
+
+	test("uses a same-origin relative server so reverse proxies cannot poison the Try-it host", () => {
+		const spec = buildOpenApiDocument({ isOwner: false });
+		const servers = spec.servers as { url: string }[];
+		expect(servers).toEqual([{ url: "/api/vtc", description: "This site (stored VTC token)" }]);
+	});
+});
+
+describe("playground request URL", () => {
+	const origin = "https://example.com";
+
+	test("prefixes Scalar operation paths that omitted /api/vtc", () => {
+		const url = resolvePlaygroundRequestUrl("/ecard/register?deviceId=DEV-1", origin);
+		expect(url.origin).toBe(origin);
+		expect(url.pathname).toBe("/api/vtc/ecard/register");
+		expect(url.searchParams.get("deviceId")).toBe("DEV-1");
+	});
+
+	test("leaves already-prefixed playground paths and the OpenAPI document alone", () => {
+		expect(resolvePlaygroundRequestUrl("/api/vtc/timetable", origin).pathname).toBe("/api/vtc/timetable");
+		expect(resolvePlaygroundRequestUrl("/api/openapi", origin).pathname).toBe("/api/openapi");
+	});
+
+	test("rewrites a reverse-proxy internal origin onto the page origin", () => {
+		const url = resolvePlaygroundRequestUrl("http://127.0.0.1:3000/api/vtc/ecard/register", origin);
+		expect(url.origin).toBe(origin);
+		expect(url.pathname).toBe("/api/vtc/ecard/register");
 	});
 });
 

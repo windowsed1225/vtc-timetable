@@ -215,6 +215,17 @@ export function rememberEcardPlaygroundSession(
 	return next;
 }
 
+const PLAYGROUND_API_BASE = "/api/vtc";
+
+export function resolvePlaygroundRequestUrl(rawUrl: string, origin: string): URL {
+	const incoming = new URL(rawUrl, origin);
+	const path = incoming.pathname.replace(/\/+$/, "") || "/";
+	const isOpenApi = path === "/api/openapi" || path.startsWith("/api/openapi/");
+	const isPlaygroundApi = path === PLAYGROUND_API_BASE || path.startsWith(`${PLAYGROUND_API_BASE}/`);
+	const pathname = isOpenApi || isPlaygroundApi ? path : `${PLAYGROUND_API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+	return new URL(`${pathname}${incoming.search}${incoming.hash}`, origin);
+}
+
 export function fillEcardPlaygroundRequest(
 	url: URL,
 	init: RequestInit | undefined,
@@ -325,7 +336,6 @@ function ownerPaths(dummyDeviceId: string): Record<string, unknown> {
 
 export function buildOpenApiDocument(options: {
 	isOwner: boolean;
-	origin: string;
 	dummyDeviceId?: string;
 }): Record<string, unknown> {
 	return {
@@ -336,7 +346,7 @@ export function buildOpenApiDocument(options: {
 			description:
 				"Try VTC mobile API calls with the token stored on your signed-in account. The token is attached on the server and must not be pasted here.",
 		},
-		servers: [{ url: `${options.origin}/api/vtc`, description: "This site (stored VTC token)" }],
+		servers: [{ url: PLAYGROUND_API_BASE, description: "This site (stored VTC token)" }],
 		tags: options.isOwner
 			? [
 					{ name: "Account" },

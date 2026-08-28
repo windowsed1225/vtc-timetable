@@ -4,6 +4,7 @@ import {
 	dummyEcardDeviceId,
 	fillEcardPlaygroundRequest,
 	rememberEcardPlaygroundSession,
+	resolvePlaygroundRequestUrl,
 	type EcardPlaygroundSession,
 } from "@/lib/vtc-playground";
 import { ApiReferenceReact } from "@scalar/api-reference-react";
@@ -21,6 +22,7 @@ export default function VtcApiPlayground() {
 			<ApiReferenceReact
 				configuration={{
 					url: "/api/openapi",
+					servers: [{ url: "/api/vtc", description: "This site (stored VTC token)" }],
 					withDefaultFonts: false,
 					hideClientButton: true,
 					forceDarkModeState: resolvedTheme === "light" ? "light" : "dark",
@@ -32,7 +34,7 @@ export default function VtcApiPlayground() {
 									? input.toString()
 									: input.url;
 						const filled = fillEcardPlaygroundRequest(
-							new URL(rawUrl, window.location.origin),
+							resolvePlaygroundRequestUrl(rawUrl, window.location.origin),
 							init,
 							ecardSession.current,
 							dummyDeviceId.current,
