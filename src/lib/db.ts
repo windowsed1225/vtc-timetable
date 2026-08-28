@@ -29,7 +29,11 @@ export async function connectDB(): Promise<typeof mongoose> {
 	}
 
 	if (!cached.promise) {
-		cached.promise = mongoose.connect(getMongoUri(), { bufferCommands: false });
+		cached.promise = mongoose.connect(getMongoUri(), {
+			bufferCommands: false,
+			serverSelectionTimeoutMS: 8000,
+			connectTimeoutMS: 8000,
+		});
 	}
 
 	try {

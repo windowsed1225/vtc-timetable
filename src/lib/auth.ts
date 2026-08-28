@@ -4,7 +4,10 @@ import { nextCookies } from "better-auth/next-js";
 import { MongoClient } from "mongodb";
 
 // Dedicated MongoClient for better-auth. Connection is established lazily.
-const client = new MongoClient(process.env.MONGODB_URI!);
+const client = new MongoClient(process.env.MONGODB_URI!, {
+	serverSelectionTimeoutMS: 8000,
+	connectTimeoutMS: 8000,
+});
 const db = client.db();
 
 export const auth = betterAuth({
