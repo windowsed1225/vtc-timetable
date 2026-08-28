@@ -53,7 +53,7 @@ DISCORD_BOT_TOKEN=your_discord_bot_token   # optional, daily Discord avatar refr
 REDIS_URL=redis://127.0.0.1:6379          # optional cache
 ```
 
-Self-hosting with Docker Compose is documented in [docs/self-hosting.md](docs/self-hosting.md).
+Self-host with Docker Compose: copy `.env.example` to `.env` and run `docker compose up -d --build`.
 
 ### Install and run
 
