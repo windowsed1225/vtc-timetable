@@ -1,7 +1,7 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
 
 export interface IUser extends Document {
-	discordId: string;
+	discordId?: string;
 	discordUsername?: string;
 	discordAvatar?: string;
 	discordAccessToken?: string;
@@ -23,9 +23,7 @@ const UserSchema = new Schema<IUser>(
 	{
 		discordId: {
 			type: String,
-			required: true,
-			unique: true,
-			index: true,
+			required: false,
 		},
 		discordUsername: {
 			type: String,
@@ -78,6 +76,13 @@ const UserSchema = new Schema<IUser>(
 	{
 		timestamps: true,
 	},
+);
+
+// Email/password users have no Discord id. A plain unique index treats missing/null
+// as one value, so the second signup hits E11000. Index only actual snowflakes.
+UserSchema.index(
+	{ discordId: 1 },
+	{ unique: true, name: "discordId_1", partialFilterExpression: { discordId: { $type: "string" } } },
 );
 
 // Prevent model recompilation in development

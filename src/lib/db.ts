@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { ensurePartialUniqueDiscordIdIndex } from "@/lib/user-indexes";
 
 interface MongooseCache {
 	conn: typeof mongoose | null;
@@ -41,6 +42,12 @@ export async function connectDB(): Promise<typeof mongoose> {
 	} catch (error) {
 		cached.promise = null;
 		throw error;
+	}
+
+	try {
+		await ensurePartialUniqueDiscordIdIndex(cached.conn.connection.collection("users"));
+	} catch (error) {
+		console.error("failed to ensure discordId index", { name: error instanceof Error ? error.name : "Error" });
 	}
 
 	return cached.conn;
