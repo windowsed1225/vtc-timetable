@@ -1,7 +1,9 @@
 "use server";
 
 import { auth } from "@/auth";
+import { getAuthenticatedUser } from "@/lib/authenticated-user";
 import connectDB from "@/lib/db";
+import { loadPrintQuota, loadProgrammeInfo, type ProgrammeInfo } from "@/lib/load-user-data";
 import User from "@/models/User";
 import type { EcardUserInfo } from "../../../vtc-api/src/types/ecardRegister";
 import type { PrintQuotaPayload } from "../../../vtc-api/src/types/getPrintQuota";
@@ -40,7 +42,7 @@ export async function checkStoredToken(): Promise<{
 		}
 
 		await connectDB();
-		const user = await User.findOne({ discordId: session.user.discordId }).lean();
+		const user = await User.findOne({ discordId: session.user.discordId }).select("vtcToken").lean();
 
 		if (!user?.vtcToken) {
 			return { valid: false, reason: "no_token" };
@@ -66,7 +68,7 @@ export async function checkStoredToken(): Promise<{
 
 /**
  * Fetch campus print quota via VTC `getPrintQuota` using the stored token.
- * Does not persist the result — always live from VTC.
+ * Cached briefly; never stores the VTC token.
  */
 export async function getPrintQuota(): Promise<{
 	success: boolean;
@@ -74,41 +76,52 @@ export async function getPrintQuota(): Promise<{
 	error?: string;
 }> {
 	try {
-		const session = await auth();
-		if (!session?.user?.discordId) {
+		const user = await getAuthenticatedUser();
+		if (!user) {
 			return { success: false, error: "Not authenticated" };
 		}
-
-		await connectDB();
-		const user = await User.findOne({ discordId: session.user.discordId }).lean();
-		if (!user?.vtcToken) {
+		if (!user.vtcToken) {
 			return { success: false, error: "No stored VTC token found. Please sync with your URL first." };
 		}
 
-		const api = new API({ token: user.vtcToken });
-		const result = await api.getPrintQuota();
-
-		if (!result.isSuccess || !result.payload) {
-			return {
-				success: false,
-				error: result.errorMsg || "Failed to fetch print quota. Your VTC token may have expired.",
-			};
+		const data = await loadPrintQuota(user);
+		if (!data) {
+			return { success: false, error: "Failed to fetch print quota. Your VTC token may have expired." };
 		}
-
-		return {
-			success: true,
-			data: {
-				campus: result.payload.campus,
-				balance: result.payload.balance,
-				status: result.payload.status,
-				lastUpdatedTime: result.payload.lastUpdatedTime,
-			},
-		};
+		return { success: true, data };
 	} catch (error) {
 		console.error("Error fetching print quota:", error);
 		return {
 			success: false,
-			error: error instanceof Error ? error.message : "Failed to fetch print quota",
+			error: "Failed to fetch print quota. Your VTC token may have expired.",
+		};
+	}
+}
+
+export async function getProgrammeInfo(): Promise<{
+	success: boolean;
+	data?: ProgrammeInfo;
+	error?: string;
+}> {
+	try {
+		const user = await getAuthenticatedUser();
+		if (!user) {
+			return { success: false, error: "Not authenticated" };
+		}
+		if (!user.vtcToken) {
+			return { success: false, error: "No stored VTC token found. Please sync with your URL first." };
+		}
+
+		const data = await loadProgrammeInfo(user);
+		if (!data) {
+			return { success: false, error: "Failed to fetch programme information." };
+		}
+		return { success: true, data };
+	} catch (error) {
+		console.error("Error fetching programme information:", error);
+		return {
+			success: false,
+			error: "Failed to fetch programme information.",
 		};
 	}
 }
@@ -143,7 +156,7 @@ export async function registerEcard(options?: {
 		}
 
 		await connectDB();
-		const user = await User.findOne({ discordId: session.user.discordId }).lean();
+		const user = await User.findOne({ discordId: session.user.discordId }).select("vtcToken").lean();
 		if (!user?.vtcToken) {
 			return { success: false, error: "No stored VTC token found. Please sync with your URL first." };
 		}
@@ -208,7 +221,7 @@ export async function getEcard(options?: {
 		}
 
 		await connectDB();
-		const user = await User.findOne({ discordId: session.user.discordId }).lean();
+		const user = await User.findOne({ discordId: session.user.discordId }).select("vtcToken").lean();
 		if (!user?.vtcToken) {
 			return { success: false, error: "No stored VTC token found. Please sync with your URL first." };
 		}

@@ -3,10 +3,8 @@
 import {
     checkStoredToken,
     finalizeAttendanceSync,
+    getAuthenticatedHomeData,
     getHybridAttendanceStats,
-    getMoodleDeadlines,
-    getStoredEvents,
-    getUniqueCourses,
     HybridAttendanceStats,
     listAttendanceCoursesStored,
     prepareVtcSync,
@@ -96,10 +94,25 @@ export default function Home() {
     const [syncProgress, setSyncProgress] = useState<SemesterSyncProgress[] | null>(null);
     const [syncDetailsExpanded, setSyncDetailsExpanded] = useState(false);
 
-    // Load stored events on mount
-    useEffect(() => {
-        loadStoredData();
+    const loadStoredData = useCallback(async () => {
+        try {
+            const result = await getAuthenticatedHomeData();
+            if (!result.success || !result.data) return;
+            setEvents(result.data.events);
+            setCourses(result.data.courses);
+            setAttendance(result.data.attendance);
+        } catch (error) {
+            console.error("Failed to load stored data:", error);
+        }
     }, []);
+
+    useEffect(() => {
+        if (status !== "authenticated") return;
+        const frame = window.requestAnimationFrame(() => {
+            void loadStoredData();
+        });
+        return () => window.cancelAnimationFrame(frame);
+    }, [status, loadStoredData]);
 
     // Load stored events from localStorage URL
     useEffect(() => {
@@ -116,31 +129,6 @@ export default function Home() {
         });
         return () => window.cancelAnimationFrame(frame);
     }, []);
-
-    const loadStoredData = async () => {
-        try {
-            const [eventsResult, coursesResult, moodleResult, attendanceResult] = await Promise.all([
-                getStoredEvents(),
-                getUniqueCourses(),
-                getMoodleDeadlines(),
-                getHybridAttendanceStats(),
-            ]);
-
-            const classEvents = eventsResult.success ? (eventsResult.data ?? []) : [];
-            const deadlineEvents = moodleResult.success ? (moodleResult.data ?? []) : [];
-            setEvents([...classEvents, ...deadlineEvents]);
-
-            if (coursesResult.success && coursesResult.data) {
-                setCourses(coursesResult.data);
-            }
-
-            if (attendanceResult.success && attendanceResult.data) {
-                setAttendance(attendanceResult.data);
-            }
-        } catch (error) {
-            console.error("Failed to load stored data:", error);
-        }
-    };
 
     const fetchAttendance = async () => {
         try {
@@ -236,7 +224,6 @@ export default function Home() {
 
                 if (anySuccess) {
                     await loadStoredData();
-                    await fetchAttendance();
 
                     setNotification({
                         type: "success",

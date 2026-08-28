@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vinext / Nitro / Vercel build output
+    "dist/**",
+    ".output/**",
+    ".vercel/**",
+    ".vinext/**",
   ]),
 ]);
 

@@ -123,6 +123,7 @@ const AttendanceSchema = new Schema<IAttendance>(
 );
 
 AttendanceSchema.index({ courseCode: 1, vtcStudentId: 1, semester: 1 }, { unique: true });
+AttendanceSchema.index({ vtcStudentId: 1, courseCode: 1 });
 
 const Attendance: Model<IAttendance> =
     mongoose.models.Attendance ||

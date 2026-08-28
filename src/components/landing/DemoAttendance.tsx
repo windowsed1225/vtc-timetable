@@ -1,11 +1,11 @@
 "use client";
 
+import { DEFAULT_GRACE_PERIOD_THRESHOLD } from "@/lib/grace-period";
 import { motion, useReducedMotion } from "framer-motion";
 import { useTranslations } from "next-intl";
 import { useState, type CSSProperties } from "react";
 
 // Fixed demo course — SSR-safe constants mirroring the real tracker's data shape.
-// (16 + 6)/24 = 91.7% if you attend everything; skipping 3+ drops below 80%.
 const COURSE = { code: "ITE3001", line: 1, total: 24, attended: 16, remaining: 6 };
 const SAFE_TO_SKIP = 2;
 
@@ -18,7 +18,7 @@ export default function DemoAttendance() {
 
 	const attending = attends.filter(Boolean).length;
 	const projected = ((COURSE.attended + attending) / COURSE.total) * 100;
-	const passing = projected >= 80;
+	const passing = projected >= DEFAULT_GRACE_PERIOD_THRESHOLD;
 
 	const toggle = (i: number) => setAttends((prev) => prev.map((v, j) => (j === i ? !v : v)));
 
@@ -83,7 +83,6 @@ export default function DemoAttendance() {
 				</span>
 			</div>
 
-			{/* Progress bar with the 80% pass line */}
 			<div className="relative mt-3 pb-5">
 				<div className="h-2 w-full overflow-hidden rounded-full bg-overlay">
 					<div
@@ -91,10 +90,10 @@ export default function DemoAttendance() {
 						style={{ width: `${Math.min(projected, 100)}%` }}
 					/>
 				</div>
-				<div className="absolute -top-1 h-4 w-[2px] bg-[var(--error)]" style={{ left: "80%" }} />
+				<div className="absolute -top-1 h-4 w-[2px] bg-[var(--error)]" style={{ left: `${DEFAULT_GRACE_PERIOD_THRESHOLD}%` }} />
 				<span
 					className="absolute top-4 -translate-x-1/2 font-mono text-[10px] text-error"
-					style={{ left: "80%" }}
+					style={{ left: `${DEFAULT_GRACE_PERIOD_THRESHOLD}%` }}
 				>
 					{t("line80")}
 				</span>

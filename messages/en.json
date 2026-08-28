@@ -110,7 +110,8 @@
     "markAbsent": "Mark as absent",
     "attendedClasses": "Attended Classes",
     "safeToSkip": "Safe to Skip",
-    "required80": "Required (80%)",
+    "required80": "Required ({threshold}%)",
+    "requiredThreshold": "Required ({threshold}%)",
     "maxPossibleShort": "Max Possible",
     "totalAttendance": "Total Attendance",
     "totalLabel": "Total",
@@ -148,6 +149,7 @@
     "noRecords": "No attended classes recorded for this course yet."
   },
   "event": {
+    "date": "Date",
     "time": "Time",
     "location": "Location",
     "lecturer": "Lecturer",
@@ -231,6 +233,7 @@
   },
   "settings": {
     "settings": "Settings",
+    "title": "Settings",
     "account": "Account",
     "accountDescription": "Your profile and connected identifiers.",
     "vtcConnection": "VTC Connection",
@@ -245,18 +248,33 @@
     "dark": "Dark",
     "system": "System",
     "language": "Language",
-    "logout": "Logout"
+    "logout": "Logout",
+    "gracePeriodTitle": "Attendance passing rate",
+    "gracePeriodNavDescription": "The percentage used for attendance warnings and the skipping calculator.",
+    "gracePeriodDescription": "Classes are treated as meeting the requirement when attended time is at or above this percentage of conducted class time. The default is 80%. Changing this does not rewrite stored attendance records.",
+    "gracePeriodCurrent": "Current value",
+    "gracePeriodDefaultLabel": "Default",
+    "gracePeriodUnit": "%",
+    "gracePeriodRange": "Allowed range: {min}–{max}%",
+    "gracePeriodInputLabel": "Passing rate (%)",
+    "gracePeriodSave": "Save passing rate",
+    "gracePeriodResetAction": "Use default",
+    "gracePeriodSaving": "Saving…",
+    "gracePeriodSaved": "Passing rate updated.",
+    "gracePeriodReset": "Passing rate reset to the default.",
+    "gracePeriodInvalid": "Enter a passing rate between 1 and 100."
   },
   "skipping": {
     "title": "Skipping Calculator",
     "howManySkip": "How many classes will you skip? (Remaining: {remaining} classes)",
     "classes": "classes",
     "projectedFinalRate": "Projected Final Rate",
-    "safeToSkip": "Safe to skip! You'll stay above 80%.",
-    "danger": "DANGER! Your rate will drop below the 80% threshold.",
+    "safeToSkip": "Safe to skip! You'll stay above {threshold}%.",
+    "danger": "DANGER! Your rate will drop below the {threshold}% threshold.",
     "safeToSkipCount": "Safe to Skip",
     "attendedClasses": "Attended Classes",
-    "required80": "Required (80%)",
+    "required80": "Required ({threshold}%)",
+    "requiredThreshold": "Required ({threshold}%)",
     "maxPossible": "Max Possible"
   },
   "landing": {

@@ -1,57 +1,58 @@
 import mongoose from "mongoose";
 
-const MONGODB_URI = process.env.MONGODB_URI;
-
-// if (!MONGODB_URI) {
-//     throw new Error(
-//         "Please define the MONGODB_URI environment variable inside .env.local"
-//     );
-// }
-
-/**
- * Global is used here to maintain a cached connection across hot reloads
- * in development. This prevents connections growing exponentially
- * during API Route usage.
- */
 interface MongooseCache {
-    conn: typeof mongoose | null;
-    promise: Promise<typeof mongoose> | null;
+	conn: typeof mongoose | null;
+	promise: Promise<typeof mongoose> | null;
 }
 
 declare global {
-    // eslint-disable-next-line no-var
-    var mongoose: MongooseCache | undefined;
+	var mongoose: MongooseCache | undefined;
 }
 
-const cached: MongooseCache = global.mongoose || { conn: null, promise: null };
+const cached: MongooseCache = globalThis.mongoose ?? { conn: null, promise: null };
 
-if (!global.mongoose) {
-    global.mongoose = cached;
+if (!globalThis.mongoose) {
+	globalThis.mongoose = cached;
+}
+
+function getMongoUri(): string {
+	const uri = process.env.MONGODB_URI?.trim();
+	if (!uri) {
+		throw new Error("MONGODB_URI is not configured");
+	}
+	return uri;
 }
 
 export async function connectDB(): Promise<typeof mongoose> {
-    if (cached.conn) {
-        return cached.conn;
-    }
+	if (cached.conn) {
+		return cached.conn;
+	}
 
-    if (!cached.promise) {
-        const opts = {
-            bufferCommands: false,
-        };
+	if (!cached.promise) {
+		cached.promise = mongoose.connect(getMongoUri(), { bufferCommands: false });
+	}
 
-        cached.promise = mongoose.connect(MONGODB_URI!, opts).then((mongoose) => {
-            return mongoose;
-        });
-    }
+	try {
+		cached.conn = await cached.promise;
+	} catch (error) {
+		cached.promise = null;
+		throw error;
+	}
 
-    try {
-        cached.conn = await cached.promise;
-    } catch (e) {
-        cached.promise = null;
-        throw e;
-    }
+	return cached.conn;
+}
 
-    return cached.conn;
+export async function pingMongo(): Promise<boolean> {
+	try {
+		const connection = await connectDB();
+		const db = connection.connection.db;
+		if (!db) return false;
+		const result = await db.admin().command({ ping: 1 });
+		return result.ok === 1;
+	} catch (error) {
+		console.error("mongodb ping failed", { name: error instanceof Error ? error.name : "Error" });
+		return false;
+	}
 }
 
 export default connectDB;

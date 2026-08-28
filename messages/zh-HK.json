@@ -110,7 +110,8 @@
     "markAbsent": "標記為缺席",
     "attendedClasses": "已出席課堂",
     "safeToSkip": "可安全缺席",
-    "required80": "要求 (80%)",
+    "required80": "要求 ({threshold}%)",
+    "requiredThreshold": "要求 ({threshold}%)",
     "maxPossibleShort": "最高可能",
     "totalAttendance": "總出席率",
     "totalLabel": "總計",
@@ -148,6 +149,7 @@
     "noRecords": "此科目尚未有出席課堂紀錄。"
   },
   "event": {
+    "date": "日期",
     "time": "時間",
     "location": "地點",
     "lecturer": "講師",
@@ -231,6 +233,7 @@
   },
   "settings": {
     "settings": "設定",
+    "title": "設定",
     "account": "帳戶",
     "accountDescription": "您的個人資料及已連結識別資料。",
     "vtcConnection": "VTC 連線",
@@ -245,18 +248,33 @@
     "dark": "深色",
     "system": "系統",
     "language": "語言",
-    "logout": "登出"
+    "logout": "登出",
+    "gracePeriodTitle": "出席及格比率",
+    "gracePeriodNavDescription": "用於出席警告及缺課計算器的百分比。",
+    "gracePeriodDescription": "當已出席時數達到已進行課堂時數的此百分比或以上，即視為達標。預設為 80%。更改此值不會改寫已儲存的出席紀錄。",
+    "gracePeriodCurrent": "目前數值",
+    "gracePeriodDefaultLabel": "預設",
+    "gracePeriodUnit": "%",
+    "gracePeriodRange": "允許範圍：{min}–{max}%",
+    "gracePeriodInputLabel": "及格比率（%）",
+    "gracePeriodSave": "儲存及格比率",
+    "gracePeriodResetAction": "使用預設值",
+    "gracePeriodSaving": "儲存中…",
+    "gracePeriodSaved": "及格比率已更新。",
+    "gracePeriodReset": "及格比率已重設為預設值。",
+    "gracePeriodInvalid": "請輸入 1 至 100 之間的及格比率。"
   },
   "skipping": {
     "title": "缺課計算器",
     "howManySkip": "您將缺席多少堂課？（剩餘：{remaining} 堂）",
     "classes": "堂",
     "projectedFinalRate": "預計最終出席率",
-    "safeToSkip": "安全！您的出席率將保持在 80% 以上。",
-    "danger": "危險！您的出席率將低於 80% 標準。",
+    "safeToSkip": "安全！您的出席率將保持在 {threshold}% 以上。",
+    "danger": "危險！您的出席率將低於 {threshold}% 標準。",
     "safeToSkipCount": "可安全缺席",
     "attendedClasses": "已出席課堂",
-    "required80": "要求 (80%)",
+    "required80": "要求 ({threshold}%)",
+    "requiredThreshold": "要求 ({threshold}%)",
     "maxPossible": "最高可能"
   },
   "landing": {

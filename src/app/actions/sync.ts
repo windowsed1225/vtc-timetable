@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/auth";
+import { invalidateUserCaches } from "@/lib/cache";
 import { getColorIndex } from "@/lib/colors";
 import connectDB from "@/lib/db";
 import { getCurrentSemester, getSemestersToSync, getTimetableYearForSemester } from "@/lib/utils";
@@ -438,6 +439,7 @@ export async function syncVtcData(
 			}
 		}
 
+		if (session.user.id) await invalidateUserCaches(session.user.id);
 		revalidatePath("/");
 		return {
 			success: true,
@@ -711,10 +713,10 @@ export async function fetchTimetable(token: string, semesterNum: number = getCur
 
 // Resolve the logged-in user's stored VTC token + student id (authoritative).
 async function getStoredSyncContext(): Promise<
-	{ ok: true; discordId: string; token: string; vtcStudentId: string } | { ok: false; error: string }
+	{ ok: true; userId: string; discordId: string; token: string; vtcStudentId: string } | { ok: false; error: string }
 > {
 	const session = await auth();
-	if (!session?.user?.discordId) {
+	if (!session?.user?.id || !session.user.discordId) {
 		return { ok: false, error: "Please sign in first." };
 	}
 	await connectDB();
@@ -722,7 +724,13 @@ async function getStoredSyncContext(): Promise<
 	if (!user?.vtcToken || !user.vtcStudentId) {
 		return { ok: false, error: "No stored VTC token found. Please sync with your URL first." };
 	}
-	return { ok: true, discordId: session.user.discordId, token: user.vtcToken, vtcStudentId: user.vtcStudentId };
+	return {
+		ok: true,
+		userId: session.user.id,
+		discordId: session.user.discordId,
+		token: user.vtcToken,
+		vtcStudentId: user.vtcStudentId,
+	};
 }
 
 /**
@@ -783,6 +791,7 @@ export async function syncSemesterTimetableStored(semesterNum: number): Promise<
 				fetchSemesterTimetableEvents(api, ctx.vtcStudentId, tt.semNum, tt.semCategory, tt.year, now),
 			),
 		);
+		await invalidateUserCaches(ctx.userId);
 		return { success: true, newEvents: results.reduce((sum, c) => sum + c, 0) };
 	} catch (error) {
 		return { success: false, error: error instanceof Error ? error.message : "Failed to sync timetable" };
@@ -853,6 +862,7 @@ export async function syncCourseAttendanceStored(
 		);
 
 		const result = await Attendance.bulkWrite([op]);
+		await invalidateUserCaches(ctx.userId);
 		return { success: true, courseSemester, newAttendance: result.upsertedCount };
 	} catch (error) {
 		return { success: false, error: error instanceof Error ? error.message : "Failed to sync course" };
@@ -881,6 +891,7 @@ export async function finalizeAttendanceSync(courseSemesterMap: Record<string, "
 			await Attendance.bulkWrite(staleDeleteOps);
 		}
 
+		await invalidateUserCaches(ctx.userId);
 		revalidatePath("/");
 		return { success: true };
 	} catch (error) {

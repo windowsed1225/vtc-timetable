@@ -1,6 +1,7 @@
 "use client";
 
 import type { HybridAttendanceStats } from "@/app/actions";
+import { thresholdOf } from "@/lib/grace-period";
 import { Link } from "@/lib/navigation";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
@@ -63,7 +64,7 @@ export default function MobileAttendanceView({ attendance, onRefresh, isRefreshi
 							return (
 								<button type="button" key={`${semester}-${course.courseCode}`} onClick={() => setSelected(course)} className="mobile-attendance-course">
 									<div><strong>{course.courseCode}</strong><small>{course.courseName}</small></div>
-									<span className={rate < 80 ? "is-low" : ""}>{rate.toFixed(1)}%</span>
+									<span className={rate < thresholdOf(course) ? "is-low" : ""}>{rate.toFixed(1)}%</span>
 									<div className="mobile-attendance-progress"><span style={{ width: `${Math.min(100, rate)}%` }} /></div>
 									<small>{course.conductedClasses} / {course.totalClasses} {t("classes")} · {t("maxPossible")}: {(course.maxPossibleMinutesRate ?? rate).toFixed(0)}%</small>
 								</button>

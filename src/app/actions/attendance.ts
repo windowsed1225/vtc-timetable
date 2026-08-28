@@ -1,15 +1,16 @@
 "use server";
 
-import { auth } from "@/auth";
 import { Types } from "mongoose";
-import connectDB from "@/lib/db";
+import { getAuthenticatedUser } from "@/lib/authenticated-user";
+import { invalidateUserCaches } from "@/lib/cache";
+import { DEFAULT_GRACE_PERIOD_THRESHOLD } from "@/lib/grace-period";
+import { loadCourseHoursBreakdown, loadHybridAttendance, loadStoredAttendance } from "@/lib/load-user-data";
 import { getCurrentSemester, getSemesterLabel } from "@/lib/utils";
 import Attendance, { IClassRecord } from "@/models/Attendance";
 import Event from "@/models/Event";
-import User from "@/models/User";
 import { revalidatePath } from "next/cache";
 import { API } from "../../../vtc-api/src/core/api";
-import { buildCompositeEventId, getAttendancePresence, getDurationInMinutes, isAttendanceStatusPresent, parseVtcLessonTime } from "./_helpers";
+import { buildCompositeEventId, getAttendancePresence, parseVtcLessonTime } from "./_helpers";
 import type { AttendanceStats, ClassRecord, HybridAttendanceStats } from "./types";
 
 /**
@@ -22,18 +23,11 @@ export async function refreshAttendance(): Promise<{
 	updatedCount?: number;
 }> {
 	try {
-		// Step 1: Auth Check
-		const session = await auth();
-		if (!session?.user?.discordId) {
+		const user = await getAuthenticatedUser();
+		if (!user) {
 			return { success: false, error: "Please sign in first." };
 		}
-		const discordId = session.user.discordId;
-
-		// Step 2: Get user's stored token
-		await connectDB();
-		const user = await User.findOne({ discordId }).lean();
-
-		if (!user?.vtcToken) {
+		if (!user.vtcToken) {
 			return { success: false, error: "No VTC token stored. Please sync your schedule first." };
 		}
 
@@ -144,6 +138,7 @@ export async function refreshAttendance(): Promise<{
 			updatedCount = result.modifiedCount + result.upsertedCount;
 		}
 
+		await invalidateUserCaches(user.userId);
 		revalidatePath("/");
 		return { success: true, updatedCount };
 	} catch (error) {
@@ -162,16 +157,11 @@ export async function refreshAttendance(): Promise<{
  */
 export async function toggleEventAttendance(vtcId: string, status: "UPCOMING" | "ABSENT"): Promise<{ success: boolean; error?: string }> {
 	try {
-		const session = await auth();
-		if (!session?.user?.discordId) {
+		const user = await getAuthenticatedUser();
+		if (!user) {
 			return { success: false, error: "Please sign in first." };
 		}
-
-		await connectDB();
-
-		// Fetch user to get vtcStudentId
-		const user = await User.findOne({ discordId: session.user.discordId }).lean();
-		if (!user?.vtcStudentId) {
+		if (!user.vtcStudentId) {
 			return { success: false, error: "No VTC student ID found. Please sync your schedule first." };
 		}
 		const vtcStudentId = user.vtcStudentId;
@@ -263,6 +253,7 @@ export async function toggleEventAttendance(vtcId: string, status: "UPCOMING" | 
 			await attendance.save();
 		}
 
+		await invalidateUserCaches(user.userId);
 		revalidatePath("/");
 		return { success: true };
 	} catch (error) {
@@ -283,41 +274,12 @@ export async function getStoredAttendance(): Promise<{
 	error?: string;
 }> {
 	try {
-		const session = await auth();
-		if (!session?.user?.discordId) {
-			return { success: true, data: [] }; // Not logged in, return empty
+		const user = await getAuthenticatedUser();
+		if (!user) {
+			return { success: true, data: [] };
 		}
 
-		await connectDB();
-
-		const attendanceRecords = await Attendance.find({ discordId: session.user.discordId }).sort({ courseCode: 1 }).lean();
-
-		const stats: AttendanceStats[] = attendanceRecords.map((record) => ({
-			courseCode: record.courseCode,
-			courseName: record.courseName,
-			semester: record.semester || "SEM 2",
-			status: record.status || "ACTIVE",
-			attendRate: record.attendRate,
-			totalClasses: record.totalClasses,
-			conductedClasses: record.conductedClasses,
-			attended: record.attended,
-			late: record.late,
-			absent: record.absent,
-			isLow: record.attendRate < 80,
-			isFinished: record.isFinished,
-			isFollowUp: record.isFollowUp,
-			baseCourseCode: record.baseCourseCode,
-			classes: record.classes.map((cls) => ({
-				id: cls.id,
-				date: cls.date,
-				lessonTime: cls.lessonTime,
-				attendTime: cls.attendTime,
-				roomName: cls.roomName,
-				status: cls.status as "attended" | "late" | "absent",
-			})),
-		}));
-
-		return { success: true, data: stats };
+		return { success: true, data: await loadStoredAttendance(user) };
 	} catch (error) {
 		console.error("Error fetching stored attendance:", error);
 		return {
@@ -325,14 +287,6 @@ export async function getStoredAttendance(): Promise<{
 			error: error instanceof Error ? error.message : "Failed to fetch attendance",
 		};
 	}
-}
-
-function getClassSemester(dateStr: string): string {
-	const parts = dateStr.split("/");
-	const month = parseInt(parts[1], 10);
-	if (month >= 9 && month <= 12) return "SEM 1";
-	if (month >= 1 && month <= 4) return "SEM 2";
-	return "SEM 3";
 }
 
 /**
@@ -345,271 +299,12 @@ export async function getHybridAttendanceStats(): Promise<{
 	error?: string;
 }> {
 	try {
-		const session = await auth();
-		if (!session?.user?.discordId) {
-			return { success: true, data: [] }; // Not logged in, return empty
+		const user = await getAuthenticatedUser();
+		if (!user) {
+			return { success: true, data: [] };
 		}
 
-		await connectDB();
-		const discordId = session.user.discordId;
-		const now = new Date();
-
-		// Step 0: Fetch user to get vtcStudentId
-		const user = await User.findOne({ discordId }).lean();
-		if (!user?.vtcStudentId) {
-			return { success: true, data: [] }; // No vtcStudentId yet, return empty
-		}
-		const vtcStudentId = user.vtcStudentId;
-
-		// Step 1: Fetch attendance records from Attendance DB using vtcStudentId
-		const attendanceRecords = await Attendance.find({ vtcStudentId }).sort({ courseCode: 1 }).lean();
-
-		// Step 2: Bulk-fetch all events for this user in one query, then group by courseCode in memory
-		const allCourseCodes = new Set<string>();
-		for (const record of attendanceRecords) {
-			allCourseCodes.add(record.courseCode);
-			if (record.baseCourseCode) allCourseCodes.add(record.baseCourseCode);
-		}
-
-		const allCalendarEvents = await Event.find({
-			vtcStudentId,
-			courseCode: { $in: Array.from(allCourseCodes) },
-			status: { $ne: "CANCELED" },
-		}).lean();
-
-		const eventsByCourseCode = new Map<string, typeof allCalendarEvents>();
-		for (const event of allCalendarEvents) {
-			const code = event.courseCode as string;
-			if (!eventsByCourseCode.has(code)) eventsByCourseCode.set(code, []);
-			eventsByCourseCode.get(code)!.push(event);
-		}
-
-		const hybridStats: HybridAttendanceStats[] = await Promise.all(
-			attendanceRecords.map(async (record) => {
-				const courseCode = record.courseCode;
-				const baseCourseCode = record.baseCourseCode || courseCode;
-
-				const calendarEvents = [
-					...(eventsByCourseCode.get(courseCode) ?? []),
-					...(courseCode !== baseCourseCode ? (eventsByCourseCode.get(baseCourseCode) ?? []) : []),
-				];
-
-				// Calculate calendar-based counts - use simple counts for display
-				// But keep minute tracking for accurate percentage calculations
-				let calendarTotalClasses = 0;
-				let calendarConductedClasses = 0;
-				let calendarRemainingClasses = 0;
-				let calendarTotalHours = 0;
-				let calendarConductedHours = 0;
-				let calendarRemainingHours = 0;
-
-				// Minute-based tracking (for hybrid accuracy)
-				let totalSemesterMinutes = 0;
-				let totalConductedMinutes = 0;
-				let totalRemainingMinutes = 0;
-				let totalAttendedMinutes = 0;
-
-				let conductedEventsWithAttendanceState = 0;
-				for (const event of calendarEvents) {
-					const startTime = new Date(event.startTime);
-					const endTime = new Date(event.endTime);
-					const durationMinutes = typeof event.actualDuration === "number" && event.actualDuration > 0
-						? event.actualDuration
-						: getDurationInMinutes(startTime, endTime);
-					const durationHours = durationMinutes / 60;
-
-					calendarTotalClasses++;
-					calendarTotalHours += durationHours;
-					totalSemesterMinutes += durationMinutes;
-
-					if (endTime < now) {
-						calendarConductedClasses++;
-						calendarConductedHours += durationHours;
-						totalConductedMinutes += durationMinutes;
-
-						if (typeof event.attendanceStatusCode === "number" || event.status === "ABSENT") {
-							conductedEventsWithAttendanceState++;
-							if (isAttendanceStatusPresent(event.attendanceStatusCode)) {
-								totalAttendedMinutes += durationMinutes;
-							}
-						}
-					} else {
-						calendarRemainingClasses++;
-						calendarRemainingHours += durationHours;
-						totalRemainingMinutes += durationMinutes;
-					}
-				}
-
-				const attended = record.attended || 0;
-				const attendanceRatio = calendarConductedClasses > 0 ? attended / calendarConductedClasses : 0;
-				if (conductedEventsWithAttendanceState === 0) {
-					totalAttendedMinutes = totalConductedMinutes * attendanceRatio;
-				}
-
-				// Step 3: Calculate derived stats
-				// Current rate based on conducted classes from calendar
-				const currentAttendanceRate = calendarConductedClasses > 0 ? (attended / calendarConductedClasses) * 100 : 0;
-
-				// Max possible rate if attend all remaining classes
-				const maxPossibleRate = calendarTotalClasses > 0 ? ((attended + calendarRemainingClasses) / calendarTotalClasses) * 100 : 0;
-
-				// Minute-based attendance rates
-				const minutesAttendanceRate = totalConductedMinutes > 0 ? (totalAttendedMinutes / totalConductedMinutes) * 100 : 0;
-
-				const maxPossibleMinutesRate = totalSemesterMinutes > 0 ? ((totalAttendedMinutes + totalRemainingMinutes) / totalSemesterMinutes) * 100 : 0;
-
-				// Calculate safe to skip count (classes)
-				let safeToSkipCount = 0;
-				if (calendarTotalClasses > 0) {
-					const requiredAttendance = Math.ceil(calendarTotalClasses * 0.8);
-					const potentialTotal = attended + calendarRemainingClasses;
-					safeToSkipCount = Math.max(0, potentialTotal - requiredAttendance);
-				}
-
-				// Calculate safe to skip minutes
-				let safeToSkipMinutes = 0;
-				if (totalSemesterMinutes > 0) {
-					const requiredMinutes = totalSemesterMinutes * 0.8;
-					const potentialMinutes = totalAttendedMinutes + totalRemainingMinutes;
-					safeToSkipMinutes = Math.max(0, Math.floor(potentialMinutes - requiredMinutes));
-				}
-
-				// Determine recovery status with grace period
-				// Course progress = conducted / total (0 to 1)
-				const courseProgress = totalSemesterMinutes > 0 ? totalConductedMinutes / totalSemesterMinutes : 0;
-				const GRACE_PERIOD_THRESHOLD = 0.15; // 15% of semester must pass before showing warnings
-
-				let recoveryStatus: "safe" | "recoverable" | "failed" | "grace" = "safe";
-				if (minutesAttendanceRate >= 80) {
-					// Already meeting requirement — safe regardless of remaining classes
-					recoveryStatus = "safe";
-				} else if (maxPossibleMinutesRate < 80) {
-					// Mathematically impossible to reach 80% even attending everything remaining
-					recoveryStatus = "failed";
-				} else {
-					// Current rate < 80% but still recoverable
-					if (courseProgress < GRACE_PERIOD_THRESHOLD) {
-						// Early semester - don't show alarming badge
-						recoveryStatus = "grace";
-					} else {
-						recoveryStatus = "recoverable";
-					}
-				}
-
-				// Step 4: Handle class records
-				const classes: ClassRecord[] = record.classes.map((cls) => ({
-					id: cls.id,
-					date: cls.date,
-					lessonTime: cls.lessonTime,
-					attendTime: cls.attendTime,
-					roomName: cls.roomName,
-					status: cls.status as "attended" | "late" | "absent",
-				}));
-
-				// Compute displaySemester: prefer semester from calendar events (matches MY CALENDARS grouping),
-				// fall back to latest class date, then stored semester
-				let displaySemester: string | undefined;
-				if (calendarEvents.length > 0) {
-					// Use semester of the latest calendar event (most current semester this course belongs to)
-					const latestEvent = calendarEvents.reduce((latest, ev) => {
-						return new Date(ev.startTime) > new Date(latest.startTime) ? ev : latest;
-					});
-					displaySemester = latestEvent.semester || undefined;
-				}
-				if (!displaySemester && classes.length > 0) {
-					const latestClass = classes.reduce((latest, cls) => {
-						const [dL, mL, yL] = latest.date.split("/").map(Number);
-						const [dC, mC, yC] = cls.date.split("/").map(Number);
-						return new Date(yC, mC - 1, dC) > new Date(yL, mL - 1, dL) ? cls : latest;
-					});
-					displaySemester = getClassSemester(latestClass.date);
-				}
-
-				// Per-semester breakdown from class records + calendar event counts
-				const semesterBreakdowns: HybridAttendanceStats["semesterBreakdowns"] = {};
-				for (const cls of classes) {
-					const sem = getClassSemester(cls.date);
-					if (!semesterBreakdowns[sem]) semesterBreakdowns[sem] = { attended: 0, conductedClasses: 0, attendanceRate: 0, calendarTotalClasses: 0 };
-					semesterBreakdowns[sem].conductedClasses++;
-					if (cls.status === "attended" || cls.status === "late") semesterBreakdowns[sem].attended++;
-				}
-				// Count calendar events per semester (creates entries for semesters with no class records yet)
-				for (const event of calendarEvents) {
-					const sem = event.semester as string | undefined;
-					if (!sem) continue;
-					if (!semesterBreakdowns[sem]) semesterBreakdowns[sem] = { attended: 0, conductedClasses: 0, attendanceRate: 0, calendarTotalClasses: 0 };
-					semesterBreakdowns[sem].calendarTotalClasses++;
-				}
-				for (const sem of Object.keys(semesterBreakdowns)) {
-					const b = semesterBreakdowns[sem]!;
-					b.attendanceRate = b.conductedClasses > 0 ? Math.round((b.attended / b.conductedClasses) * 1000) / 10 : 0;
-				}
-
-				let currentSemesterStats: HybridAttendanceStats["currentSemesterStats"];
-				if (classes.length > 0) {
-					const targetSem = displaySemester || record.semester;
-					const currentSemClasses = classes.filter((cls) => getClassSemester(cls.date) === targetSem);
-					const semConducted = currentSemClasses.length;
-					const semAttended = currentSemClasses.filter((c) => c.status === "attended" || c.status === "late").length;
-					currentSemesterStats = {
-						semester: targetSem,
-						attended: semAttended,
-						conductedClasses: semConducted,
-						attendanceRate: semConducted > 0 ? Math.round((semAttended / semConducted) * 1000) / 10 : 0,
-					};
-				}
-
-				// Build hybrid stats object
-				const hybridStat: HybridAttendanceStats = {
-					// Original attendance fields
-					courseCode: record.courseCode,
-					courseName: record.courseName,
-					semester: record.semester || "SEM 2",
-					status: record.status || "ACTIVE",
-					attendRate: record.attendRate,
-					totalClasses: record.totalClasses,
-					conductedClasses: record.conductedClasses,
-					attended,
-					late: record.late || 0,
-					absent: record.absent || 0,
-					isLow: minutesAttendanceRate < 80,
-					isFinished: record.isFinished,
-					isFollowUp: record.isFollowUp,
-					baseCourseCode: record.baseCourseCode || courseCode,
-					classes,
-
-					// Calendar-based fields
-					calendarTotalClasses,
-					calendarConductedClasses,
-					calendarRemainingClasses,
-					calendarTotalHours: Math.round(calendarTotalHours * 10) / 10,
-					calendarConductedHours: Math.round(calendarConductedHours * 10) / 10,
-					calendarRemainingHours: Math.round(calendarRemainingHours * 10) / 10,
-
-					// Minute-based fields
-					totalAttendedMinutes: Math.round(totalAttendedMinutes),
-					totalConductedMinutes: Math.round(totalConductedMinutes),
-					totalSemesterMinutes: Math.round(totalSemesterMinutes),
-					totalRemainingMinutes: Math.round(totalRemainingMinutes),
-
-					// Derived calculations
-					currentAttendanceRate: Math.round(currentAttendanceRate * 10) / 10,
-					maxPossibleRate: Math.round(maxPossibleRate * 10) / 10,
-					minutesAttendanceRate: Math.round(minutesAttendanceRate * 10) / 10,
-					maxPossibleMinutesRate: Math.round(maxPossibleMinutesRate * 10) / 10,
-					safeToSkipCount,
-					safeToSkipMinutes,
-					recoveryStatus,
-					displaySemester,
-					currentSemesterStats,
-					semesterBreakdowns,
-				};
-
-				return hybridStat;
-			}),
-		);
-
-		return { success: true, data: hybridStats };
+		return { success: true, data: await loadHybridAttendance(user) };
 	} catch (error) {
 		console.error("Error fetching hybrid attendance stats:", error);
 		return {
@@ -618,6 +313,7 @@ export async function getHybridAttendanceStats(): Promise<{
 		};
 	}
 }
+
 
 /**
  * Get attendance data from VTC API (real-time)
@@ -647,6 +343,8 @@ export async function getAttendance(vtcUrl: string): Promise<{
 			return { success: false, error: "Failed to fetch attendance list" };
 		}
 
+		const signedIn = await getAuthenticatedUser();
+		const threshold = signedIn?.gracePeriodThreshold ?? DEFAULT_GRACE_PERIOD_THRESHOLD;
 		const courses = listResponse.payload?.courses || [];
 		const defaultSemester = getSemesterLabel(getCurrentSemester());
 
@@ -725,7 +423,8 @@ export async function getAttendance(vtcUrl: string): Promise<{
 					attended: attended || 0,
 					late: late || 0,
 					absent: absent || 0,
-					isLow: finalRate < 80,
+					isLow: finalRate < threshold,
+					gracePeriodThreshold: threshold,
 					isFinished,
 					isFollowUp,
 					baseCourseCode,
@@ -755,17 +454,11 @@ export async function deduplicateData(): Promise<{
 	deletedAttendance?: number;
 }> {
 	try {
-		const session = await auth();
-		if (!session?.user?.discordId) {
+		const user = await getAuthenticatedUser();
+		if (!user) {
 			return { success: false, error: "Please sign in first." };
 		}
-
-		await connectDB();
-		const discordId = session.user.discordId;
-
-		// Fetch user to get vtcStudentId
-		const user = await User.findOne({ discordId }).lean();
-		if (!user?.vtcStudentId) {
+		if (!user.vtcStudentId) {
 			return { success: false, error: "No VTC student ID found. Please sync your schedule first." };
 		}
 		const vtcStudentId = user.vtcStudentId;
@@ -819,6 +512,7 @@ export async function deduplicateData(): Promise<{
 			}
 		}
 
+		await invalidateUserCaches(user.userId);
 		revalidatePath("/");
 		return { success: true, deletedEvents, deletedAttendance };
 	} catch (error) {
@@ -844,55 +538,13 @@ export async function getCourseHoursBreakdown(courseCode: string): Promise<{
 	error?: string;
 }> {
 	try {
-		const session = await auth();
-		if (!session?.user?.discordId) {
+		const user = await getAuthenticatedUser();
+		if (!user) {
 			return { success: false, error: "Not signed in" };
 		}
 
-		await connectDB();
-		const user = await User.findOne({ discordId: session.user.discordId }).lean();
-		if (!user?.vtcStudentId) {
-			return { success: true, totalMinutes: 0, days: [] };
-		}
-
-		const events = await Event.find({ vtcStudentId: user.vtcStudentId, courseCode }).lean();
-		const now = new Date();
-		const dayFormatter = new Intl.DateTimeFormat("en-CA", {
-			timeZone: "Asia/Hong_Kong",
-			year: "numeric",
-			month: "2-digit",
-			day: "2-digit",
-		});
-
-		const byDay = new Map<string, number>();
-		let totalMinutes = 0;
-		let courseName: string | undefined;
-
-		for (const event of events) {
-			courseName = courseName ?? event.courseTitle;
-
-			const startTime = new Date(event.startTime);
-			const endTime = new Date(event.endTime);
-
-			// Only conducted classes with a "present" attendance code count as attended.
-			if (endTime >= now) continue;
-			if (!isAttendanceStatusPresent(event.attendanceStatusCode)) continue;
-
-			const durationMinutes =
-				typeof event.actualDuration === "number" && event.actualDuration > 0
-					? event.actualDuration
-					: getDurationInMinutes(startTime, endTime);
-
-			const dayKey = dayFormatter.format(startTime);
-			byDay.set(dayKey, (byDay.get(dayKey) ?? 0) + durationMinutes);
-			totalMinutes += durationMinutes;
-		}
-
-		const days = Array.from(byDay.entries())
-			.map(([date, minutes]) => ({ date, minutes: Math.round(minutes) }))
-			.sort((a, b) => a.date.localeCompare(b.date));
-
-		return { success: true, courseName, totalMinutes: Math.round(totalMinutes), days };
+		const breakdown = await loadCourseHoursBreakdown(user, courseCode);
+		return { success: true, ...breakdown };
 	} catch (error) {
 		console.error("Error building course hours breakdown:", error);
 		return { success: false, error: error instanceof Error ? error.message : "Failed to load breakdown" };

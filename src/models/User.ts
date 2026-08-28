@@ -11,6 +11,8 @@ export interface IUser extends Document {
 	vtcToken?: string;
 	vtcStudentId?: string;
 	attendanceGracePeriod: number; // Minutes
+	/** Optional passing-rate override in percent. Unset means the shared default of 80. */
+	gracePeriodThreshold?: number;
 	lastSync?: Date;
 	locale: "en" | "zh-HK";
 	createdAt: Date;
@@ -57,6 +59,12 @@ const UserSchema = new Schema<IUser>(
 		attendanceGracePeriod: {
 			type: Number,
 			default: 10,
+		},
+		gracePeriodThreshold: {
+			type: Number,
+			required: false,
+			min: 1,
+			max: 100,
 		},
 		lastSync: {
 			type: Date,

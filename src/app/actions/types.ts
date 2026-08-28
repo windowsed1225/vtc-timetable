@@ -26,6 +26,7 @@ export interface AttendanceStats {
     isFollowUp: boolean;
     baseCourseCode: string;
     classes: ClassRecord[];
+    gracePeriodThreshold: number;
 }
 
 export interface HybridAttendanceStats extends AttendanceStats {

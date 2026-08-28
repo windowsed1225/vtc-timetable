@@ -18,12 +18,13 @@ A personal class schedule and attendance tracker for Vocational Training Council
 
 | Layer | Library |
 | --- | --- |
-| Framework | Next.js 16 (App Router) |
+| Framework | Vinext (Vite) with React 19 |
 | Language | TypeScript |
 | Styling | Tailwind CSS v4 + custom CSS variables |
 | Calendar UI | react-big-calendar |
-| Auth | NextAuth v5 (Discord + Email/Password) |
+| Auth | Better Auth (Discord + email/password) |
 | Database | MongoDB via Mongoose |
+| Cache | Redis (optional; reads fail open to MongoDB) |
 | i18n | next-intl (en, zh-HK) |
 | Theming | next-themes |
 | Animations | Framer Motion |
@@ -40,15 +41,19 @@ A personal class schedule and attendance tracker for Vocational Training Council
 
 ### Environment variables
 
-Create a `.env.local` file at the project root:
+Copy `.env.example` to `.env.local` for development or `.env` for Docker Compose.
 
 ```env
-MONGODB_URI=mongodb+srv://...
-AUTH_SECRET=your_nextauth_secret
+MONGODB_URI=mongodb://127.0.0.1:27017/vtc-timetable
+AUTH_SECRET=your_better_auth_secret
+BETTER_AUTH_URL=http://localhost:3000
 AUTH_DISCORD_ID=your_discord_client_id
 AUTH_DISCORD_SECRET=your_discord_client_secret
-DISCORD_BOT_TOKEN=your_discord_bot_token   # for avatar refresh
+DISCORD_BOT_TOKEN=your_discord_bot_token   # optional, daily Discord avatar refresh
+REDIS_URL=redis://127.0.0.1:6379          # optional cache
 ```
+
+Self-hosting with Docker Compose is documented in [docs/self-hosting.md](docs/self-hosting.md).
 
 ### Install and run
 
@@ -77,7 +82,7 @@ src/
 ├── components/            # React components (Sidebar, Calendar, Modals…)
 ├── lib/                   # Utility functions and helpers
 ├── types/                 # TypeScript type definitions
-└── auth.ts                # NextAuth configuration
+└── auth.ts                # Better Auth configuration
 messages/
 ├── en.json                # English translations
 └── zh-HK.json             # Traditional Chinese translations

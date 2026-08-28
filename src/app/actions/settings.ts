@@ -1,7 +1,17 @@
 "use server";
 
 import { auth } from "@/auth";
+import { getAuthenticatedUser } from "@/lib/authenticated-user";
+import { invalidateUserCaches } from "@/lib/cache";
 import connectDB from "@/lib/db";
+import {
+	DEFAULT_GRACE_PERIOD_THRESHOLD,
+	MAX_GRACE_PERIOD_THRESHOLD,
+	MIN_GRACE_PERIOD_THRESHOLD,
+	parseGracePeriodThreshold,
+	resolveGracePeriodThreshold,
+	storedGracePeriodOverride,
+} from "@/lib/grace-period";
 import Attendance from "@/models/Attendance";
 import Event from "@/models/Event";
 import User from "@/models/User";
@@ -35,7 +45,7 @@ export async function updateEmailPassword(
         }
 
         // Check if email is already used by another user
-        const existingUser = await User.findOne({ email, discordId: { $ne: session.user.discordId } }).lean();
+        const existingUser = await User.findOne({ email, discordId: { $ne: session.user.discordId } }).select("_id").lean();
         if (existingUser) {
             return { success: false, error: "Email already in use by another account." };
         }
@@ -81,6 +91,11 @@ export async function getUserSettings(): Promise<{
         authProviders: string[];
         discordUsername?: string;
         vtcStudentId?: string;
+        gracePeriodThreshold: number;
+        gracePeriodThresholdOverride: number | null;
+        gracePeriodDefault: number;
+        gracePeriodMin: number;
+        gracePeriodMax: number;
     };
     error?: string;
 }> {
@@ -92,10 +107,14 @@ export async function getUserSettings(): Promise<{
 
         await connectDB();
 
-        const user = await User.findOne({ discordId: session.user.discordId }).lean();
+        const user = await User.findOne({ discordId: session.user.discordId })
+            .select("email password authProvider discordUsername vtcStudentId gracePeriodThreshold")
+            .lean();
         if (!user) {
             return { success: false, error: "User not found." };
         }
+
+        const override = storedGracePeriodOverride(user.gracePeriodThreshold);
 
         return {
             success: true,
@@ -105,6 +124,11 @@ export async function getUserSettings(): Promise<{
                 authProviders: user.authProvider || ["discord"],
                 discordUsername: user.discordUsername,
                 vtcStudentId: user.vtcStudentId,
+                gracePeriodThreshold: resolveGracePeriodThreshold(override),
+                gracePeriodThresholdOverride: override,
+                gracePeriodDefault: DEFAULT_GRACE_PERIOD_THRESHOLD,
+                gracePeriodMin: MIN_GRACE_PERIOD_THRESHOLD,
+                gracePeriodMax: MAX_GRACE_PERIOD_THRESHOLD,
             },
         };
     } catch (error) {
@@ -134,7 +158,7 @@ export async function clearVtcData(): Promise<{
         }
 
         await connectDB();
-        const user = await User.findOne({ discordId: session.user.discordId }).lean();
+        const user = await User.findOne({ discordId: session.user.discordId }).select("vtcStudentId").lean();
         if (!user) {
             return { success: false, error: "User not found" };
         }
@@ -156,6 +180,7 @@ export async function clearVtcData(): Promise<{
         // Keep the stored vtcToken + lastSync so Quick Sync stays available and a
         // recent lastSync prevents auto-sync from immediately re-populating the data.
 
+        if (session.user.id) await invalidateUserCaches(session.user.id);
         revalidatePath("/");
         return { success: true, deletedEvents, deletedAttendance };
     } catch (error) {
@@ -163,6 +188,84 @@ export async function clearVtcData(): Promise<{
         return {
             success: false,
             error: error instanceof Error ? error.message : "Failed to clear VTC data",
+        };
+    }
+}
+
+export async function updateGracePeriodThreshold(value: unknown): Promise<{
+    success: boolean;
+    data?: { gracePeriodThreshold: number };
+    error?: string;
+}> {
+    try {
+        const user = await getAuthenticatedUser();
+        if (!user) {
+            return { success: false, error: "Please sign in first." };
+        }
+
+        const parsed = parseGracePeriodThreshold(value);
+        if (!parsed.ok) {
+            return {
+                success: false,
+                error: parsed.error === "out_of_range"
+                    ? "Enter a passing rate between 1 and 100 percent."
+                    : "Enter a valid numeric passing rate.",
+            };
+        }
+
+        await connectDB();
+        const updated = await User.findOneAndUpdate(
+            { discordId: user.discordId },
+            { $set: { gracePeriodThreshold: parsed.value } },
+            { returnDocument: "after" },
+        );
+        if (!updated) {
+            return { success: false, error: "User not found." };
+        }
+
+        await invalidateUserCaches(user.userId);
+        revalidatePath("/");
+        revalidatePath("/settings");
+        return { success: true, data: { gracePeriodThreshold: parsed.value } };
+    } catch (error) {
+        console.error("Error updating grace period threshold:", error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "Failed to update passing rate",
+        };
+    }
+}
+
+export async function resetGracePeriodThreshold(): Promise<{
+    success: boolean;
+    data?: { gracePeriodThreshold: number };
+    error?: string;
+}> {
+    try {
+        const user = await getAuthenticatedUser();
+        if (!user) {
+            return { success: false, error: "Please sign in first." };
+        }
+
+        await connectDB();
+        const updated = await User.findOneAndUpdate(
+            { discordId: user.discordId },
+            { $unset: { gracePeriodThreshold: 1 } },
+            { returnDocument: "after" },
+        );
+        if (!updated) {
+            return { success: false, error: "User not found." };
+        }
+
+        await invalidateUserCaches(user.userId);
+        revalidatePath("/");
+        revalidatePath("/settings");
+        return { success: true, data: { gracePeriodThreshold: DEFAULT_GRACE_PERIOD_THRESHOLD } };
+    } catch (error) {
+        console.error("Error resetting grace period threshold:", error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "Failed to reset passing rate",
         };
     }
 }

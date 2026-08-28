@@ -8,8 +8,8 @@ const client = new MongoClient(process.env.MONGODB_URI!);
 const db = client.db();
 
 export const auth = betterAuth({
-	secret: process.env.AUTH_SECRET,
-	baseURL: process.env.BETTER_AUTH_URL ?? process.env.AUTH_URL,
+	secret: process.env.AUTH_SECRET ?? process.env.BETTER_AUTH_SECRET,
+	baseURL: process.env.BETTER_AUTH_URL ?? process.env.AUTH_URL ?? process.env.APP_URL,
 	database: mongodbAdapter(db),
 	emailAndPassword: {
 		enabled: true,

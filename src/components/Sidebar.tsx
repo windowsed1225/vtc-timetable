@@ -2,6 +2,7 @@
 
 import { HybridAttendanceStats } from "@/app/actions";
 import { LINE_COLORS } from "@/lib/colors";
+import { DEFAULT_GRACE_PERIOD_THRESHOLD, thresholdOf } from "@/lib/grace-period";
 import { CalendarEvent } from "@/types/timetable";
 import { useTranslations } from "next-intl";
 import { useMemo, useState, type CSSProperties } from "react";
@@ -89,7 +90,8 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 		// Color coding
 		let colorClass = "text-success";
 		let bgClass = "bg-success";
-		if (currentRate < 80) {
+		const passingLine = attendance[0] ? thresholdOf(attendance[0]) : DEFAULT_GRACE_PERIOD_THRESHOLD;
+		if (currentRate < passingLine) {
 			colorClass = "text-error";
 			bgClass = "bg-error";
 		} else if (currentRate < 90) {
@@ -332,6 +334,7 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 																		const isFinished = course.status === "FINISHED";
 															const totalRate = course.minutesAttendanceRate ?? course.currentAttendanceRate ?? 0;
 																const totalMaxRate = course.maxPossibleMinutesRate ?? course.maxPossibleRate ?? 100;
+																const passingLine = thresholdOf(course);
 
 																return (
 																<div key={`${course.courseCode}-${viewSemester}`}>
@@ -346,13 +349,13 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 																				{course.isFollowUp && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-line-7/15 text-line-7">{tAtt("followUp")}</span>}
 																				{isFinished && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-overlay text-text-tertiary">{tAtt("finished")}</span>}
 																			</div>
-																			<span className={`text-sm font-semibold ml-2 ${course.recoveryStatus === "grace" ? "text-warning" : rate < 80 ? "text-error" : rate < 90 ? "text-warning" : "text-success"}`}>
+																			<span className={`text-sm font-semibold ml-2 ${course.recoveryStatus === "grace" ? "text-warning" : rate < passingLine ? "text-error" : rate < 90 ? "text-warning" : "text-success"}`}>
 																				{rate.toFixed(1)}%
 																			</span>
 																		</div>
 																		<div className="w-full h-1.5 bg-[var(--calendar-border)] rounded-full overflow-hidden mb-1.5">
 																			<div
-																				className={`h-full rounded-full transition-all duration-500 ${rate < 80 ? "bg-error" : rate < 90 ? "bg-warning" : "bg-success"}`}
+																				className={`h-full rounded-full transition-all duration-500 ${rate < passingLine ? "bg-error" : rate < 90 ? "bg-warning" : "bg-success"}`}
 																				style={{ width: `${Math.min(rate, 100)}%`, filter: isFinished ? "grayscale(50%)" : "none" }}
 																			/>
 																		</div>
@@ -368,7 +371,7 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 																			className="w-full mt-0.5 py-1 px-2 rounded-md flex items-center justify-between text-[10px] bg-overlay hover:bg-active transition-colors text-[var(--text-tertiary)]"
 																		>
 																			<span className="font-medium">{tAtt("totalLabel")}</span>
-																			<span className={`font-semibold ${totalRate < 80 ? "text-error" : totalRate < 90 ? "text-warning" : "text-success"}`}>
+																			<span className={`font-semibold ${totalRate < passingLine ? "text-error" : totalRate < 90 ? "text-warning" : "text-success"}`}>
 																				{totalRate.toFixed(1)}% &nbsp;Â·&nbsp; Max {totalMaxRate.toFixed(0)}%
 																			</span>
 																		</button>

@@ -1,9 +1,10 @@
 "use server";
 
-import { auth } from "@/auth";
+import { getAuthenticatedUser } from "@/lib/authenticated-user";
+import { invalidateUserCaches } from "@/lib/cache";
 import connectDB from "@/lib/db";
+import { loadStoredEvents, loadUniqueCourses } from "@/lib/load-user-data";
 import Event, { SemesterType } from "@/models/Event";
-import User from "@/models/User";
 import { CalendarEvent } from "@/types/timetable";
 import { revalidatePath } from "next/cache";
 
@@ -16,44 +17,12 @@ export async function getStoredEvents(): Promise<{
 	error?: string;
 }> {
 	try {
-		const session = await auth();
-		if (!session?.user?.discordId) {
-			return { success: true, data: [] }; // Not logged in, return empty
+		const user = await getAuthenticatedUser();
+		if (!user) {
+			return { success: true, data: [] };
 		}
 
-		await connectDB();
-
-		// Fetch user to get vtcStudentId
-		const user = await User.findOne({ discordId: session.user.discordId }).lean();
-		if (!user?.vtcStudentId) {
-			return { success: true, data: [] }; // No vtcStudentId yet, return empty
-		}
-		const vtcStudentId = user.vtcStudentId;
-
-		const events = await Event.find({ vtcStudentId }).sort({ startTime: 1 }).lean();
-
-		const calendarEvents: CalendarEvent[] = events.map((event) => ({
-			title: `${event.courseTitle}`,
-			start: new Date(event.startTime),
-			end: new Date(event.endTime),
-			resource: {
-				courseCode: event.courseCode,
-				courseTitle: event.courseTitle,
-				location: event.location,
-				lessonType: event.lessonType,
-				lecturer: event.lecturerName,
-				colorIndex: event.colorIndex,
-				semester: event.semester,
-				status: event.status,
-				vtc_id: event.vtc_id,
-				actualDuration: event.actualDuration,
-				scheduledDuration: event.scheduledDuration,
-				isAdjusted: Boolean(event.isTimeAdjusted),
-				attendanceStatusCode: event.attendanceStatusCode ?? null,
-			},
-		}));
-
-		return { success: true, data: calendarEvents };
+		return { success: true, data: await loadStoredEvents(user) };
 	} catch (error) {
 		console.error("Error fetching stored events:", error);
 		return {
@@ -72,44 +41,12 @@ export async function getUniqueCourses(): Promise<{
 	error?: string;
 }> {
 	try {
-		const session = await auth();
-		if (!session?.user?.discordId) {
-			return { success: true, data: [] }; // Not logged in, return empty
+		const user = await getAuthenticatedUser();
+		if (!user) {
+			return { success: true, data: [] };
 		}
 
-		await connectDB();
-
-		// Fetch user to get vtcStudentId
-		const user = await User.findOne({ discordId: session.user.discordId }).lean();
-		if (!user?.vtcStudentId) {
-			return { success: true, data: [] }; // No vtcStudentId yet, return empty
-		}
-		const vtcStudentId = user.vtcStudentId;
-
-		const courses = await Event.aggregate([
-			{ $match: { vtcStudentId } },
-			{
-				$group: {
-					_id: { courseCode: "$courseCode", semester: "$semester" },
-					courseTitle: { $first: "$courseTitle" },
-					colorIndex: { $first: "$colorIndex" },
-					status: { $first: "$status" },
-				},
-			},
-			{
-				$project: {
-					_id: 0,
-					courseCode: "$_id.courseCode",
-					semester: "$_id.semester",
-					courseTitle: 1,
-					colorIndex: 1,
-					status: 1,
-				},
-			},
-			{ $sort: { semester: -1, courseCode: 1 } },
-		]);
-
-		return { success: true, data: courses };
+		return { success: true, data: await loadUniqueCourses(user) };
 	} catch (error) {
 		console.error("Error fetching unique courses:", error);
 		return {
@@ -124,12 +61,19 @@ export async function getUniqueCourses(): Promise<{
  */
 export async function updateEventDetails(eventId: string, newStart: Date, newEnd: Date) {
 	try {
-		const session = await auth();
-		if (!session?.user?.discordId) return { success: false, error: "Unauthorized" };
+		const user = await getAuthenticatedUser();
+		if (!user) return { success: false, error: "Unauthorized" };
+		if (!user.vtcStudentId) return { success: false, error: "No VTC student ID found." };
 
 		await connectDB();
-		await Event.findOneAndUpdate({ vtc_id: eventId, discordId: session.user.discordId }, { startTime: newStart, endTime: newEnd }, { returnDocument: 'after' });
+		const updated = await Event.findOneAndUpdate(
+			{ vtc_id: eventId, vtcStudentId: user.vtcStudentId },
+			{ startTime: newStart, endTime: newEnd },
+			{ returnDocument: "after" },
+		);
+		if (!updated) return { success: false, error: "Event not found." };
 
+		await invalidateUserCaches(user.userId);
 		revalidatePath("/");
 		return { success: true };
 	} catch (error) {
@@ -142,19 +86,19 @@ export async function updateEventDetails(eventId: string, newStart: Date, newEnd
  */
 export async function setEventStatus(eventId: string, status: string) {
 	try {
-		const session = await auth();
-		if (!session?.user?.discordId) return { success: false, error: "Unauthorized" };
+		const user = await getAuthenticatedUser();
+		if (!user) return { success: false, error: "Unauthorized" };
+		if (!user.vtcStudentId) return { success: false, error: "No VTC student ID found." };
 
 		await connectDB();
+		const updated = await Event.findOneAndUpdate(
+			{ vtc_id: eventId, vtcStudentId: user.vtcStudentId },
+			{ status },
+			{ returnDocument: "after" },
+		);
+		if (!updated) return { success: false, error: "Event not found." };
 
-		// Get vtcStudentId from User model
-		const user = await User.findOne({ discordId: session.user.discordId }).lean();
-		if (!user?.vtcStudentId) {
-			return { success: false, error: "No VTC student ID found." };
-		}
-
-		await Event.findOneAndUpdate({ vtc_id: eventId, vtcStudentId: user.vtcStudentId }, { status }, { returnDocument: 'after' });
-
+		await invalidateUserCaches(user.userId);
 		revalidatePath("/");
 		return { success: true };
 	} catch (error) {
@@ -168,13 +112,11 @@ export async function setEventStatus(eventId: string, status: string) {
  */
 export async function updateEventActualTimeAction(eventId: string, newEndTimeMs: number) {
 	try {
-		const session = await auth();
-		if (!session?.user?.discordId) return { success: false, error: "Unauthorized" };
+		const user = await getAuthenticatedUser();
+		if (!user) return { success: false, error: "Unauthorized" };
+		if (!user.vtcStudentId) return { success: false, error: "No VTC student ID found." };
 
 		await connectDB();
-
-		const user = await User.findOne({ discordId: session.user.discordId }).lean();
-		if (!user?.vtcStudentId) return { success: false, error: "No VTC student ID found." };
 
 		const event = await Event.findOne({ vtc_id: eventId, vtcStudentId: user.vtcStudentId });
 		if (!event) return { success: false, error: "Event not found." };
@@ -185,9 +127,10 @@ export async function updateEventActualTimeAction(eventId: string, newEndTimeMs:
 		await Event.findOneAndUpdate(
 			{ vtc_id: eventId, vtcStudentId: user.vtcStudentId },
 			{ endTime: newEndTime, actualDuration, isTimeAdjusted: true },
-			{ returnDocument: 'after' },
+			{ returnDocument: "after" },
 		);
 
+		await invalidateUserCaches(user.userId);
 		revalidatePath("/");
 		return { success: true };
 	} catch (error) {
@@ -205,12 +148,11 @@ export async function previewDeleteEventsByDateRange(
 	toDate: Date,
 ): Promise<{ success: boolean; count?: number; events?: { vtc_id: string; startTime: string; endTime: string }[]; error?: string }> {
 	try {
-		const session = await auth();
-		if (!session?.user?.discordId) return { success: false, error: "Unauthorized" };
+		const user = await getAuthenticatedUser();
+		if (!user) return { success: false, error: "Unauthorized" };
+		if (!user.vtcStudentId) return { success: false, error: "No VTC student ID found." };
 
 		await connectDB();
-		const user = await User.findOne({ discordId: session.user.discordId }).lean();
-		if (!user?.vtcStudentId) return { success: false, error: "No VTC student ID found." };
 
 		const events = await Event.find({
 			vtcStudentId: user.vtcStudentId,
@@ -247,12 +189,11 @@ export async function deleteEventsByDateRange(
 	toDate: Date,
 ): Promise<{ success: boolean; deletedCount?: number; error?: string }> {
 	try {
-		const session = await auth();
-		if (!session?.user?.discordId) return { success: false, error: "Unauthorized" };
+		const user = await getAuthenticatedUser();
+		if (!user) return { success: false, error: "Unauthorized" };
+		if (!user.vtcStudentId) return { success: false, error: "No VTC student ID found." };
 
 		await connectDB();
-		const user = await User.findOne({ discordId: session.user.discordId }).lean();
-		if (!user?.vtcStudentId) return { success: false, error: "No VTC student ID found." };
 
 		const result = await Event.deleteMany({
 			vtcStudentId: user.vtcStudentId,
@@ -262,6 +203,7 @@ export async function deleteEventsByDateRange(
 			$or: [{ attendanceStatusCode: null }, { attendanceStatusCode: { $exists: false } }],
 		});
 
+		await invalidateUserCaches(user.userId);
 		revalidatePath("/");
 		return { success: true, deletedCount: result.deletedCount };
 	} catch (error) {
@@ -274,8 +216,9 @@ export async function deleteEventsByDateRange(
  */
 export async function finishCourseEarly(courseCode: string, semester: string) {
 	try {
-		const session = await auth();
-		if (!session?.user?.discordId) return { success: false, error: "Unauthorized" };
+		const user = await getAuthenticatedUser();
+		if (!user) return { success: false, error: "Unauthorized" };
+		if (!user.vtcStudentId) return { success: false, error: "No VTC student ID found." };
 
 		await connectDB();
 		const now = new Date();
@@ -283,13 +226,14 @@ export async function finishCourseEarly(courseCode: string, semester: string) {
 		await Event.updateMany(
 			{
 				courseCode,
-				discordId: session.user.discordId,
+				vtcStudentId: user.vtcStudentId,
 				semester: semester as SemesterType,
 				startTime: { $gt: now },
 			},
 			{ status: "FINISHED" },
 		);
 
+		await invalidateUserCaches(user.userId);
 		revalidatePath("/");
 		return { success: true };
 	} catch (error) {

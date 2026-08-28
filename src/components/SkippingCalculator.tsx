@@ -1,6 +1,7 @@
 "use client";
 
 import { HybridAttendanceStats } from "@/app/actions";
+import { gracePeriodRatio, thresholdOf } from "@/lib/grace-period";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
@@ -18,6 +19,8 @@ export default function SkippingCalculator({ course }: SkippingCalculatorProps) 
 	const totalClasses = course.calendarTotalClasses || 0;
 	const remainingClasses = course.calendarRemainingClasses || 0;
 	const currentRate = course.minutesAttendanceRate ?? course.currentAttendanceRate ?? 0;
+	const threshold = thresholdOf(course);
+	const ratio = gracePeriodRatio(threshold);
 
 	// Calculate projected rate based on class count
 	const projectedRate = useMemo(() => {
@@ -27,7 +30,7 @@ export default function SkippingCalculator({ course }: SkippingCalculatorProps) 
 		return (projectedAttended / totalClasses) * 100;
 	}, [attendedCount, totalClasses, remainingClasses, skipClasses]);
 
-	const isSafe = projectedRate >= 80;
+	const isSafe = projectedRate >= threshold;
 	const safeToSkipClasses = course.safeToSkipCount || 0;
 
 	// Slider max: remaining classes, at least 5 for usability
@@ -50,7 +53,7 @@ export default function SkippingCalculator({ course }: SkippingCalculatorProps) 
 				<h3 className="font-semibold text-sm flex items-center gap-2">
 					<span className="text-lg">🧮</span> {t("title")}
 				</h3>
-				<span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${currentRate < 80 ? "bg-error/15 text-error" : "bg-success/15 text-success"}`}>Current: {currentRate.toFixed(1)}%</span>
+				<span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${currentRate < threshold ? "bg-error/15 text-error" : "bg-success/15 text-success"}`}>Current: {currentRate.toFixed(1)}%</span>
 			</div>
 
 			<div className="space-y-3">
@@ -84,12 +87,12 @@ export default function SkippingCalculator({ course }: SkippingCalculatorProps) 
 						{isSafe ? (
 							<>
 								<span className="text-xl">✅</span>
-								<p className="text-sm text-success">{t("safeToSkip")}</p>
+								<p className="text-sm text-success">{t("safeToSkip", { threshold })}</p>
 							</>
 						) : (
 							<>
 								<span className="text-xl">⚠️</span>
-								<p className="text-sm text-error font-medium">{t("danger")}</p>
+								<p className="text-sm text-error font-medium">{t("danger", { threshold })}</p>
 							</>
 						)}
 					</div>
@@ -107,9 +110,9 @@ export default function SkippingCalculator({ course }: SkippingCalculatorProps) 
 						<p className="text-xs font-bold">{attendedCount}</p>
 					</div>
 					<div className="p-3 bg-overlay rounded-md border border-border">
-						<p className="text-[10px] text-text-tertiary mb-0.5">{t("required80")}</p>
+						<p className="text-[10px] text-text-tertiary mb-0.5">{t("requiredThreshold", { threshold })}</p>
 						<p className="text-xs font-bold">
-							{Math.ceil(totalClasses * 0.8)} {t("classes")}
+							{Math.ceil(totalClasses * ratio)} {t("classes")}
 						</p>
 					</div>
 					<div className="p-3 bg-overlay rounded-md border border-border">

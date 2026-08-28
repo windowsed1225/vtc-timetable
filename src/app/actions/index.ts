@@ -54,8 +54,12 @@ export { exportSemesterIcs } from "./export";
 export { getMoodleDeadlines } from "./moodle";
 
 // ── User ─────────────────────────────────────────────
-export { checkStoredToken, getEcard, getPrintQuota, registerEcard, saveUserLocale } from "./user";
+export { checkStoredToken, getEcard, getPrintQuota, getProgrammeInfo, registerEcard, saveUserLocale } from "./user";
 export type { EcardCardData } from "./user";
 
 // ── Settings ─────────────────────────────────────────
-export { clearVtcData, getUserSettings, updateEmailPassword } from "./settings";
+export { clearVtcData, getUserSettings, resetGracePeriodThreshold, updateEmailPassword, updateGracePeriodThreshold } from "./settings";
+
+// ── Home ─────────────────────────────────────────────
+export { getAuthenticatedHomeData } from "./home";
+export type { AuthenticatedHomeData } from "./home";

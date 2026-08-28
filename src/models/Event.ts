@@ -113,6 +113,9 @@ const EventSchema = new Schema<IEvent>(
 );
 
 EventSchema.index({ vtc_id: 1, vtcStudentId: 1, semester: 1 }, { unique: true });
+EventSchema.index({ vtcStudentId: 1, startTime: 1 });
+EventSchema.index({ vtcStudentId: 1, courseCode: 1, status: 1 });
+EventSchema.index({ vtcStudentId: 1, courseCode: 1, semester: 1, startTime: 1 });
 
 const Event: Model<IEvent> =
     mongoose.models.Event || mongoose.model<IEvent>("Event", EventSchema);

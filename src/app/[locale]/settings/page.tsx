@@ -1,7 +1,12 @@
 "use client";
 
-import { clearVtcData, getUserSettings, updateEmailPassword } from "@/app/actions/settings";
-import { checkStoredToken, getPrintQuota, registerEcard } from "@/app/actions/user";
+import { clearVtcData, getUserSettings, resetGracePeriodThreshold, updateEmailPassword, updateGracePeriodThreshold } from "@/app/actions/settings";
+import { checkStoredToken, getPrintQuota, getProgrammeInfo } from "@/app/actions/user";
+import {
+	DEFAULT_GRACE_PERIOD_THRESHOLD,
+	MAX_GRACE_PERIOD_THRESHOLD,
+	MIN_GRACE_PERIOD_THRESHOLD,
+} from "@/lib/grace-period";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
@@ -49,6 +54,11 @@ export default function SettingsPage() {
 		authProviders: string[];
 		discordUsername?: string;
 		vtcStudentId?: string;
+		gracePeriodThreshold: number;
+		gracePeriodThresholdOverride: number | null;
+		gracePeriodDefault: number;
+		gracePeriodMin: number;
+		gracePeriodMax: number;
 	} | null>(null);
 
 	// Live VTC info (site, print quota, programme from e-card)
@@ -76,6 +86,11 @@ export default function SettingsPage() {
 	const [clearing, setClearing] = useState(false);
 	const [clearMessage, setClearMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
+	const [gracePeriodInput, setGracePeriodInput] = useState(String(DEFAULT_GRACE_PERIOD_THRESHOLD));
+	const [gracePeriodSaving, setGracePeriodSaving] = useState(false);
+	const [gracePeriodResetting, setGracePeriodResetting] = useState(false);
+	const [gracePeriodMessage, setGracePeriodMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
 	const handleClearVtcData = async () => {
 		if (!clearConfirm) {
 			setClearConfirm(true);
@@ -96,6 +111,47 @@ export default function SettingsPage() {
 		}
 	};
 
+	const handleSaveGracePeriod = async (event: React.FormEvent) => {
+		event.preventDefault();
+		setGracePeriodMessage(null);
+		setGracePeriodSaving(true);
+		const result = await updateGracePeriodThreshold(gracePeriodInput);
+		setGracePeriodSaving(false);
+		if (result.success && result.data) {
+			setGracePeriodInput(String(result.data.gracePeriodThreshold));
+			setSettings((current) => current
+				? {
+					...current,
+					gracePeriodThreshold: result.data!.gracePeriodThreshold,
+					gracePeriodThresholdOverride: result.data!.gracePeriodThreshold,
+				}
+				: current);
+			setGracePeriodMessage({ type: "success", text: t("gracePeriodSaved") });
+		} else {
+			setGracePeriodMessage({ type: "error", text: result.error || t("gracePeriodInvalid") });
+		}
+	};
+
+	const handleResetGracePeriod = async () => {
+		setGracePeriodMessage(null);
+		setGracePeriodResetting(true);
+		const result = await resetGracePeriodThreshold();
+		setGracePeriodResetting(false);
+		if (result.success && result.data) {
+			setGracePeriodInput(String(result.data.gracePeriodThreshold));
+			setSettings((current) => current
+				? {
+					...current,
+					gracePeriodThreshold: result.data!.gracePeriodThreshold,
+					gracePeriodThresholdOverride: null,
+				}
+				: current);
+			setGracePeriodMessage({ type: "success", text: t("gracePeriodReset") });
+		} else {
+			setGracePeriodMessage({ type: "error", text: result.error || t("gracePeriodInvalid") });
+		}
+	};
+
 	useEffect(() => {
 		// eslint-disable-next-line react-hooks/immutability
 		loadSettings();
@@ -107,10 +163,10 @@ export default function SettingsPage() {
 		setVtcLiveLoading(true);
 		setVtcLiveError(null);
 		try {
-			const [tokenResult, quotaResult, ecardResult] = await Promise.all([
+			const [tokenResult, quotaResult, programmeResult] = await Promise.all([
 				checkStoredToken(),
 				getPrintQuota(),
-				registerEcard(), // no photo; only need progStruct fields from userInfo
+				getProgrammeInfo(),
 			]);
 
 			if (tokenResult.valid && tokenResult.site) {
@@ -134,20 +190,12 @@ export default function SettingsPage() {
 				}
 			}
 
-			if (ecardResult.success && ecardResult.data?.userInfo) {
-				const { progStructCode, progStructCodeDesc } = ecardResult.data.userInfo;
-				if (progStructCode || progStructCodeDesc) {
-					setProgramme({
-						progStructCode: progStructCode || "",
-						progStructCodeDesc: progStructCodeDesc || "",
-					});
-				} else {
-					setProgramme(null);
-				}
+			if (programmeResult.success && programmeResult.data) {
+				setProgramme(programmeResult.data);
 			} else {
 				setProgramme(null);
-				if (tokenResult.valid && !quotaResult.error && ecardResult.error) {
-					setVtcLiveError(ecardResult.error);
+				if (tokenResult.valid && !quotaResult.error && programmeResult.error) {
+					setVtcLiveError(programmeResult.error);
 				}
 			}
 		} catch {
@@ -163,6 +211,7 @@ export default function SettingsPage() {
 		if (result.success && result.data) {
 			setSettings(result.data);
 			setEmail(result.data.email || "");
+			setGracePeriodInput(String(result.data.gracePeriodThreshold));
 			// Live VTC fields only when student has synced
 			if (result.data.vtcStudentId) {
 				void loadVtcLiveInfo();
@@ -236,6 +285,7 @@ export default function SettingsPage() {
 				<aside className="settings-nav" aria-label={t("title")}>
 					<a href="#account"><strong>{t("account")}</strong><span>{t("accountDescription")}</span></a>
 					<a href="#connection"><strong>{t("vtcConnection")}</strong><span>{t("vtcConnectionDescription")}</span></a>
+					<a href="#attendance"><strong>{t("gracePeriodTitle")}</strong><span>{t("gracePeriodNavDescription")}</span></a>
 					<a href="#security"><strong>{t("loginSecurity")}</strong><span>{t("loginSecurityDescription")}</span></a>
 					<a href="#data"><strong>{t("storedData")}</strong><span>{t("storedDataDescription")}</span></a>
 				</aside>
@@ -399,6 +449,70 @@ export default function SettingsPage() {
 								)}
 							</div>
 						</div>
+					</div>
+				</motion.div>
+
+				<motion.div id="attendance" className="settings-section scroll-mt-24" variants={itemVariants}>
+					<div className="settings-section-header">
+						<h2>{t("gracePeriodTitle")}</h2>
+						<p>{t("gracePeriodDescription")}</p>
+					</div>
+					<div className="settings-section-body space-y-4">
+						<div className="settings-row">
+							<span className="settings-row-label">{t("gracePeriodCurrent")}</span>
+							<span className="settings-row-value font-mono">
+								{settings?.gracePeriodThreshold ?? DEFAULT_GRACE_PERIOD_THRESHOLD}{t("gracePeriodUnit")}
+							</span>
+						</div>
+						<div className="settings-row">
+							<span className="settings-row-label">{t("gracePeriodDefaultLabel")}</span>
+							<span className="settings-row-value font-mono">
+								{settings?.gracePeriodDefault ?? DEFAULT_GRACE_PERIOD_THRESHOLD}{t("gracePeriodUnit")}
+							</span>
+						</div>
+						<p className="text-sm text-[var(--text-secondary)]">
+							{t("gracePeriodRange", {
+								min: settings?.gracePeriodMin ?? MIN_GRACE_PERIOD_THRESHOLD,
+								max: settings?.gracePeriodMax ?? MAX_GRACE_PERIOD_THRESHOLD,
+							})}
+						</p>
+						<form onSubmit={handleSaveGracePeriod} className="space-y-3">
+							<label className="block text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider">
+								{t("gracePeriodInputLabel")}
+							</label>
+							<input
+								type="number"
+								inputMode="decimal"
+								min={settings?.gracePeriodMin ?? MIN_GRACE_PERIOD_THRESHOLD}
+								max={settings?.gracePeriodMax ?? MAX_GRACE_PERIOD_THRESHOLD}
+								step="0.1"
+								value={gracePeriodInput}
+								onChange={(event) => setGracePeriodInput(event.target.value)}
+								className="input-field"
+								required
+							/>
+							{gracePeriodMessage && (
+								<div className={`px-4 py-3 rounded-lg text-sm font-medium ${gracePeriodMessage.type === "success"
+									? "bg-[var(--success-bg)] text-[var(--success)] border border-[rgba(62,207,142,0.15)]"
+									: "bg-[var(--error-bg)] text-[var(--error)] border border-[rgba(245,83,83,0.15)]"
+								}`}>
+									{gracePeriodMessage.text}
+								</div>
+							)}
+							<div className="flex flex-col sm:flex-row gap-2">
+								<button type="submit" disabled={gracePeriodSaving || gracePeriodResetting} className="btn-primary flex-1">
+									{gracePeriodSaving ? t("gracePeriodSaving") : t("gracePeriodSave")}
+								</button>
+								<button
+									type="button"
+									disabled={gracePeriodSaving || gracePeriodResetting || settings?.gracePeriodThresholdOverride === null}
+									onClick={() => void handleResetGracePeriod()}
+									className="btn-secondary flex-1"
+								>
+									{gracePeriodResetting ? t("gracePeriodSaving") : t("gracePeriodResetAction")}
+								</button>
+							</div>
+						</form>
 					</div>
 				</motion.div>
 

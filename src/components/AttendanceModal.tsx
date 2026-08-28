@@ -1,6 +1,7 @@
 "use client";
 
 import { HybridAttendanceStats } from "@/app/actions";
+import { thresholdOf } from "@/lib/grace-period";
 import { getManualAttendanceMark, saveManualAttendanceMark } from "@/lib/manual-attendance";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
@@ -125,12 +126,12 @@ export default function AttendanceModal({ course, onClose }: AttendanceModalProp
 
 					{/* Centered Percentage Display */}
 					<div className="flex justify-center mb-2">
-						<span className={`text-2xl font-bold font-mono ${(course.minutesAttendanceRate ?? course.currentAttendanceRate) < 80 ? "text-error" : "text-success"}`}>{(course.minutesAttendanceRate ?? course.currentAttendanceRate).toFixed(1)}%</span>
+						<span className={`text-2xl font-bold font-mono ${(course.minutesAttendanceRate ?? course.currentAttendanceRate) < thresholdOf(course) ? "text-error" : "text-success"}`}>{(course.minutesAttendanceRate ?? course.currentAttendanceRate).toFixed(1)}%</span>
 					</div>
 
 					{/* Progress Bar */}
 					<div className="w-full h-2 bg-[var(--calendar-border)] rounded-full overflow-hidden mb-2">
-						<div className={`h-full rounded-full transition-all duration-500 ${(course.minutesAttendanceRate ?? course.currentAttendanceRate) < 80 ? "bg-error" : "bg-success"}`} style={{ width: `${Math.min(course.minutesAttendanceRate ?? course.currentAttendanceRate, 100)}%` }} />
+						<div className={`h-full rounded-full transition-all duration-500 ${(course.minutesAttendanceRate ?? course.currentAttendanceRate) < thresholdOf(course) ? "bg-error" : "bg-success"}`} style={{ width: `${Math.min(course.minutesAttendanceRate ?? course.currentAttendanceRate, 100)}%` }} />
 					</div>
 
 					{/* Max Possible & Status */}

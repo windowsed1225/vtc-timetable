@@ -1,4 +1,5 @@
 import { AttendanceStats, ClassRecord } from "@/app/actions";
+import { gracePeriodRatio, thresholdOf } from "@/lib/grace-period";
 
 /**
  * Parses a lesson time string like "09:30 - 12:30" or "0930 - 1230"
@@ -46,7 +47,8 @@ export function calculateSkippingStats(course: AttendanceStats) {
     const totalClasses = course.totalClasses || 0;
     const conducted = course.conductedClasses || 0;
     const attendedCount = course.attended || 0;
-    const absentCount = course.absent || 0;
+    const threshold = thresholdOf(course);
+    const ratio = gracePeriodRatio(threshold);
 
     const currentRate = conducted > 0 ? (attendedCount / conducted) * 100 : 100;
 
@@ -57,7 +59,7 @@ export function calculateSkippingStats(course: AttendanceStats) {
     };
 
     const futureClasses = totalClasses - conducted;
-    const requiredAttendedTotal = Math.ceil(totalClasses * 0.8);
+    const requiredAttendedTotal = Math.ceil(totalClasses * ratio);
     const safetyBuffer = Math.max(0, futureClasses - Math.max(0, requiredAttendedTotal - attendedCount));
 
     let totalAttendedHours = 0;
@@ -76,7 +78,7 @@ export function calculateSkippingStats(course: AttendanceStats) {
     });
 
     totalPotentialHours = totalClasses * averageDuration;
-    totalRequiredHours80 = totalPotentialHours * 0.8;
+    totalRequiredHours80 = totalPotentialHours * ratio;
 
     return {
         currentRate,
