@@ -1,18 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, IBM_Plex_Mono, Noto_Sans_HK, Public_Sans } from "next/font/google";
+import { Archivo, IBM_Plex_Mono, Public_Sans } from "next/font/google";
 import { getLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 
 // HK transit type system: Archivo = display/signage, Public Sans = body,
-// IBM Plex Mono = times/room numbers, Noto Sans HK = CJK fallback.
-const archivo = Archivo({ subsets: ["latin"], variable: "--font-archivo" });
-const publicSans = Public_Sans({ subsets: ["latin"], variable: "--font-public-sans" });
+// IBM Plex Mono = times/room numbers. CJK uses installed system fonts
+// (PingFang HK / Microsoft JhengHei / local Noto) — self-hosting Noto Sans HK
+// through next/font emits ~100 unicode-range woff2 files, which abort behind
+// HTTP/1.1 reverse proxies and take down the page JS with them.
+const archivo = Archivo({ subsets: ["latin"], variable: "--font-archivo", display: "swap" });
+const publicSans = Public_Sans({ subsets: ["latin"], variable: "--font-public-sans", display: "swap" });
 const plexMono = IBM_Plex_Mono({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   variable: "--font-plex-mono",
+  display: "swap",
 });
-const notoSansHK = Noto_Sans_HK({ subsets: ["latin"], variable: "--font-noto-hk", preload: false });
 
 export const metadata: Metadata = {
   title: "VTC Calendar | Class Schedule",
@@ -38,7 +41,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html
       lang={locale}
       suppressHydrationWarning
-      className={`${archivo.variable} ${publicSans.variable} ${plexMono.variable} ${notoSansHK.variable}`}
+      className={`${archivo.variable} ${publicSans.variable} ${plexMono.variable}`}
     >
       <body className="antialiased">{children}</body>
     </html>

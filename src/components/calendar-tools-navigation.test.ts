@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 describe("attendance entry navigation", () => {
 	const topActions = readFileSync(new URL("./CalendarTopActions.tsx", import.meta.url), "utf8");
 	const sidebar = readFileSync(new URL("./Sidebar.tsx", import.meta.url), "utf8");
-	const page = readFileSync(new URL("../app/[locale]/page.tsx", import.meta.url), "utf8");
+	const page = readFileSync(new URL("./AuthenticatedHome.tsx", import.meta.url), "utf8");
 
   test("lives in Calendar Tools instead of the desktop Sidebar", () => {
     expect(topActions).toContain('href="/attendance-grid"');
@@ -21,7 +21,7 @@ describe("attendance entry navigation", () => {
 describe("calendar subscription navigation", () => {
 	const topActions = readFileSync(new URL("./CalendarTopActions.tsx", import.meta.url), "utf8");
 	const sidebar = readFileSync(new URL("./Sidebar.tsx", import.meta.url), "utf8");
-	const page = readFileSync(new URL("../app/[locale]/page.tsx", import.meta.url), "utf8");
+	const page = readFileSync(new URL("./AuthenticatedHome.tsx", import.meta.url), "utf8");
 
 	test("is owned by Calendar Tools instead of the desktop Sidebar", () => {
 		expect(topActions).toContain('import SubscribeButton from "./SubscribeButton"');

@@ -197,8 +197,8 @@
 	--color-line-8: var(--line-8);
 	--color-line-9: var(--line-9);
 
-	--font-sans: var(--font-public-sans), var(--font-noto-hk), "PingFang HK", "Microsoft JhengHei", ui-sans-serif, system-ui, sans-serif;
-	--font-display: var(--font-archivo), var(--font-noto-hk), "PingFang HK", ui-sans-serif, sans-serif;
+	--font-sans: var(--font-public-sans), "PingFang HK", "Noto Sans HK", "Microsoft JhengHei", ui-sans-serif, system-ui, sans-serif;
+	--font-display: var(--font-archivo), "PingFang HK", "Noto Sans HK", ui-sans-serif, sans-serif;
 	--font-mono: var(--font-plex-mono), ui-monospace, "SF Mono", monospace;
 }
 
