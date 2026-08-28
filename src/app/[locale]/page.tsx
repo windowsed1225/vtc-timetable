@@ -576,14 +576,14 @@ export default function Home() {
                     /* ── Authenticated, no data yet ── */
                     <div className="flex-1 flex flex-col items-center justify-center">
                         <div className="text-center max-w-md animate-fadeIn">
-                            <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-[var(--calendar-header-bg)] flex items-center justify-center">
+                            <div className="empty-schedule-mark">
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
                                     fill="none"
                                     viewBox="0 0 24 24"
                                     strokeWidth={1}
                                     stroke="currentColor"
-                                    className="w-12 h-12 text-[var(--text-tertiary)]"
+                                    aria-hidden="true"
                                 >
                                     <path
                                         strokeLinecap="round"

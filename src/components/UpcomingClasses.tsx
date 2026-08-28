@@ -40,6 +40,7 @@ export default function UpcomingClasses({ events, onSelect }: UpcomingClassesPro
 			<div className="upcoming-classes-list">
 				{upcoming.map((event) => {
 					const compactDate = formatCompactClassDate(event.start, locale);
+					const meta = [compactDate, event.resource?.location].filter(Boolean).join(" · ");
 					return (
 					<button
 						type="button"
@@ -48,9 +49,9 @@ export default function UpcomingClasses({ events, onSelect }: UpcomingClassesPro
 						onClick={() => onSelect(event)}
 						aria-label={`${event.resource?.courseCode || event.title}, ${compactDate ?? ""}, ${timeFormatter.format(event.start)}`}
 					>
-						<time dateTime={event.start.toISOString()}>{compactDate ? `${compactDate} · ${timeFormatter.format(event.start)}` : timeFormatter.format(event.start)}</time>
+						<time dateTime={event.start.toISOString()}>{timeFormatter.format(event.start)}</time>
 						<strong>{event.resource?.courseCode || event.title}</strong>
-						{event.resource?.location && <span>{event.resource.location}</span>}
+						{meta ? <span>{meta}</span> : null}
 					</button>
 					);
 				})}

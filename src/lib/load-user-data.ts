@@ -284,7 +284,7 @@ export async function loadPrintQuota(user: AuthenticatedUser): Promise<PrintQuot
 		const api = new API({ token: user.vtcToken! });
 		const result = await api.getPrintQuota();
 		if (!result.isSuccess || !result.payload) {
-			throw new Error("print-quota-unavailable");
+			return null;
 		}
 		return {
 			campus: result.payload.campus,
@@ -307,7 +307,7 @@ export async function loadProgrammeInfo(user: AuthenticatedUser): Promise<Progra
 		const api = new API({ token: user.vtcToken! });
 		const result = await api.registerEcard();
 		if (!result.isSuccess || !result.payload?.userInfo) {
-			throw new Error("programme-unavailable");
+			return null;
 		}
 		const { progStructCode, progStructCodeDesc } = result.payload.userInfo;
 		if (!progStructCode && !progStructCodeDesc) return null;

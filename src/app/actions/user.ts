@@ -90,7 +90,7 @@ export async function getPrintQuota(): Promise<{
 		}
 		return { success: true, data };
 	} catch (error) {
-		console.error("Error fetching print quota:", error);
+		console.error("print quota fetch failed", { name: error instanceof Error ? error.name : "Error" });
 		return {
 			success: false,
 			error: "Failed to fetch print quota. Your VTC token may have expired.",
@@ -118,7 +118,7 @@ export async function getProgrammeInfo(): Promise<{
 		}
 		return { success: true, data };
 	} catch (error) {
-		console.error("Error fetching programme information:", error);
+		console.error("programme fetch failed", { name: error instanceof Error ? error.name : "Error" });
 		return {
 			success: false,
 			error: "Failed to fetch programme information.",

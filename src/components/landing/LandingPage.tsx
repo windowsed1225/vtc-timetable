@@ -84,7 +84,7 @@ export default function LandingPage() {
 						viewBox="0 0 24 24"
 						strokeWidth={2}
 						stroke="currentColor"
-						className="w-4 h-4 animate-bounce motion-reduce:animate-none"
+						className="landing-scroll-icon animate-bounce motion-reduce:animate-none"
 					>
 						<path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
 					</svg>

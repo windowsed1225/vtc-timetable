@@ -11,6 +11,12 @@ export const auth = betterAuth({
 	secret: process.env.AUTH_SECRET ?? process.env.BETTER_AUTH_SECRET,
 	baseURL: process.env.BETTER_AUTH_URL ?? process.env.AUTH_URL ?? process.env.APP_URL,
 	database: mongodbAdapter(db),
+	advanced: {
+		ipAddress: {
+			ipAddressHeaders: ["x-forwarded-for", "x-real-ip", "cf-connecting-ip"],
+			trustedProxies: ["127.0.0.1", "::1", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"],
+		},
+	},
 	emailAndPassword: {
 		enabled: true,
 	},

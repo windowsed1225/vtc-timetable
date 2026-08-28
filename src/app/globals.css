@@ -1,4 +1,9 @@
 @import "tailwindcss";
+/* Docker image builds copy source without .git. Tailwind v4's automatic scan
+   then finds no class names and emits tokens/custom CSS only — no utilities.
+   Pin the source tree so `hidden`, `flex`, `w-12`, etc. are generated. */
+@source "..";
+@source "../../src";
 
 /* ============================================
    TAILWIND v4 — Class-based dark mode
@@ -1274,6 +1279,30 @@ body {
 	gap: 10px;
 	min-width: 0;
 }
+.top-navbar-brand > div {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+.top-navbar-title:nth-of-type(2) {
+	display: none;
+}
+.top-navbar-subtitle {
+	display: none;
+}
+@media (max-width: 639px) {
+	.top-navbar-title:nth-of-type(1) {
+		display: none;
+	}
+	.top-navbar-title:nth-of-type(2) {
+		display: block;
+	}
+}
+@media (min-width: 768px) {
+	.top-navbar-subtitle {
+		display: block;
+	}
+}
 .top-navbar-logo {
 	width: 34px;
 	height: 34px;
@@ -1521,6 +1550,28 @@ body {
 	border-radius: 12px;
 	box-shadow: var(--shadow-sm);
 }
+.empty-schedule-mark {
+	width: 6rem;
+	height: 6rem;
+	margin: 0 auto 1.5rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 999px;
+	background: var(--calendar-header-bg);
+}
+.empty-schedule-mark svg {
+	width: 3rem;
+	height: 3rem;
+	color: var(--text-tertiary);
+}
+
+.landing-scroll-icon {
+	width: 1rem;
+	height: 1rem;
+	flex-shrink: 0;
+}
+
 .upcoming-classes {
 	margin-bottom: 10px;
 }
@@ -1577,10 +1628,12 @@ body {
 	background: var(--bg-active);
 }
 .upcoming-class-chip time {
+	flex-shrink: 0;
 	color: var(--accent-blue);
 	font-family: var(--font-mono);
 	font-size: 10px;
 	font-weight: 700;
+	white-space: nowrap;
 }
 .upcoming-class-chip strong {
 	min-width: 0;

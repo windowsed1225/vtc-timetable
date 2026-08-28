@@ -85,7 +85,9 @@ export async function cacheAside<T>(key: string, ttlSeconds: number, loader: () 
 
 	const pending = (async () => {
 		const value = await loader();
-		await cacheSet(key, value, ttlSeconds);
+		if (value !== null && value !== undefined) {
+			await cacheSet(key, value, ttlSeconds);
+		}
 		return value;
 	})().finally(() => {
 		inflight.delete(key);
