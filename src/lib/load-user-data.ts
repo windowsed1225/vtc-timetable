@@ -14,6 +14,7 @@ import connectDB from "@/lib/db";
 import { APP_TIME_ZONE } from "@/lib/event-date";
 import { buildHybridAttendanceStats } from "@/lib/hybrid-attendance";
 import { getDurationInMinutes, isAttendanceStatusPresent } from "@/app/actions/_helpers";
+import { programmeInfoFromUserInfo, type ProgrammeInfo } from "@/lib/programme-info";
 import { normalizeSemester, semesterTag } from "@/lib/semester";
 import type { AttendanceStats, HybridAttendanceStats } from "@/app/actions/types";
 import Attendance from "@/models/Attendance";
@@ -21,6 +22,8 @@ import Event from "@/models/Event";
 import { CalendarEvent, EventStatusType } from "@/types/timetable";
 import { API } from "../../vtc-api/src/core/api";
 import type { PrintQuotaPayload } from "../../vtc-api/src/types/getPrintQuota";
+
+export type { ProgrammeInfo };
 
 const EVENT_CALENDAR_PROJECTION = {
 	courseCode: 1,
@@ -300,11 +303,6 @@ export async function loadPrintQuota(user: AuthenticatedUser): Promise<PrintQuot
 	});
 }
 
-export type ProgrammeInfo = {
-	progStructCode: string;
-	progStructCodeDesc: string;
-};
-
 export async function loadProgrammeInfo(user: AuthenticatedUser): Promise<ProgrammeInfo | null> {
 	if (!user.vtcToken) return null;
 	const cacheVersion = await getUserCacheVersion(user.userId);
@@ -314,12 +312,7 @@ export async function loadProgrammeInfo(user: AuthenticatedUser): Promise<Progra
 		if (!result.isSuccess || !result.payload?.userInfo) {
 			return null;
 		}
-		const { progStructCode, progStructCodeDesc } = result.payload.userInfo;
-		if (!progStructCode && !progStructCodeDesc) return null;
-		return {
-			progStructCode: progStructCode || "",
-			progStructCodeDesc: progStructCodeDesc || "",
-		};
+		return programmeInfoFromUserInfo(result.payload.userInfo);
 	});
 }
 

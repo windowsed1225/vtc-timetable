@@ -55,7 +55,7 @@ export function printQuotaCacheKey(userId: string, cacheVersion: number): string
 }
 
 export function programmeCacheKey(userId: string, cacheVersion: number): string {
-	return `${userPrefix(userId, cacheVersion)}:programme`;
+	return `${userPrefix(userId, cacheVersion)}:programme:v2`;
 }
 
 export function courseHoursCacheKey(userId: string, cacheVersion: number, courseCode: string): string {

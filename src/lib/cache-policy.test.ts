@@ -3,6 +3,7 @@ import {
 	CACHE_SCHEMA_VERSION,
 	attendanceCacheKey,
 	coursesCacheKey,
+	programmeCacheKey,
 	timetableCacheKey,
 	userCacheVersionKey,
 } from "./cache-policy";
@@ -13,6 +14,7 @@ describe("cache key isolation", () => {
 		expect(userCacheVersionKey("user-a")).toBe("vtc:v1:user:user-a:cv");
 		expect(timetableCacheKey("user-a", 3)).toBe("vtc:v1:user:user-a:cv3:timetable");
 		expect(coursesCacheKey("user-b", 3)).toBe("vtc:v1:user:user-b:cv3:courses");
+		expect(programmeCacheKey("user-a", 3)).toBe("vtc:v1:user:user-a:cv3:programme:v2");
 		expect(timetableCacheKey("user-a", 3)).not.toBe(timetableCacheKey("user-b", 3));
 	});
 

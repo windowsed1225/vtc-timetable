@@ -244,6 +244,8 @@
     "accountDescription": "Your profile and connected identifiers.",
     "vtcConnection": "VTC Connection",
     "vtcConnectionDescription": "Live campus, programme, and print information.",
+    "programmeYear": "Year",
+    "programmeClass": "Class",
     "studentCard": "Student card",
     "studentCardDescription": "Your campus card from the VTC e-card service.",
     "studentCardLoading": "Loading student card",

@@ -23,6 +23,8 @@ type PrintQuotaInfo = {
 type ProgrammeInfo = {
 	progStructCode: string;
 	progStructCodeDesc: string;
+	year: string;
+	class: string;
 };
 
 // Framer Motion animation variants
@@ -397,6 +399,36 @@ export default function SettingsPage() {
 									</span>
 								)}
 							</div>
+						</div>
+
+						<div className="settings-row">
+							<span className="settings-row-label">{t("programmeYear")}</span>
+							<span className="settings-row-value font-mono text-xs tracking-wide">
+								{vtcLiveLoading ? (
+									<span className="text-[var(--text-tertiary)]">Loading…</span>
+								) : programme?.year ? (
+									programme.year
+								) : (
+									<span className="text-[var(--text-tertiary)]">
+										{settings?.vtcStudentId ? "Unavailable" : "Not synced"}
+									</span>
+								)}
+							</span>
+						</div>
+
+						<div className="settings-row">
+							<span className="settings-row-label">{t("programmeClass")}</span>
+							<span className="settings-row-value font-mono text-xs tracking-wide">
+								{vtcLiveLoading ? (
+									<span className="text-[var(--text-tertiary)]">Loading…</span>
+								) : programme?.class ? (
+									programme.class
+								) : (
+									<span className="text-[var(--text-tertiary)]">
+										{settings?.vtcStudentId ? "Unavailable" : "Not synced"}
+									</span>
+								)}
+							</span>
 						</div>
 
 						{/* Print quota from getPrintQuota */}

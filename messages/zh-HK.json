@@ -244,6 +244,8 @@
     "accountDescription": "您的個人資料及已連結識別資料。",
     "vtcConnection": "VTC 連線",
     "vtcConnectionDescription": "即時院校、課程及列印配額資料。",
+    "programmeYear": "年級",
+    "programmeClass": "班別",
     "studentCard": "學生證",
     "studentCardDescription": "由 VTC 電子學生證服務顯示的院校學生證。",
     "studentCardLoading": "正在載入學生證",
