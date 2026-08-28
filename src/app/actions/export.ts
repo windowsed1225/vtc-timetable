@@ -51,25 +51,8 @@ export async function exportSemesterIcs(semester: string): Promise<{
 
 		// Step 5: Generate ICS string
 		const { createEvents } = await import("ics");
-		type EventAttributes = import("ics").EventAttributes;
-
-		const getDateArray = (date: Date): [number, number, number, number, number] => [
-			date.getFullYear(),
-			date.getMonth() + 1,
-			date.getDate(),
-			date.getHours(),
-			date.getMinutes(),
-		];
-
-		const icsEvents: EventAttributes[] = (events as IEvent[]).map((event) => ({
-			uid: `${event.vtc_id}@vtc-timetable`,
-			title: `${event.courseTitle} (${event.courseCode})`,
-			start: getDateArray(new Date(event.startTime)),
-			end: getDateArray(new Date(event.endTime)),
-			location: event.location || undefined,
-			description: [event.lessonType ? `Type: ${event.lessonType}` : "", event.lecturerName ? `Lecturer: ${event.lecturerName}` : "", `Semester: ${event.semester}`].filter(Boolean).join("\n"),
-			categories: [event.courseCode, event.semester],
-		}));
+		const { eventToIcsAttributes } = await import("@/lib/calendar-ics");
+		const icsEvents = (events as IEvent[]).map((event) => eventToIcsAttributes(event));
 
 		const { error, value } = createEvents(icsEvents);
 

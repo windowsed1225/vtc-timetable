@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { eventToIcsAttributes } from "@/lib/calendar-ics";
 import connectDB from "@/lib/db";
 import { normalizeSemester, semesterTag } from "@/lib/semester";
 import Event, { IEvent } from "@/models/Event";
-import { createEvents, EventAttributes } from "ics";
+import { createEvents } from "ics";
 
 /**
  * Calendar Subscription Feed (WebCal)
@@ -17,17 +18,6 @@ import { createEvents, EventAttributes } from "ics";
  * 
  * Consider: Adding an optional secret token per user for extra security.
  */
-
-// Helper to convert Date to ICS date array format
-function getDateArray(date: Date): [number, number, number, number, number] {
-    return [
-        date.getFullYear(),
-        date.getMonth() + 1, // ICS months are 1-indexed
-        date.getDate(),
-        date.getHours(),
-        date.getMinutes(),
-    ];
-}
 
 export async function GET(
     request: NextRequest,
@@ -110,23 +100,7 @@ export async function GET(
             });
         }
 
-        // Transform MongoDB events to ICS format
-        const icsEvents: EventAttributes[] = events.map((event) => ({
-            uid: event.vtc_id + "@vtc-timetable",
-            title: `${event.courseTitle} (${event.courseCode})`,
-            start: getDateArray(new Date(event.startTime)),
-            end: getDateArray(new Date(event.endTime)),
-            location: event.location || undefined,
-            description: [
-                event.lecturerName ? `Instructor: ${event.lecturerName}` : "",
-                event.location ? `Room: ${event.location}` : "",
-                event.startTime ? `Time: ${new Date(Number(event.startTime)).toLocaleString()} - ${new Date(Number(event.endTime)).toLocaleString()}` : "",
-            ]
-                .filter(Boolean)
-                .join("\n"),
-            categories: [event.courseCode, event.semester],
-            status: event.status === "FINISHED" ? "CONFIRMED" : "CONFIRMED",
-        }));
+        const icsEvents = events.map((event) => eventToIcsAttributes(event));
 
         // Generate ICS string
         const { error, value } = createEvents(icsEvents);
