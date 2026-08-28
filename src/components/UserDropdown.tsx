@@ -80,9 +80,11 @@ export default function UserDropdown({ user }: UserDropdownProps) {
 		<div className="relative" ref={dropdownRef}>
 			{/* Avatar Button */}
 			<button
+				type="button"
 				onClick={() => setIsOpen(!isOpen)}
 				className="flex items-center gap-2 p-1 rounded-lg hover:bg-[var(--bg-active)] transition-colors"
 				title="User menu"
+				aria-expanded={isOpen}
 			>
 				{user.image ? (
 					<img
@@ -106,7 +108,6 @@ export default function UserDropdown({ user }: UserDropdownProps) {
 			{/* Dropdown Menu */}
 			{isOpen && (
 				<div className="absolute right-0 mt-2 w-56 bg-[var(--bg-surface)] rounded-xl shadow-lg border border-border py-1 z-50 animate-fadeIn">
-					{/* User Info */}
 					<div className="px-4 py-3 border-b border-border">
 						<p className="text-sm font-semibold text-[var(--foreground)] truncate">
 							{user.name || "User"}
@@ -115,7 +116,16 @@ export default function UserDropdown({ user }: UserDropdownProps) {
 					</div>
 
 					<div className="py-1">
-						{/* Settings */}
+						<Link
+							href="/student-card"
+							className="flex items-center gap-3 px-4 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-active)] hover:text-[var(--foreground)] transition-colors"
+							onClick={() => setIsOpen(false)}
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+								<path strokeLinecap="round" strokeLinejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Zm6-10.125a1.875 1.875 0 1 1-3.75 0 1.875 1.875 0 0 1 3.75 0Zm1.294 6.336a6.721 6.721 0 0 1-3.17.665 6.721 6.721 0 0 1-3.168-.665 3.066 3.066 0 0 1 6.338 0Z" />
+							</svg>
+							<span>{t("studentCard")}</span>
+						</Link>
 						<Link
 							href="/settings"
 							className="flex items-center gap-3 px-4 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-active)] hover:text-[var(--foreground)] transition-colors"
@@ -126,6 +136,17 @@ export default function UserDropdown({ user }: UserDropdownProps) {
 								<path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
 							</svg>
 							<span>{t("settings")}</span>
+						</Link>
+
+						<Link
+							href="/api"
+							className="flex items-center gap-3 px-4 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-active)] hover:text-[var(--foreground)] transition-colors"
+							onClick={() => setIsOpen(false)}
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+								<path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" />
+							</svg>
+							<span>{t("apiPlayground")}</span>
 						</Link>
 
 						{/* Theme Toggle */}

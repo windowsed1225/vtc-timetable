@@ -31,6 +31,17 @@ These instructions apply to everything under `vtc-api/`.
 - Never log, hard-code, or commit access tokens, refresh tokens, student details, or other credentials.
 - Treat captured JSON as potentially sensitive. Do not add or refresh data files unless the task requires it and the contents have been checked for personal information.
 
+## E-card `userInfo` card dumps
+
+`libraryNumber`, `block0`, and `block1` are copies of the physical student card, not timetable fields.
+
+- `libraryNumber` — printed library barcode from e-card. Observed HKIIT value is prefix + `studNo` + check digit (`2188` + `260083349` + `1` → `21882600833491`). Use the e-card value; do not assume `2188` for every student.
+- `block0` — smart-card block 0: campus/card-type prefix + `studNo` + trailer (`63` + `260083349` + `00001` → `6326008334900001`).
+- `block1` — smart-card block 1: expiry `MMYYYY` zero-padded (`0820280000000000` = August 2028).
+- `doorAccessKey` on GET `/v1/ecard` is what readers scan; the blocks are the underlying chip data.
+
+Register with `deviceID` as an uppercase UUID. A random dummy UUID is valid when the caller does not supply one. Do not log or commit these values.
+
 ## Anti-slop rules
 
 - Make the smallest coherent change that solves the stated problem.

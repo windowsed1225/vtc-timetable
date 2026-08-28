@@ -5,6 +5,7 @@ import { getAuthenticatedUser } from "@/lib/authenticated-user";
 import { invalidateUserCaches } from "@/lib/cache";
 import { DEFAULT_GRACE_PERIOD_THRESHOLD } from "@/lib/grace-period";
 import { loadCourseHoursBreakdown, loadHybridAttendance, loadStoredAttendance } from "@/lib/load-user-data";
+import { academicYearStartYear, programmeSemesterFromVtcDate } from "@/lib/semester";
 import { getCurrentSemester, getSemesterLabel } from "@/lib/utils";
 import Attendance, { IClassRecord } from "@/models/Attendance";
 import Event from "@/models/Event";
@@ -90,20 +91,9 @@ export async function refreshAttendance(): Promise<{
 				const baseCourseCode = isFollowUp ? course.courseCode.slice(0, -1) : course.courseCode;
 
 				// Determine semester from earliest class date
-				let semester: "SEM 1" | "SEM 2" | "SEM 3" = getSemesterLabel(getCurrentSemester());
+				let semester = getSemesterLabel(getCurrentSemester());
 				if (classRecords.length > 0) {
-					const earliestDate = classRecords[0].date; // Already sorted by VTC API
-					const dateParts = earliestDate.split("/");
-					if (dateParts.length === 3) {
-						const month = parseInt(dateParts[1], 10);
-						if (month >= 9 && month <= 12) {
-							semester = "SEM 1";
-						} else if (month >= 1 && month <= 4) {
-							semester = "SEM 2";
-						} else if (month >= 5 && month <= 8) {
-							semester = "SEM 3";
-						}
-					}
+					semester = programmeSemesterFromVtcDate(classRecords[0].date, academicYearStartYear(new Date()), "unknown", semester);
 				}
 
 				return {

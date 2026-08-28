@@ -6,8 +6,7 @@ import { getManualAttendanceMark, saveManualAttendanceMark } from "@/lib/manual-
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
-const SEM_ORDER: Record<string, number> = { "SEM 1": 1, "SEM 2": 2, "SEM 3": 3 };
-const SEM_KEY_MAP: Record<string, "sem1Label" | "sem2Label" | "sem3Label"> = { "SEM 1": "sem1Label", "SEM 2": "sem2Label", "SEM 3": "sem3Label" };
+import { SEMESTER_ORDER as SEM_ORDER, semesterI18nKey } from "@/lib/semester";
 
 function getClassSemLabel(dateStr: string): string {
 	const parts = dateStr.split("/");
@@ -163,7 +162,7 @@ export default function AttendanceModal({ course, onClose }: AttendanceModalProp
 									onClick={() => setSelectedSem(sem)}
 									className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-medium transition-colors ${isActive ? "bg-accent text-white" : "bg-overlay text-[var(--text-secondary)] hover:bg-active"}`}
 								>
-									<div>{tCal(SEM_KEY_MAP[sem] ?? "sem1Label")}</div>
+									<div>{tCal(semesterI18nKey(sem))}</div>
 									<div className={`text-[10px] mt-0.5 ${isActive ? "text-white/80" : "text-[var(--text-tertiary)]"}`}>
 										{b.attended}/{b.calendarTotalClasses} · {b.attendanceRate.toFixed(0)}%
 									</div>

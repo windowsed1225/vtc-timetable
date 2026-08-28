@@ -3,6 +3,7 @@
  * Not exported from the barrel; these are implementation details.
  */
 
+import { getSemesterLabel, type SemesterNumber } from "@/lib/semester";
 import { getTimetableYearForSemester } from "@/lib/utils";
 
 export const SEMESTER_MAP: Record<number, number[]> = {
@@ -11,46 +12,82 @@ export const SEMESTER_MAP: Record<number, number[]> = {
     3: [5, 6, 7, 8],
 };
 
-export const SEMESTER_CATEGORY_MAP: Record<number, "SEM 1" | "SEM 2" | "SEM 3"> = {
-    1: "SEM 1",
-    2: "SEM 2",
-    3: "SEM 3",
+export const SEMESTER_CATEGORY_MAP: Record<number, SemesterNumber> = {
+    1: 1,
+    2: 2,
+    3: 3,
+    4: 4,
+    5: 5,
+    6: 6,
+    7: 7,
+    8: 8,
+    9: 9,
 };
 
-export const SEMESTER_END_DATES: Record<string, { month: number; day: number }> = {
-    "SEM 1": { month: 12, day: 31 },
-    "SEM 2": { month: 5, day: 31 },
-    "SEM 3": { month: 8, day: 31 },
+export const SEMESTER_END_DATES: Record<number, { month: number; day: number }> = {
+    1: { month: 12, day: 31 },
+    2: { month: 5, day: 31 },
+    3: { month: 8, day: 31 },
+    4: { month: 12, day: 31 },
+    5: { month: 5, day: 31 },
+    6: { month: 8, day: 31 },
+    7: { month: 12, day: 31 },
+    8: { month: 5, day: 31 },
+    9: { month: 8, day: 31 },
 };
 
 export const SEMESTER_ORDER_MAP: Record<string, number> = {
     "SEM 1": 1,
     "SEM 2": 2,
     "SEM 3": 3,
+    "SEM 4": 4,
+    "SEM 5": 5,
+    "SEM 6": 6,
+    "SEM 7": 7,
+    "SEM 8": 8,
+    "SEM 9": 9,
 };
 
 /**
- * Which (semester, category, year) timetables to fetch for a given semester number,
- * including the backfill rules (Spring also pulls previous Fall, Summer also pulls
- * current Spring).
+ * Which (season slot, year) timetables to fetch.
+ * Extra prior academic years cover HD (2y) and DVE (3y).
  */
 export function getTimetableTargets(
     semesterNum: number,
     date: Date = new Date(),
-): Array<{ semNum: number; semCategory: "SEM 1" | "SEM 2" | "SEM 3"; year: number }> {
+    yearCount: 1 | 2 | 3 = 3,
+): Array<{ semNum: number; semCategory: SemesterNumber; year: number }> {
     const currentYear = date.getFullYear();
+    const prior = Math.max(0, yearCount - 1);
+    const label = (n: number) => getSemesterLabel(n);
     switch (semesterNum) {
-        case 1:
-            return [{ semNum: 1, semCategory: "SEM 1", year: getTimetableYearForSemester(1, date) }];
+        case 1: {
+            const fallYear = getTimetableYearForSemester(1, date);
+            return Array.from({ length: prior + 1 }, (_, i) => ({
+                semNum: 1,
+                semCategory: label(1),
+                year: fallYear - i,
+            }));
+        }
         case 2:
             return [
-                { semNum: 2, semCategory: "SEM 2", year: currentYear },
-                { semNum: 1, semCategory: "SEM 1", year: currentYear - 1 },
+                { semNum: 2, semCategory: label(2), year: currentYear },
+                ...Array.from({ length: prior }, (_, i) => ({
+                    semNum: 2,
+                    semCategory: label(2),
+                    year: currentYear - 1 - i,
+                })),
+                { semNum: 1, semCategory: label(1), year: currentYear - 1 },
             ];
         case 3:
             return [
-                { semNum: 3, semCategory: "SEM 3", year: currentYear },
-                { semNum: 2, semCategory: "SEM 2", year: currentYear },
+                { semNum: 3, semCategory: label(3), year: currentYear },
+                ...Array.from({ length: prior }, (_, i) => ({
+                    semNum: 3,
+                    semCategory: label(3),
+                    year: currentYear - 1 - i,
+                })),
+                { semNum: 2, semCategory: label(2), year: currentYear },
             ];
         default:
             return [];

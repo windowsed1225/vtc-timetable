@@ -71,6 +71,19 @@ Treat checked-in code, configuration, and `package.json` as authoritative. The R
 
 VTC timetable lecture IDs are fresh random UUID v4 values on every upstream request. Never use them as persistent identifiers, deduplication keys, or cache keys. Use the repository's stable composite-event identity helpers and stable lecture fields instead.
 
+## Digital e-card fields
+
+`registerEcard` / `getEcard` return a digital copy of the physical student card. Treat `libraryNumber`, `block0`, `block1`, `smartcardId`, `doorAccessKey`, `studNo`, and `photoStr` as personal card data: do not log them, commit them, or show them except on owner-gated surfaces. Strip `photoStr` from playground and default API responses.
+
+Observed encoding (from `userInfo`):
+
+- `libraryNumber` — printed library barcode payload from e-card. Observed HKIIT cards use a campus/library prefix + student number + check digit (example: `2188` + `260083349` + `1` → `21882600833491`). Do not hardcode `2188`; use the e-card value for that student.
+- `block0` — first campus smart-card memory block (door / turnstile chip). Campus/card-type prefix + student number + a short trailer. Example: `63` + `260083349` + `00001` → `6326008334900001`.
+- `block1` — second chip block. Card expiry as `MM` + `YYYY` padded with zeros. Example: `0820280000000000` is August 2028, matching `expiryDate` style `08.2028`.
+- `doorAccessKey` (on `getEcard` only) — hex material campus readers scan. `block0` / `block1` are the raw card memory that key is built from.
+
+E-card register also needs a `deviceID` query (uppercase UUID). The playground may send a dummy UUID when the caller omits one. Never send the mobile VTC token as `deviceID`.
+
 ## Security and data safety
 
 - Never expose or commit authentication secrets, VTC tokens, refresh tokens, database credentials, or personal student data.

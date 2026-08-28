@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
-import Event, { IEvent, SemesterType } from "@/models/Event";
+import { normalizeSemester, semesterTag } from "@/lib/semester";
+import Event, { IEvent } from "@/models/Event";
 import { createEvents, EventAttributes } from "ics";
 
 /**
@@ -76,9 +77,10 @@ export async function GET(
         const vtcStudentId = user.vtcStudentId;
 
         // Build query - optionally filter by semester
-        const query: { vtcStudentId: string; semester?: SemesterType } = { vtcStudentId };
-        if (semesterFilter && ["SEM 1", "SEM 2", "SEM 3"].includes(semesterFilter)) {
-            query.semester = semesterFilter as SemesterType;
+        const query: { vtcStudentId: string; semester?: { $in: Array<number | string> } } = { vtcStudentId };
+        const semesterNum = semesterFilter ? normalizeSemester(semesterFilter) : null;
+        if (semesterNum) {
+            query.semester = { $in: [semesterNum, semesterTag(semesterNum)] };
         }
 
         // Fetch events for this user (optionally filtered by semester)

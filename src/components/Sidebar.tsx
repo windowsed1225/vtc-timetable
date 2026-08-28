@@ -3,26 +3,13 @@
 import { HybridAttendanceStats } from "@/app/actions";
 import { LINE_COLORS } from "@/lib/colors";
 import { DEFAULT_GRACE_PERIOD_THRESHOLD, thresholdOf } from "@/lib/grace-period";
+import { SEMESTER_ORDER, semesterI18nKey } from "@/lib/semester";
 import { CalendarEvent } from "@/types/timetable";
 import { useTranslations } from "next-intl";
 import { useMemo, useState, type CSSProperties } from "react";
 import AttendanceModal from "./AttendanceModal";
 import CourseDetailsModal from "./CourseDetailsModal";
 import SemesterSummaryCard from "./SemesterSummaryCard";
-
-// Semester display names — resolved at runtime via translations
-const SEMESTER_KEY_MAP: Record<string, "sem1Label" | "sem2Label" | "sem3Label"> = {
-	"SEM 1": "sem1Label",
-	"SEM 2": "sem2Label",
-	"SEM 3": "sem3Label",
-};
-
-// Semester sort order (newest first)
-const SEMESTER_ORDER: Record<string, number> = {
-	"SEM 3": 3,
-	"SEM 2": 2,
-	"SEM 1": 1,
-};
 
 interface CourseInfo {
 	courseCode: string;
@@ -55,7 +42,7 @@ export default function Sidebar({ courses, events, attendance, onSyncClick, onRe
 	const t = useTranslations("calendar");
 	const tAtt = useTranslations("attendance");
 	const tTour = useTranslations("tour");
-	const semLabel = (sem: string) => t(SEMESTER_KEY_MAP[sem] ?? "sem1Label");
+	const semLabel = (sem: string) => t(semesterI18nKey(sem));
 	const [selectedCourse, setSelectedCourse] = useState<HybridAttendanceStats | null>(null);
 	const [selectedCourseInfo, setSelectedCourseInfo] = useState<CourseInfo | null>(null);
 	const [calculatingCourse, setCalculatingCourse] = useState<HybridAttendanceStats | null>(null);

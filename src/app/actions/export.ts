@@ -2,7 +2,8 @@
 
 import { auth } from "@/auth";
 import connectDB from "@/lib/db";
-import { IEvent, SemesterType } from "@/models/Event";
+import { normalizeSemester, semesterTag } from "@/lib/semester";
+import { IEvent } from "@/models/Event";
 import Event from "@/models/Event";
 import User from "@/models/User";
 
@@ -24,9 +25,9 @@ export async function exportSemesterIcs(semester: string): Promise<{
 		}
 
 		// Step 2: Validate semester
-		const validSemesters = ["SEM 1", "SEM 2", "SEM 3"];
-		if (!validSemesters.includes(semester)) {
-			return { success: false, error: "Invalid semester. Use 'SEM 1', 'SEM 2', or 'SEM 3'." };
+		const semesterNum = normalizeSemester(semester);
+		if (!semesterNum) {
+			return { success: false, error: "Invalid semester." };
 		}
 
 		// Step 3: Get vtcStudentId from User
@@ -37,7 +38,10 @@ export async function exportSemesterIcs(semester: string): Promise<{
 		}
 
 		// Step 4: Fetch events by vtcStudentId (not discordId — events don't have discordId)
-		const events = await Event.find({ vtcStudentId: user.vtcStudentId, semester: semester as SemesterType })
+		const events = await Event.find({
+			vtcStudentId: user.vtcStudentId,
+			semester: { $in: [semesterNum, semesterTag(semesterNum)] },
+		})
 			.sort({ startTime: 1 })
 			.lean();
 

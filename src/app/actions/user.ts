@@ -5,6 +5,7 @@ import { getAuthenticatedUser } from "@/lib/authenticated-user";
 import connectDB from "@/lib/db";
 import { loadPrintQuota, loadProgrammeInfo, type ProgrammeInfo } from "@/lib/load-user-data";
 import User from "@/models/User";
+import { buildStudentCardView, type StudentCardView } from "@/lib/student-card";
 import type { EcardUserInfo } from "../../../vtc-api/src/types/ecardRegister";
 import type { PrintQuotaPayload } from "../../../vtc-api/src/types/getPrintQuota";
 import { API } from "../../../vtc-api/src/core/api";
@@ -269,6 +270,25 @@ export async function getEcard(options?: {
 			error: error instanceof Error ? error.message : "Failed to fetch e-card",
 		};
 	}
+}
+
+/**
+ * Visual student-card fields only (no tokens, door key, or raw photoStr).
+ * Photo is returned as a data URL for the signed-in user's own card.
+ */
+export async function getStudentCard(): Promise<{
+	success: boolean;
+	data?: StudentCardView;
+	error?: string;
+}> {
+	const result = await getEcard({ includePhoto: true });
+	if (!result.success || !result.data) {
+		return { success: false, error: result.error || "Failed to fetch e-card" };
+	}
+	return {
+		success: true,
+		data: buildStudentCardView(result.data.userInfo),
+	};
 }
 
 /**

@@ -27,6 +27,10 @@ describe("Fall timetable year", () => {
 
 describe("timetable sync targets", () => {
 	test("August SEM 1 lookahead fetches 2026, not 2025", () => {
-		expect(getTimetableTargets(1, new Date(2026, 7, 25))).toEqual([{ semNum: 1, semCategory: "SEM 1", year: 2026 }]);
+		expect(getTimetableTargets(1, new Date(2026, 7, 25), 1)).toEqual([{ semNum: 1, semCategory: 1, year: 2026 }]);
+	});
+
+	test("DVE three-year coverage fetches the prior two Falls as well", () => {
+		expect(getTimetableTargets(1, new Date(2026, 7, 25), 3).map((row) => row.year)).toEqual([2026, 2025, 2024]);
 	});
 });

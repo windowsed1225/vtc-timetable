@@ -24,6 +24,7 @@ import TimetableCalendar from "@/components/TimetableCalendar";
 import CalendarTopActions from "@/components/CalendarTopActions";
 import MobileAttendanceView from "@/components/MobileAttendanceView";
 import MobileBottomNav from "@/components/MobileBottomNav";
+import { jumpMonthForSemester } from "@/lib/semester";
 import { getDateArray, getSemestersToSync } from "@/lib/utils";
 import { CalendarEvent } from "@/types/timetable";
 import { createEvents, EventAttributes } from "ics";
@@ -32,7 +33,17 @@ import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Views } from "react-big-calendar";
 
-const SEMESTER_PROGRESS_LABELS: Record<number, string> = { 1: "Fall (SEM 1)", 2: "Spring (SEM 2)", 3: "Summer (SEM 3)" };
+const SEMESTER_PROGRESS_LABELS: Record<number, string> = {
+    1: "SEM 1",
+    2: "SEM 2",
+    3: "SEM 3",
+    4: "SEM 4",
+    5: "SEM 5",
+    6: "SEM 6",
+    7: "SEM 7",
+    8: "SEM 8",
+    9: "SEM 9",
+};
 
 // Per-semester progress shown in the expandable background-sync details panel.
 type SemesterSyncStatus = "pending" | "syncing" | "done" | "error";
@@ -358,7 +369,7 @@ export default function AuthenticatedHome() {
             const courses = list.courses ?? [];
 
             // Step 4: per-course attendance (real "i / total" + current course id)
-            const courseSemesterMap: Record<string, "SEM 1" | "SEM 2" | "SEM 3"> = {};
+            const courseSemesterMap: Record<string, number> = {};
             let totalNewAttendance = 0;
             for (let i = 0; i < courses.length; i++) {
                 if (signal.aborted) return;
@@ -477,13 +488,11 @@ export default function AuthenticatedHome() {
     const handleSemesterFilterChange = (semester: string) => {
         setSemesterFilter(semester);
         const now = new Date();
-        if (semester === "SEM 1") {
-            const year = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
-            setDate(new Date(year, 8, 1));
-        } else if (semester === "SEM 2") {
-            setDate(new Date(now.getFullYear(), 0, 1));
-        } else if (semester === "SEM 3") {
-            setDate(new Date(now.getFullYear(), 4, 1));
+        const match = events.find((event) => event.resource?.semester === semester);
+        if (match) {
+            setDate(match.start);
+        } else {
+            setDate(jumpMonthForSemester(semester, now));
         }
     };
 

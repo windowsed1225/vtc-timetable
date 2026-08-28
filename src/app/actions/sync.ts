@@ -4,15 +4,91 @@ import { auth } from "@/auth";
 import { invalidateUserCaches } from "@/lib/cache";
 import { getColorIndex } from "@/lib/colors";
 import connectDB from "@/lib/db";
-import { getCurrentSemester, getSemestersToSync, getTimetableYearForSemester } from "@/lib/utils";
+import {
+	academicYearStartYear,
+	detectProgrammeKind,
+	normalizeSemester,
+	parseIntakeAcademicYear,
+	programmeSemesterFromDate,
+	programmeSemesterFromVtcDate,
+	programmeYearCount,
+	resolveProgrammeStartAcademicYear,
+	studyYearFromStudentId,
+	semesterEndDate,
+	type ProgrammeKind,
+	type SemesterNumber,
+} from "@/lib/semester";
+import { getCurrentSemester, getSemestersToSync } from "@/lib/utils";
 import Attendance, { IClassRecord } from "@/models/Attendance";
 import Event from "@/models/Event";
 import User from "@/models/User";
 import { TimetableEvent } from "@/types/timetable";
 import { revalidatePath } from "next/cache";
 import { API } from "../../../vtc-api/src/core/api";
-import { buildCompositeEventId, extractToken, getAttendancePresence, getDurationInMinutes, getTimetableTargets, parseVtcLessonTime, SEMESTER_CATEGORY_MAP, SEMESTER_END_DATES, SEMESTER_MAP } from "./_helpers";
+import { buildCompositeEventId, extractToken, getAttendancePresence, getDurationInMinutes, getTimetableTargets, parseVtcLessonTime, SEMESTER_CATEGORY_MAP, SEMESTER_MAP } from "./_helpers";
 import type { VtcApiResponse } from "./types";
+
+type ProgrammeContext = {
+	kind: ProgrammeKind;
+	startAcademicYear: number;
+	yearCount: 1 | 2 | 3;
+};
+
+async function resolveProgrammeContext(api: API, vtcStudentId: string, now: Date): Promise<ProgrammeContext> {
+	let kind: ProgrammeKind = "unknown";
+	try {
+		const ecard = await api.registerEcard();
+		const info = ecard.payload?.userInfo;
+		if (ecard.isSuccess && info) {
+			kind = detectProgrammeKind(info.progStructCodeDesc, info.progStructCode);
+		}
+	} catch {
+		// e-card is optional; intake year still comes from the student ID
+	}
+
+	const bounds = await Event.aggregate<{ earliest?: Date; latest?: Date }>([
+		{ $match: { vtcStudentId } },
+		{ $group: { _id: null, earliest: { $min: "$startTime" }, latest: { $max: "$startTime" } } },
+	]);
+	const earliestDate = bounds[0]?.earliest ?? null;
+	const latestDate = bounds[0]?.latest ?? null;
+	if (kind === "unknown" && earliestDate && latestDate) {
+		const span = academicYearStartYear(new Date(latestDate)) - academicYearStartYear(new Date(earliestDate)) + 1;
+		if (span >= 3) kind = "dve";
+		else if (span >= 2) kind = "hd";
+		else kind = "dfs";
+	}
+
+	const intakeYear = parseIntakeAcademicYear(vtcStudentId);
+	const studyYear = studyYearFromStudentId(vtcStudentId, now);
+	const startAcademicYear = resolveProgrammeStartAcademicYear({
+		now,
+		intakeYear,
+		studyYear,
+		kind,
+		earliestDate: earliestDate ? new Date(earliestDate) : null,
+		latestDate: latestDate ? new Date(latestDate) : null,
+	});
+	const maxYears = programmeYearCount(kind);
+	const yearCount = (studyYear && studyYear >= 2
+		? Math.min(maxYears, studyYear)
+		: 1) as 1 | 2 | 3;
+	return { kind, startAcademicYear, yearCount };
+}
+
+async function retagEventSemesters(vtcStudentId: string, programme: ProgrammeContext) {
+	const events = await Event.find({ vtcStudentId }).select({ _id: 1, startTime: 1, semester: 1 }).lean();
+	const ops = [];
+	for (const ev of events) {
+		const next = programmeSemesterFromDate(new Date(ev.startTime), programme.startAcademicYear, programme.kind);
+		if (normalizeSemester(ev.semester) !== next) {
+			ops.push({ updateOne: { filter: { _id: ev._id }, update: { $set: { semester: next } } } });
+		}
+	}
+	if (ops.length > 0) {
+		await Event.bulkWrite(ops, { ordered: false });
+	}
+}
 
 type UpsertAttendanceEventInput = {
 	cls: {
@@ -23,7 +99,7 @@ type UpsertAttendanceEventInput = {
 		attendTime?: string | null;
 	};
 	vtcStudentId: string;
-	semester: "SEM 1" | "SEM 2" | "SEM 3";
+	semester: SemesterNumber;
 	courseCode: string;
 	courseTitle: string;
 	colorIndex: number;
@@ -113,7 +189,7 @@ async function upsertAttendanceAdjustedEvent({ cls, vtcStudentId, semester, cour
 // A single MongoDB bulkWrite updateOne op for an Attendance document.
 type AttendanceBulkOp = {
 	updateOne: {
-		filter: { courseCode: string; vtcStudentId: string; semester: "SEM 1" | "SEM 2" | "SEM 3" };
+		filter: { courseCode: string; vtcStudentId: string; semester: SemesterNumber };
 		update: { $set: Record<string, unknown> };
 		upsert: boolean;
 	};
@@ -125,9 +201,10 @@ async function fetchSemesterTimetableEvents(
 	api: API,
 	vtcStudentId: string,
 	semNum: number,
-	semCategory: "SEM 1" | "SEM 2" | "SEM 3",
+	_semCategory: SemesterNumber,
 	year: number,
 	now: Date,
+	programme: ProgrammeContext,
 ): Promise<number> {
 	const months = SEMESTER_MAP[semNum];
 	if (!months) return 0;
@@ -181,7 +258,7 @@ async function fetchSemesterTimetableEvents(
 				return {
 					vtc_id: event.compositeId,
 					vtcStudentId: vtcStudentId,
-					semester: semCategory,
+					semester: programmeSemesterFromDate(eventStartTime, programme.startAcademicYear, programme.kind),
 					status: calculatedStatus,
 					courseCode: event.courseCode,
 					courseTitle: event.courseTitle,
@@ -225,10 +302,10 @@ async function buildCourseAttendanceOp(
 	api: API,
 	vtcStudentId: string,
 	course: { courseCode: string; name?: { en?: string | null } | null },
-	fallbackSemester: "SEM 1" | "SEM 2" | "SEM 3",
+	fallbackSemester: SemesterNumber,
 	now: Date,
-	currentYear: number,
-): Promise<{ op: AttendanceBulkOp; courseSemester: "SEM 1" | "SEM 2" | "SEM 3" }> {
+	programme: ProgrammeContext,
+): Promise<{ op: AttendanceBulkOp; courseSemester: SemesterNumber }> {
 	const detailResponse = await api.getClassAttendanceDetail(course.courseCode);
 
 	let attended = 0;
@@ -265,16 +342,14 @@ async function buildCourseAttendanceOp(
 		}
 	}
 
-	// Derive semester from earliest class date (mirrors attendance.ts logic).
-	let courseSemester: "SEM 1" | "SEM 2" | "SEM 3" = fallbackSemester;
+	let courseSemester: SemesterNumber = fallbackSemester;
 	if (classRecords.length > 0) {
-		const dateParts = classRecords[0].date.split("/");
-		if (dateParts.length === 3) {
-			const month = parseInt(dateParts[1], 10);
-			if (month >= 9 && month <= 12) courseSemester = "SEM 1";
-			else if (month >= 1 && month <= 4) courseSemester = "SEM 2";
-			else courseSemester = "SEM 3";
-		}
+		courseSemester = programmeSemesterFromVtcDate(
+			classRecords[0].date,
+			programme.startAcademicYear,
+			programme.kind,
+			fallbackSemester,
+		);
 	}
 
 	// Upsert adjusted calendar events now that semester is known
@@ -296,9 +371,7 @@ async function buildCourseAttendanceOp(
 	const attendRate = totalConducted > 0 ? (attended / totalConducted) * 100 : 0;
 	const isFollowUp = /A$/.test(course.courseCode);
 	const baseCourseCode = isFollowUp ? course.courseCode.slice(0, -1) : course.courseCode;
-	const semesterEnd = SEMESTER_END_DATES[courseSemester];
-	const semesterEndDate = new Date(currentYear, semesterEnd.month - 1, semesterEnd.day, 23, 59, 59);
-	const isPastSemesterEnd = now > semesterEndDate;
+	const isPastSemesterEnd = now > semesterEndDate(courseSemester, programme.startAcademicYear);
 	const meetsClassThreshold = totalConducted > 10;
 	const attendanceStatus: "ACTIVE" | "FINISHED" = isPastSemesterEnd && meetsClassThreshold ? "FINISHED" : "ACTIVE";
 
@@ -380,28 +453,25 @@ export async function syncVtcData(
 		await connectDB();
 		await User.findOneAndUpdate({ discordId }, { vtcToken: token, vtcStudentId, lastSync: new Date() }, { upsert: true });
 
-		// Step 5: Determine semester category
 		const primarySemester = SEMESTER_CATEGORY_MAP[semesterNum];
 		if (!primarySemester) {
 			return {
 				success: false,
-				error: "Invalid semester number. Use 1 (Fall), 2 (Spring), or 3 (Summer).",
+				error: "Invalid semester number. Use 1–9.",
 			};
 		}
 
-		const currentYear = new Date().getFullYear();
 		const now = new Date();
+		const programme = await resolveProgrammeContext(api, vtcStudentId, now);
 
-		// Step 6: Fetch timetables with backfill logic (Fall only; Spring + prev Fall;
-		// Summer + current Spring). Executed in parallel.
 		const results = await Promise.all(
-			getTimetableTargets(semesterNum, now).map((tt) =>
-				fetchSemesterTimetableEvents(api, vtcStudentId, tt.semNum, tt.semCategory, tt.year, now),
+			getTimetableTargets(semesterNum, now, programme.yearCount).map((tt) =>
+				fetchSemesterTimetableEvents(api, vtcStudentId, tt.semNum, tt.semCategory, tt.year, now, programme),
 			),
 		);
+		await retagEventSemesters(vtcStudentId, programme);
 		const newEventsCount = results.reduce((sum, count) => sum + count, 0);
 
-		// Step 6: Fetch and save Attendance
 		const listResponse = await api.getClassAttendanceList();
 		let newAttendanceCount = 0;
 
@@ -410,7 +480,7 @@ export async function syncVtcData(
 
 			const attendanceOps = await Promise.all(
 				courses.map(async (course) => {
-					const { op } = await buildCourseAttendanceOp(api, vtcStudentId, course, primarySemester, now, currentYear);
+					const { op } = await buildCourseAttendanceOp(api, vtcStudentId, course, primarySemester, now, programme);
 					return op;
 				}),
 			);
@@ -422,7 +492,7 @@ export async function syncVtcData(
 
 			// Remove stale Attendance records where the semester was mis-tagged in a previous sync.
 			// Build a map of courseCode -> correct semester from the ops we just wrote.
-			const correctSemesterMap: Record<string, "SEM 1" | "SEM 2" | "SEM 3"> = {};
+			const correctSemesterMap: Record<string, SemesterNumber> = {};
 			for (const op of attendanceOps) {
 				if ("updateOne" in op) {
 					const { courseCode, semester } = op.updateOne.filter;
@@ -785,12 +855,14 @@ export async function syncSemesterTimetableStored(semesterNum: number): Promise<
 
 		const api = new API({ token: ctx.token });
 		const now = new Date();
+		const programme = await resolveProgrammeContext(api, ctx.vtcStudentId, now);
 
 		const results = await Promise.all(
-			getTimetableTargets(semesterNum, now).map((tt) =>
-				fetchSemesterTimetableEvents(api, ctx.vtcStudentId, tt.semNum, tt.semCategory, tt.year, now),
+			getTimetableTargets(semesterNum, now, programme.yearCount).map((tt) =>
+				fetchSemesterTimetableEvents(api, ctx.vtcStudentId, tt.semNum, tt.semCategory, tt.year, now, programme),
 			),
 		);
+		await retagEventSemesters(ctx.vtcStudentId, programme);
 		await invalidateUserCaches(ctx.userId);
 		return { success: true, newEvents: results.reduce((sum, c) => sum + c, 0) };
 	} catch (error) {
@@ -839,7 +911,7 @@ export async function syncCourseAttendanceStored(
 	courseName: string,
 ): Promise<{
 	success: boolean;
-	courseSemester?: "SEM 1" | "SEM 2" | "SEM 3";
+	courseSemester?: SemesterNumber;
 	newAttendance?: number;
 	error?: string;
 }> {
@@ -849,8 +921,8 @@ export async function syncCourseAttendanceStored(
 
 		const api = new API({ token: ctx.token });
 		const now = new Date();
-		const currentYear = now.getFullYear();
-		const fallbackSemester = SEMESTER_CATEGORY_MAP[getCurrentSemester()] ?? "SEM 1";
+		const programme = await resolveProgrammeContext(api, ctx.vtcStudentId, now);
+		const fallbackSemester = SEMESTER_CATEGORY_MAP[getCurrentSemester()] ?? 2;
 
 		const { op, courseSemester } = await buildCourseAttendanceOp(
 			api,
@@ -858,7 +930,7 @@ export async function syncCourseAttendanceStored(
 			{ courseCode, name: { en: courseName } },
 			fallbackSemester,
 			now,
-			currentYear,
+			programme,
 		);
 
 		const result = await Attendance.bulkWrite([op]);
@@ -874,7 +946,7 @@ export async function syncCourseAttendanceStored(
  * previous sync, using the courseCode → semester map gathered from step 4, then
  * revalidate the home route.
  */
-export async function finalizeAttendanceSync(courseSemesterMap: Record<string, "SEM 1" | "SEM 2" | "SEM 3">): Promise<{
+export async function finalizeAttendanceSync(courseSemesterMap: Record<string, SemesterNumber>): Promise<{
 	success: boolean;
 	error?: string;
 }> {

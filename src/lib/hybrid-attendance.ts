@@ -1,6 +1,7 @@
 import type { ClassRecord, HybridAttendanceStats } from "@/app/actions/types";
 import { EARLY_SEMESTER_WARNING_PROGRESS, gracePeriodRatio } from "@/lib/grace-period";
 import { getDurationInMinutes, isAttendanceStatusPresent } from "@/app/actions/_helpers";
+import { monthToSeasonSlot, normalizeSemester, semesterTag } from "@/lib/semester";
 
 export type HybridEventSource = {
 	courseCode: string;
@@ -37,12 +38,20 @@ export type HybridAttendanceSource = {
 	}>;
 };
 
-function getClassSemester(dateStr: string): string {
+function getClassSeasonTag(dateStr: string): string {
 	const parts = dateStr.split("/");
 	const month = parseInt(parts[1], 10);
-	if (month >= 9 && month <= 12) return "SEM 1";
-	if (month >= 1 && month <= 4) return "SEM 2";
-	return "SEM 3";
+	if (!Number.isInteger(month)) return "SEM 2";
+	return semesterTag(monthToSeasonSlot(month));
+}
+
+function toSemesterTag(value: string | number | undefined): string {
+	return semesterTag(normalizeSemester(value) ?? 2);
+}
+
+function seasonTagOf(value: string | number | undefined): string {
+	const n = normalizeSemester(value) ?? 2;
+	return semesterTag((((n - 1) % 3) + 1) as 1 | 2 | 3);
 }
 
 export function buildHybridAttendanceStats(
@@ -163,7 +172,7 @@ export function buildHybridAttendanceStats(
 			const latestEvent = calendarEvents.reduce((latest, ev) => {
 				return new Date(ev.startTime) > new Date(latest.startTime) ? ev : latest;
 			});
-			displaySemester = latestEvent.semester || undefined;
+			displaySemester = toSemesterTag(latestEvent.semester);
 		}
 		if (!displaySemester && classes.length > 0) {
 			const latestClass = classes.reduce((latest, cls) => {
@@ -171,12 +180,12 @@ export function buildHybridAttendanceStats(
 				const [dC, mC, yC] = cls.date.split("/").map(Number);
 				return new Date(yC, mC - 1, dC) > new Date(yL, mL - 1, dL) ? cls : latest;
 			});
-			displaySemester = getClassSemester(latestClass.date);
+			displaySemester = getClassSeasonTag(latestClass.date);
 		}
 
 		const semesterBreakdowns: HybridAttendanceStats["semesterBreakdowns"] = {};
 		for (const cls of classes) {
-			const sem = getClassSemester(cls.date);
+			const sem = getClassSeasonTag(cls.date);
 			if (!semesterBreakdowns[sem]) {
 				semesterBreakdowns[sem] = { attended: 0, conductedClasses: 0, attendanceRate: 0, calendarTotalClasses: 0 };
 			}
@@ -184,7 +193,7 @@ export function buildHybridAttendanceStats(
 			if (cls.status === "attended" || cls.status === "late") semesterBreakdowns[sem].attended++;
 		}
 		for (const event of calendarEvents) {
-			const sem = event.semester;
+			const sem = toSemesterTag(event.semester);
 			if (!sem) continue;
 			if (!semesterBreakdowns[sem]) {
 				semesterBreakdowns[sem] = { attended: 0, conductedClasses: 0, attendanceRate: 0, calendarTotalClasses: 0 };
@@ -199,8 +208,8 @@ export function buildHybridAttendanceStats(
 
 		let currentSemesterStats: HybridAttendanceStats["currentSemesterStats"];
 		if (classes.length > 0) {
-			const targetSem = displaySemester || record.semester;
-			const currentSemClasses = classes.filter((cls) => getClassSemester(cls.date) === targetSem);
+			const targetSem = displaySemester || toSemesterTag(record.semester);
+			const currentSemClasses = classes.filter((cls) => getClassSeasonTag(cls.date) === seasonTagOf(targetSem));
 			const semConducted = currentSemClasses.length;
 			const semAttended = currentSemClasses.filter((cls) => cls.status === "attended" || cls.status === "late").length;
 			currentSemesterStats = {
@@ -214,7 +223,7 @@ export function buildHybridAttendanceStats(
 		return {
 			courseCode: record.courseCode,
 			courseName: record.courseName,
-			semester: record.semester || "SEM 2",
+			semester: toSemesterTag(record.semester),
 			status: record.status || "ACTIVE",
 			attendRate: record.attendRate,
 			totalClasses: record.totalClasses,

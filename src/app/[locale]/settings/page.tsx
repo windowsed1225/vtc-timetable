@@ -285,6 +285,7 @@ export default function SettingsPage() {
 				<aside className="settings-nav" aria-label={t("title")}>
 					<a href="#account"><strong>{t("account")}</strong><span>{t("accountDescription")}</span></a>
 					<a href="#connection"><strong>{t("vtcConnection")}</strong><span>{t("vtcConnectionDescription")}</span></a>
+					<Link href={`/${locale}/api`}><strong>{t("apiPlayground")}</strong><span>{t("apiPlaygroundDescription")}</span></Link>
 					<a href="#attendance"><strong>{t("gracePeriodTitle")}</strong><span>{t("gracePeriodNavDescription")}</span></a>
 					<a href="#security"><strong>{t("loginSecurity")}</strong><span>{t("loginSecurityDescription")}</span></a>
 					<a href="#data"><strong>{t("storedData")}</strong><span>{t("storedDataDescription")}</span></a>
@@ -346,6 +347,13 @@ export default function SettingsPage() {
 									</button>
 								)}
 							</div>
+						</div>
+
+						<div className="settings-row">
+							<span className="settings-row-label">{t("apiPlayground")}</span>
+							<Link href={`/${locale}/api`} className="btn-secondary text-xs">
+								{t("openApiPlayground")}
+							</Link>
 						</div>
 
 						{/* Site from checkAccessToken */}

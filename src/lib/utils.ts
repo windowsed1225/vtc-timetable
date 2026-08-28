@@ -55,17 +55,7 @@ export function getAcademicYear(date: Date = new Date()): string {
     return `${startYear}/${endYear.toString().padStart(2, "0")}`;
 }
 
-/**
- * Get semester label from number (e.g., 2 → "SEM 2")
- */
-export function getSemesterLabel(semNum: number): "SEM 1" | "SEM 2" | "SEM 3" {
-    const map: Record<number, "SEM 1" | "SEM 2" | "SEM 3"> = {
-        1: "SEM 1",
-        2: "SEM 2",
-        3: "SEM 3",
-    };
-    return map[semNum] || "SEM 2";
-}
+export { getSemesterLabel } from "./semester";
 
 /**
  * Auto-detect semester and return a human-readable label.
@@ -137,9 +127,11 @@ export function getSemestersToSync(): number[] {
  */
 export function getSemesterDisplayLabel(semNum: number): string {
     const labels: Record<number, string> = {
-        1: "Semester 1 (Sep–Dec)",
-        2: "Semester 2 (Jan–Apr)",
-        3: "Summer (May–Aug)",
+        1: "Semester 1 (Y1 Fall)",
+        2: "Semester 2 (Y1 Spring)",
+        3: "Semester 3 (Y1 Summer)",
+        4: "Semester 4 (Y2 Fall)",
+        5: "Semester 5 (Y2 Spring)",
     };
     return labels[semNum] || "Unknown";
 }

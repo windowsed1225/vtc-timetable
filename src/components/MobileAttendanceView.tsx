@@ -3,6 +3,7 @@
 import type { HybridAttendanceStats } from "@/app/actions";
 import { thresholdOf } from "@/lib/grace-period";
 import { Link } from "@/lib/navigation";
+import { SEMESTER_ORDER, semesterI18nKey } from "@/lib/semester";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import AttendanceModal from "./AttendanceModal";
@@ -13,8 +14,7 @@ interface MobileAttendanceViewProps {
 	isRefreshing: boolean;
 }
 
-const semesterOrder: Record<string, number> = { "SEM 3": 3, "SEM 2": 2, "SEM 1": 1 };
-const semesterKeys: Record<string, "sem1Label" | "sem2Label" | "sem3Label"> = { "SEM 1": "sem1Label", "SEM 2": "sem2Label", "SEM 3": "sem3Label" };
+
 
 export default function MobileAttendanceView({ attendance, onRefresh, isRefreshing }: MobileAttendanceViewProps) {
 	const t = useTranslations("attendance");
@@ -34,7 +34,7 @@ export default function MobileAttendanceView({ attendance, onRefresh, isRefreshi
 			const semester = item.displaySemester || item.semester || "SEM 2";
 			(groups[semester] ||= []).push(item);
 		}
-		return Object.entries(groups).sort(([a], [b]) => (semesterOrder[b] || 0) - (semesterOrder[a] || 0));
+		return Object.entries(groups).sort(([a], [b]) => (SEMESTER_ORDER[b] || 0) - (SEMESTER_ORDER[a] || 0));
 	}, [visibleAttendance]);
 
 	return (
@@ -57,7 +57,7 @@ export default function MobileAttendanceView({ attendance, onRefresh, isRefreshi
 
 			{grouped.length === 0 ? <p className="mobile-attendance-empty">{t("noAttendanceData")}</p> : grouped.map(([semester, items]) => (
 				<section key={semester} className="mobile-attendance-semester">
-					<div className="mobile-attendance-semester-heading"><h2>{tc(semesterKeys[semester] || "sem2Label")}</h2><span>{items.length}</span></div>
+					<div className="mobile-attendance-semester-heading"><h2>{tc(semesterI18nKey(semester))}</h2><span>{items.length}</span></div>
 					<div className="mobile-attendance-courses">
 						{items.map((course) => {
 							const rate = course.minutesAttendanceRate ?? course.attendRate ?? 0;

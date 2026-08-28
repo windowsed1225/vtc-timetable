@@ -11,8 +11,11 @@ export interface TimetableEvent {
   endTime: number;
 }
 
-export type SemesterType = "SEM 1" | "SEM 2" | "SEM 3";
+import type { SemesterType } from "@/lib/semester";
+export type { SemesterType };
 export type EventStatusType = "UPCOMING" | "FINISHED" | "CANCELED" | "RESCHEDULED" | "ABSENT";
+/** Display tag written as `SEM ${n}` in the calendar UI. */
+export type SemesterTag = `SEM ${SemesterType}` | string;
 
 export interface CalendarEvent {
   title: string;
@@ -25,7 +28,7 @@ export interface CalendarEvent {
     lessonType?: string;
     lecturer?: string;
     colorIndex?: number;
-    semester?: SemesterType;
+    semester?: string;
     status?: EventStatusType;
     vtc_id?: string;
     actualDuration?: number;

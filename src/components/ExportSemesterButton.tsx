@@ -5,9 +5,15 @@ import { exportSemesterIcs } from "@/app/actions";
 
 // Semester display names for the button and filename
 const SEMESTER_DISPLAY: Record<string, { label: string; filename: string }> = {
-    "SEM 1": { label: "Fall Semester", filename: "VTC_Schedule_Fall" },
-    "SEM 2": { label: "Spring Semester", filename: "VTC_Schedule_Spring" },
-    "SEM 3": { label: "Summer Semester", filename: "VTC_Schedule_Summer" },
+    "SEM 1": { label: "Semester 1", filename: "VTC_Schedule_SEM1" },
+    "SEM 2": { label: "Semester 2", filename: "VTC_Schedule_SEM2" },
+    "SEM 3": { label: "Semester 3", filename: "VTC_Schedule_SEM3" },
+    "SEM 4": { label: "Semester 4", filename: "VTC_Schedule_SEM4" },
+    "SEM 5": { label: "Semester 5", filename: "VTC_Schedule_SEM5" },
+    "SEM 6": { label: "Semester 6", filename: "VTC_Schedule_SEM6" },
+    "SEM 7": { label: "Semester 7", filename: "VTC_Schedule_SEM7" },
+    "SEM 8": { label: "Semester 8", filename: "VTC_Schedule_SEM8" },
+    "SEM 9": { label: "Semester 9", filename: "VTC_Schedule_SEM9" },
 };
 
 interface ExportSemesterButtonProps {

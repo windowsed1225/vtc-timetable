@@ -14,10 +14,11 @@ import connectDB from "@/lib/db";
 import { APP_TIME_ZONE } from "@/lib/event-date";
 import { buildHybridAttendanceStats } from "@/lib/hybrid-attendance";
 import { getDurationInMinutes, isAttendanceStatusPresent } from "@/app/actions/_helpers";
+import { normalizeSemester, semesterTag } from "@/lib/semester";
 import type { AttendanceStats, HybridAttendanceStats } from "@/app/actions/types";
 import Attendance from "@/models/Attendance";
 import Event from "@/models/Event";
-import { CalendarEvent, EventStatusType, SemesterType } from "@/types/timetable";
+import { CalendarEvent, EventStatusType } from "@/types/timetable";
 import { API } from "../../vtc-api/src/core/api";
 import type { PrintQuotaPayload } from "../../vtc-api/src/types/getPrintQuota";
 
@@ -104,7 +105,7 @@ function mapStoredEvents(
 			lessonType: event.lessonType,
 			lecturer: event.lecturerName,
 			colorIndex: event.colorIndex,
-			semester: event.semester as SemesterType,
+			semester: semesterTag(normalizeSemester(event.semester) ?? 2),
 			status: event.status as EventStatusType,
 			vtc_id: event.vtc_id,
 			actualDuration: event.actualDuration,
@@ -142,7 +143,7 @@ export async function loadUniqueCourses(user: AuthenticatedUser): Promise<Unique
 	await connectDB();
 	const cacheVersion = await getUserCacheVersion(user.userId);
 	return cacheAside(coursesCacheKey(user.userId, cacheVersion), CACHE_TTL_SECONDS.courses, async () => {
-		return Event.aggregate<UniqueCourse>([
+		const rows = await Event.aggregate<UniqueCourse>([
 			{ $match: { vtcStudentId: user.vtcStudentId } },
 			{
 				$group: {
@@ -164,6 +165,10 @@ export async function loadUniqueCourses(user: AuthenticatedUser): Promise<Unique
 			},
 			{ $sort: { semester: -1, courseCode: 1 } },
 		]);
+		return rows.map((row) => ({
+			...row,
+			semester: semesterTag(normalizeSemester(row.semester) ?? 2),
+		}));
 	});
 }
 

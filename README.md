@@ -50,6 +50,7 @@ BETTER_AUTH_URL=http://localhost:3000
 AUTH_DISCORD_ID=your_discord_client_id
 AUTH_DISCORD_SECRET=your_discord_client_secret
 DISCORD_BOT_TOKEN=your_discord_bot_token   # optional, daily Discord avatar refresh
+OWNER_DISCORD_ID=your_discord_user_id      # optional, e-card playground for this Discord id
 REDIS_URL=redis://127.0.0.1:6379          # optional cache
 ```
 

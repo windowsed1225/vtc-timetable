@@ -5,13 +5,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
-const SEM_KEY_MAP: Record<string, "sem1Label" | "sem2Label" | "sem3Label"> = {
-    "SEM 1": "sem1Label",
-    "SEM 2": "sem2Label",
-    "SEM 3": "sem3Label",
-};
-
-const SEMESTER_ORDER: Record<string, number> = { "SEM 3": 3, "SEM 2": 2, "SEM 1": 1 };
+import { SEMESTER_ORDER, semesterI18nKey } from "@/lib/semester";
 
 interface CourseOption {
     courseCode: string;
@@ -193,7 +187,7 @@ export default function ManageEventsModal({ isOpen, onClose, courses, onRefresh 
                     >
                         <option value="">Select a semester…</option>
                         {availableSemesters.map(sem => (
-                            <option key={sem} value={sem}>{tCal(SEM_KEY_MAP[sem] ?? "sem1Label")}</option>
+                            <option key={sem} value={sem}>{tCal(semesterI18nKey(sem))}</option>
                         ))}
                     </select>
                 </div>

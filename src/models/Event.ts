@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
-// Semester type
-export type SemesterType = "SEM 1" | "SEM 2" | "SEM 3";
+import { normalizeSemester, SEMESTER_NUMBERS, type SemesterType } from "@/lib/semester";
+export type { SemesterType };
 
 // Status type
 export type EventStatusType = "UPCOMING" | "FINISHED" | "CANCELED" | "RESCHEDULED" | "ABSENT";
@@ -37,10 +37,12 @@ const EventSchema = new Schema<IEvent>(
             index: true,
         },
         semester: {
-            type: String,
+            type: Number,
             required: true,
-            enum: ["SEM 1", "SEM 2", "SEM 3"],
+            enum: [...SEMESTER_NUMBERS],
             index: true,
+            set: (value: unknown) => normalizeSemester(value) ?? value,
+            get: (value: unknown) => normalizeSemester(value) ?? value,
         },
         status: {
             type: String,

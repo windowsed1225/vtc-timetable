@@ -91,9 +91,15 @@ export default function CalendarHeader({
 					className="semester-select"
 				>
 					<option value="all">{t("allSemesters")}</option>
-					<option value="SEM 1">{t("fall")}</option>
-					<option value="SEM 2">{t("spring")}</option>
-					<option value="SEM 3">{t("summer")}</option>
+					<option value="SEM 1">{t("sem1Label")}</option>
+					<option value="SEM 2">{t("sem2Label")}</option>
+					<option value="SEM 3">{t("sem3Label")}</option>
+					<option value="SEM 4">{t("sem4Label")}</option>
+					<option value="SEM 5">{t("sem5Label")}</option>
+					<option value="SEM 6">{t("sem6Label")}</option>
+					<option value="SEM 7">{t("sem7Label")}</option>
+					<option value="SEM 8">{t("sem8Label")}</option>
+					<option value="SEM 9">{t("sem9Label")}</option>
 				</select>
 			<div className="view-switcher" role="group" aria-label={t("calendarView")}>
                 {viewOptions.map((v) => (
