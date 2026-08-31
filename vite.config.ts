@@ -7,7 +7,10 @@ import { defineConfig } from "vite";
 // dependency through Vite's transform pipeline. The native MongoDB driver (and
 // mongoose, which wraps it) rely on CommonJS internals that don't survive that
 // transform, so we externalize them and let Node load them directly.
-const serverExternals = ["mongodb", "mongoose", "redis"];
+// `@takumi-rs/core` is the napi renderer behind the shared-calendar OG image; its
+// loader resolves the platform binding relative to its own file, so bundling it
+// makes every render fail with "Cannot find native binding".
+const serverExternals = ["mongodb", "mongoose", "redis", "@takumi-rs/core"];
 
 // Nitro is only needed when building the deploy output (Vercel sets VERCEL=1; or
 // pass NITRO_PRESET explicitly). It emits the Build Output API (.vercel/output).

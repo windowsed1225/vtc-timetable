@@ -280,9 +280,13 @@ export async function getStudentCard(): Promise<{
 	success: boolean;
 	data?: StudentCardView;
 	error?: string;
+	reason?: "no_token";
 }> {
-	const result = await getEcard({ includePhoto: true });
+	const result = await registerEcard({ includePhoto: true });
 	if (!result.success || !result.data) {
+		if (result.error?.startsWith("No stored VTC token")) {
+			return { success: false, reason: "no_token" };
+		}
 		return { success: false, error: result.error || "Failed to fetch e-card" };
 	}
 	return {

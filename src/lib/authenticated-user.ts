@@ -33,3 +33,11 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> 
 		gracePeriodThresholdOverride: override,
 	};
 }
+
+/** Owner-only playground lookup: the VTC token stored on another account. */
+export async function getVtcTokenByDiscordId(discordId: string): Promise<string | null | undefined> {
+	await connectDB();
+	const user = await User.findOne({ discordId }).select("vtcToken").lean();
+	if (!user) return undefined;
+	return user.vtcToken ?? null;
+}

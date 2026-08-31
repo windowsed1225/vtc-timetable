@@ -92,7 +92,41 @@
     "moreTab": "更多",
     "exportDesc": "匯出您的 {semester} 課表至 .ics",
     "exportBtn": "匯出 {semester}",
-    "exporting": "匯出中..."
+    "exporting": "匯出中...",
+    "shareCalendar": "分享課表",
+    "shareCalendarEyebrow": "公開連結",
+    "shareCalendarTitle": "分享你的課表",
+    "shareCalendarDescription": "建立日、週或月連結，在 Discord 發佈時附有視覺預覽。",
+    "shareCalendarWarning": "任何取得連結的人都可以看到科目名稱、時間及課室。你的身分、出席、講師及帳戶資料不會包含在內。",
+    "shareCalendarLoading": "正在檢查你的分享連結⋯",
+    "shareCalendarFailed": "無法更新分享連結。",
+    "shareCalendarCopyFailed": "無法複製連結，請手動選取並複製。",
+    "shareCalendarClose": "關閉課表分享",
+    "shareCalendarViewLabel": "分享課表範圍",
+    "shareCalendarView": {
+      "day": "日",
+      "week": "週",
+      "month": "月"
+    },
+    "shareCalendarMonthLabel": "選擇分享月份",
+    "shareCalendarLink": "分享連結",
+    "shareCalendarCopy": "複製",
+    "shareCalendarCopied": "已複製",
+    "shareCalendarPreview": "預覽",
+    "shareCalendarShare": "分享",
+    "shareCalendarShareText": "這是我未來七日的 VTC 課表。",
+    "shareCalendarRegenerate": "重新產生連結",
+    "shareCalendarDisable": "停用連結",
+    "shareCalendarRegenerateConfirm": "要重新產生此連結嗎？舊連結會立即失效。",
+    "shareCalendarDisableConfirm": "要停用課表分享嗎？使用此連結的人會立即失去存取權。",
+    "shareCalendarEnable": "建立分享連結",
+    "shareCalendarEnabling": "正在建立連結⋯",
+    "shareCalendarOwnerLookupTitle": "擁有者課表查詢",
+    "shareCalendarOwnerLookupDescription": "以 Discord ID 私下開啟用戶的課表，只適用於已設定的網站擁有者。",
+    "shareCalendarOwnerDiscordIdLabel": "Discord 用戶 ID",
+    "shareCalendarOwnerDiscordIdPlaceholder": "Discord ID",
+    "shareCalendarOwnerView": "檢視課表",
+    "shareCalendarOwnerInvalidDiscordId": "請輸入有效的 Discord 用戶 ID。"
   },
   "attendance": {
     "attendance": "出席率",
@@ -285,7 +319,19 @@
     "gracePeriodSaving": "儲存中…",
     "gracePeriodSaved": "及格比率已更新。",
     "gracePeriodReset": "及格比率已重設為預設值。",
-    "gracePeriodInvalid": "請輸入 1 至 100 之間的及格比率。"
+    "gracePeriodInvalid": "請輸入 1 至 100 之間的及格比率。",
+    "studentCardLoadingElapsed": "{seconds} 秒",
+    "studentCardLoadingEstimate": "VTC 電子學生證服務通常需要數秒回應。",
+    "studentCardLoadingStage": {
+      "account": "正在檢查你的帳戶",
+      "ecard": "正在索取電子學生證",
+      "details": "正在準備學生證"
+    },
+    "studentCardLoadingStep": {
+      "account": "帳戶",
+      "ecard": "電子證",
+      "details": "學生證"
+    }
   },
   "apiPlayground": {
     "title": "VTC API",
@@ -389,5 +435,30 @@
       "madeWith": "為 VTC 學生用 ❤️ 製作",
       "disclaimer": "與職業訓練局並無任何關聯。"
     }
+  },
+  "calendarShare": {
+    "eyebrow": "分享課表",
+    "title": "VTC 課表",
+    "subtitle": {
+      "day": "今日課堂",
+      "week": "未來七日的課堂",
+      "month": "本月課堂",
+      "monthOf": "{month}的課堂"
+    },
+    "view": {
+      "day": "日",
+      "week": "週",
+      "month": "月"
+    },
+    "previousMonth": "上個月",
+    "nextMonth": "下個月",
+    "privacyBadge": "只顯示課堂時間表",
+    "ownerViewBadge": "擁有者私人檢視",
+    "noClassesTitle": "沒有即將開始的課堂",
+    "noClassesDescription": "未來七日暫時沒有課堂。",
+    "roomTba": "課室待定",
+    "backToApp": "開啟 VTC 課表",
+    "liveNote": "此公開頁面會按照擁有者已同步的課表更新。",
+    "metaDescription": "此 VTC 分享課表範圍共有 {count} 堂課。"
   }
 }

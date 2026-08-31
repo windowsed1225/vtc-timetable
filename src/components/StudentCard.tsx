@@ -3,8 +3,14 @@
 import { getStudentCard } from "@/app/actions/user";
 import { code128Bars } from "@/lib/barcode";
 import type { StudentCardBrand, StudentCardView } from "@/lib/student-card";
+import {
+	studentCardLoadingProgress,
+	type StudentCardLoadingStage,
+} from "@/lib/student-card-loading";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
+
+const LOADING_STAGES: StudentCardLoadingStage[] = ["account", "ecard", "details"];
 
 function Code128Barcode({ value }: { value: string }) {
 	const graphic = useMemo(() => {
@@ -166,32 +172,55 @@ export default function StudentCardPanel({
 	const [card, setCard] = useState<StudentCardView | null>(null);
 	const [loading, setLoading] = useState(enabled);
 	const [error, setError] = useState<string | null>(null);
+	const [elapsedMs, setElapsedMs] = useState(0);
+	const progress = studentCardLoadingProgress(elapsedMs);
 
 	useEffect(() => {
 		if (!enabled) {
 			setLoading(false);
 			setCard(null);
 			setError(null);
+			setElapsedMs(0);
 			return;
 		}
 
 		let cancelled = false;
+		const startedAt = Date.now();
 		setLoading(true);
 		setError(null);
-		void getStudentCard().then((result) => {
-			if (cancelled) return;
-			if (result.success && result.data) {
-				setCard(result.data);
-				setError(null);
-			} else {
+		setElapsedMs(0);
+		const timer = window.setInterval(() => {
+			setElapsedMs(Date.now() - startedAt);
+		}, 100);
+
+		void getStudentCard()
+			.then((result) => {
+				if (cancelled) return;
+				window.clearInterval(timer);
+				if (result.success && result.data) {
+					setCard(result.data);
+					setError(null);
+				} else {
+					setCard(null);
+					setError(
+						result.reason === "no_token"
+							? t("studentCardNeedSync")
+							: result.error || t("studentCardUnavailable"),
+					);
+				}
+				setLoading(false);
+			})
+			.catch(() => {
+				if (cancelled) return;
+				window.clearInterval(timer);
 				setCard(null);
-				setError(result.error || t("studentCardUnavailable"));
-			}
-			setLoading(false);
-		});
+				setError(t("studentCardUnavailable"));
+				setLoading(false);
+			});
 
 		return () => {
 			cancelled = true;
+			window.clearInterval(timer);
 		};
 	}, [enabled, t]);
 
@@ -200,10 +229,47 @@ export default function StudentCardPanel({
 	}
 
 	if (loading) {
+		const activeStageIndex = LOADING_STAGES.indexOf(progress.stage);
+		const elapsedSeconds = Math.floor(elapsedMs / 1_000);
+
 		return (
-			<div className="student-card student-card-skeleton" aria-busy="true" aria-label={t("studentCardLoading")}>
-				<div className="student-card-ribbon" aria-hidden>
-					<span>STUDENT CARD</span>
+			<div className="student-card-loading" aria-busy="true">
+				<div className="student-card student-card-skeleton" aria-hidden>
+					<div className="student-card-ribbon">
+						<span>STUDENT CARD</span>
+					</div>
+				</div>
+				<div className="student-card-loading-details">
+					<div className="student-card-loading-heading" aria-live="polite">
+						<div>
+							<p>{t("studentCardLoading")}</p>
+							<strong>{t(`studentCardLoadingStage.${progress.stage}`)}</strong>
+						</div>
+						<span>{t("studentCardLoadingElapsed", { seconds: elapsedSeconds })}</span>
+					</div>
+					<div
+						className="student-card-loading-progress"
+						role="progressbar"
+						aria-label={t("studentCardLoading")}
+						aria-valuemin={0}
+						aria-valuemax={100}
+						aria-valuenow={progress.percent}
+					>
+						<span style={{ width: `${progress.percent}%` }} />
+					</div>
+					<ol className="student-card-loading-steps">
+						{LOADING_STAGES.map((stage, index) => (
+							<li
+								key={stage}
+								className={index === activeStageIndex ? "is-active" : index < activeStageIndex ? "is-past" : ""}
+								aria-current={index === activeStageIndex ? "step" : undefined}
+							>
+								<span>{index + 1}</span>
+								{t(`studentCardLoadingStep.${stage}`)}
+							</li>
+						))}
+					</ol>
+					<p className="student-card-loading-note">{t("studentCardLoadingEstimate")}</p>
 				</div>
 			</div>
 		);

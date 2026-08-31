@@ -50,6 +50,15 @@ export {
 // ── Export ────────────────────────────────────────────
 export { exportSemesterIcs } from "./export";
 
+// Calendar sharing
+export {
+	disableCalendarShare,
+	enableCalendarShare,
+	getCalendarShareState,
+	regenerateCalendarShare,
+} from "./calendar-share";
+export type { CalendarShareState } from "./calendar-share";
+
 // ── Moodle ───────────────────────────────────────────
 export { getMoodleDeadlines } from "./moodle";
 

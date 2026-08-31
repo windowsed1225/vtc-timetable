@@ -6,6 +6,7 @@ import { Link } from "@/lib/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import ManageEventsModal from "./ManageEventsModal";
+import ShareCalendarButton from "./ShareCalendarButton";
 import SubscribeButton from "./SubscribeButton";
 
 interface CourseOption {
@@ -19,6 +20,12 @@ interface CalendarTopActionsProps {
 	discordId?: string | null;
 	onRefresh: () => void;
 }
+
+const semesterKeys: Record<number, "fall" | "spring" | "summer"> = {
+	1: "fall",
+	2: "spring",
+	3: "summer",
+};
 
 const filenames: Record<number, string> = {
 	1: "VTC_Schedule_Fall",
@@ -77,27 +84,36 @@ export default function CalendarTopActions({ courses, discordId, onRefresh }: Ca
 						{t("calendarTools")}
 					</summary>
 					<div className="calendar-tools-popover">
-						<Link href="/attendance-grid" className="calendar-tools-link">
-							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} aria-hidden="true">
-								<path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75h16.5v16.5H3.75zM3.75 9h16.5M3.75 14.25h16.5M9 3.75v16.5M15 3.75v16.5" />
-							</svg>
-							<span>{tAttendanceGrid("navLabel")}</span>
-							<span aria-hidden="true">→</span>
-						</Link>
-						{discordId && (
-							<div className="calendar-tools-subscribe">
-								<SubscribeButton discordId={discordId} />
+						<div className="calendar-tools-list">
+							<Link href="/attendance-grid" className="calendar-tools-row">
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} aria-hidden="true">
+									<path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75h16.5v16.5H3.75zM3.75 9h16.5M3.75 14.25h16.5M9 3.75v16.5M15 3.75v16.5" />
+								</svg>
+								<span>{tAttendanceGrid("navLabel")}</span>
+								<span className="calendar-tools-row-chevron" aria-hidden="true">→</span>
+							</Link>
+							{discordId && (
+								<>
+									<SubscribeButton discordId={discordId} />
+									<ShareCalendarButton />
+								</>
+							)}
+						</div>
+
+						<div className="calendar-tools-export">
+							<p className="calendar-tools-section-label">{t("exportCalendar")}</p>
+							<div className="calendar-tools-export-row">
+								<select value={semester} onChange={(event) => setSemester(Number(event.target.value))} aria-label={t("semester")}>
+									<option value={1}>{t("fall")}</option>
+									<option value={2}>{t("spring")}</option>
+									<option value={3}>{t("summer")}</option>
+								</select>
+								<button type="button" className="btn-primary" onClick={exportCalendar} disabled={exporting}>
+									{exporting ? t("exporting") : t("exportBtn", { semester: t(semesterKeys[semester]) })}
+								</button>
 							</div>
-						)}
-						<p className="calendar-tools-export-description">{t("exportDesc", { semester: getSemesterDisplayLabel(semester) })}</p>
-						<select value={semester} onChange={(event) => setSemester(Number(event.target.value))} aria-label={t("semester")}>
-							<option value={1}>{t("fall")}</option>
-							<option value={2}>{t("spring")}</option>
-							<option value={3}>{t("summer")}</option>
-						</select>
-						<button type="button" className="btn-primary w-full" onClick={exportCalendar} disabled={exporting}>
-							{exporting ? t("exporting") : t("exportCalendar")}
-						</button>
+							<p className="calendar-tools-export-description">{t("exportDesc", { semester: getSemesterDisplayLabel(semester) })}</p>
+						</div>
 					</div>
 				</details>
 			</div>

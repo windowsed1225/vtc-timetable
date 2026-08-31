@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@scalar/api-reference-react": "^0.9.65",
+    "@takumi-rs/core": "^2.13.3",
     "bcryptjs": "^3.0.3",
     "better-auth": "^1.7.2",
     "dayjs": "^1.11.23",
@@ -26,6 +27,7 @@
     "react-big-calendar": "^1.20.0",
     "react-dom": "^19.2.8",
     "redis": "^6.2.1",
+    "takumi-js": "^2.13.3",
     "vercel": "^59.9.1"
   },
   "devDependencies": {

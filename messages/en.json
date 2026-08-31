@@ -92,7 +92,41 @@
     "moreTab": "More",
     "exportDesc": "Export your {semester} schedule to .ics",
     "exportBtn": "Export {semester}",
-    "exporting": "Exporting..."
+    "exporting": "Exporting...",
+    "shareCalendar": "Share calendar",
+    "shareCalendarEyebrow": "Public link",
+    "shareCalendarTitle": "Share your calendar",
+    "shareCalendarDescription": "Create a day, week, or month link with a visual preview when posted in Discord.",
+    "shareCalendarWarning": "Anyone with the link can see course names, times, and rooms. Your identity, attendance, lecturer, and account data are never included.",
+    "shareCalendarLoading": "Checking your sharing link...",
+    "shareCalendarFailed": "Could not update the sharing link.",
+    "shareCalendarCopyFailed": "Could not copy the link. Select and copy it manually.",
+    "shareCalendarClose": "Close calendar sharing",
+    "shareCalendarViewLabel": "Shared calendar range",
+    "shareCalendarView": {
+      "day": "Day",
+      "week": "Week",
+      "month": "Month"
+    },
+    "shareCalendarMonthLabel": "Month to share",
+    "shareCalendarLink": "Share link",
+    "shareCalendarCopy": "Copy",
+    "shareCalendarCopied": "Copied",
+    "shareCalendarPreview": "Preview",
+    "shareCalendarShare": "Share",
+    "shareCalendarShareText": "Here is my VTC timetable for the next seven days.",
+    "shareCalendarRegenerate": "Regenerate link",
+    "shareCalendarDisable": "Disable link",
+    "shareCalendarRegenerateConfirm": "Regenerate this link? The old link will stop working immediately.",
+    "shareCalendarDisableConfirm": "Disable calendar sharing? Anyone using this link will lose access immediately.",
+    "shareCalendarEnable": "Create sharing link",
+    "shareCalendarEnabling": "Creating link...",
+    "shareCalendarOwnerLookupTitle": "Owner calendar lookup",
+    "shareCalendarOwnerLookupDescription": "Privately open a user's schedule by Discord ID. This works only for the configured site owner.",
+    "shareCalendarOwnerDiscordIdLabel": "Discord user ID",
+    "shareCalendarOwnerDiscordIdPlaceholder": "Discord ID",
+    "shareCalendarOwnerView": "View calendar",
+    "shareCalendarOwnerInvalidDiscordId": "Enter a valid Discord user ID."
   },
   "attendance": {
     "attendance": "Attendance",
@@ -285,7 +319,19 @@
     "gracePeriodSaving": "Saving…",
     "gracePeriodSaved": "Passing rate updated.",
     "gracePeriodReset": "Passing rate reset to the default.",
-    "gracePeriodInvalid": "Enter a passing rate between 1 and 100."
+    "gracePeriodInvalid": "Enter a passing rate between 1 and 100.",
+    "studentCardLoadingElapsed": "{seconds}s",
+    "studentCardLoadingEstimate": "The VTC e-card service usually answers in a few seconds.",
+    "studentCardLoadingStage": {
+      "account": "Checking your account",
+      "ecard": "Requesting your e-card",
+      "details": "Preparing your card"
+    },
+    "studentCardLoadingStep": {
+      "account": "Account",
+      "ecard": "E-card",
+      "details": "Card"
+    }
   },
   "apiPlayground": {
     "title": "VTC API",
@@ -389,5 +435,30 @@
       "madeWith": "Made with ❤️ for VTC students",
       "disclaimer": "Not affiliated with the Vocational Training Council."
     }
+  },
+  "calendarShare": {
+    "eyebrow": "Shared schedule",
+    "title": "VTC Timetable",
+    "subtitle": {
+      "day": "Classes for today",
+      "week": "Upcoming classes for the next seven days",
+      "month": "Classes for this month",
+      "monthOf": "Classes for {month}"
+    },
+    "view": {
+      "day": "Day",
+      "week": "Week",
+      "month": "Month"
+    },
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "privacyBadge": "Course schedule only",
+    "ownerViewBadge": "Private owner view",
+    "noClassesTitle": "No upcoming classes",
+    "noClassesDescription": "This calendar is clear for the next seven days.",
+    "roomTba": "Room TBA",
+    "backToApp": "Open VTC Timetable",
+    "liveNote": "This public view updates from the owner's synchronized calendar.",
+    "metaDescription": "{count, plural, =0 {No classes scheduled in this shared calendar range.} one {# class in this shared VTC timetable.} other {# classes in this shared VTC timetable.}}"
   }
 }

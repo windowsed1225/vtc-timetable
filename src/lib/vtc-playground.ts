@@ -78,6 +78,16 @@ export function parseIsPlural(search: URLSearchParams): number | { error: string
 	return value;
 }
 
+const DISCORD_ID = /^\d{17,20}$/;
+
+/** Owner-only: which account's stored VTC token the playground call should use. */
+export function parseTargetDiscordId(search: URLSearchParams): string | null | { error: string } {
+	const raw = search.get("discordId")?.trim();
+	if (!raw) return null;
+	if (!DISCORD_ID.test(raw)) return { error: "discordId must be a Discord snowflake (17-20 digits)" };
+	return raw;
+}
+
 /** Drop student photos from VTC/e-card JSON. Never returns the input object. */
 export function stripPhotoStr(value: unknown): unknown {
 	if (Array.isArray(value)) {
@@ -334,6 +344,30 @@ function ownerPaths(dummyDeviceId: string): Record<string, unknown> {
 	};
 }
 
+const TARGET_DISCORD_ID_PARAMETER = {
+	name: "discordId",
+	in: "query",
+	required: false,
+	description:
+		"Owner only. Run this call against another account's stored VTC token instead of your own. Leave empty to use your own token.",
+	schema: { type: "string", pattern: "^\d{17,20}$" },
+} as const;
+
+/** Adds the owner-only account switch to every operation of every path. */
+function withTargetDiscordId(paths: Record<string, unknown>): Record<string, unknown> {
+	const out: Record<string, unknown> = {};
+	for (const [path, item] of Object.entries(paths)) {
+		const operations = item as Record<string, Record<string, unknown>>;
+		const nextItem: Record<string, unknown> = {};
+		for (const [method, operation] of Object.entries(operations)) {
+			const parameters = Array.isArray(operation.parameters) ? operation.parameters : [];
+			nextItem[method] = { ...operation, parameters: [...parameters, TARGET_DISCORD_ID_PARAMETER] };
+		}
+		out[path] = nextItem;
+	}
+	return out;
+}
+
 export function buildOpenApiDocument(options: {
 	isOwner: boolean;
 	dummyDeviceId?: string;
@@ -355,9 +389,11 @@ export function buildOpenApiDocument(options: {
 					{ name: "E-card (owner)" },
 				]
 			: [{ name: "Account" }, { name: "Timetable" }, { name: "Attendance" }],
-		paths: {
-			...classPaths(),
-			...(options.isOwner ? ownerPaths(options.dummyDeviceId ?? dummyEcardDeviceId()) : {}),
-		},
+		paths: options.isOwner
+			? withTargetDiscordId({
+					...classPaths(),
+					...ownerPaths(options.dummyDeviceId ?? dummyEcardDeviceId()),
+				})
+			: classPaths(),
 	};
 }

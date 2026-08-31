@@ -24,6 +24,9 @@ export default function CalendarEventCard({ event, density }: CalendarEventCardP
 				<time dateTime={event.start.toISOString()}>{time}</time>
 			</div>
 			{density !== "compact" && <span className="calendar-event-title">{courseTitle}</span>}
+			{density !== "compact" && event.resource?.lessonType && (
+				<span className="calendar-event-type">{event.resource.lessonType}</span>
+			)}
 			{density === "full" && event.resource?.location && (
 				<span className="calendar-event-room">
 					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">

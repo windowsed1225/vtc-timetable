@@ -1,10 +1,11 @@
-import { getAuthenticatedUser } from "@/lib/authenticated-user";
+import { getAuthenticatedUser, getVtcTokenByDiscordId } from "@/lib/authenticated-user";
 import {
 	isOwnerOnlyOp,
 	isPlaygroundOwner,
 	parseIsPlural,
 	parseMonthYear,
 	parsePlaygroundPath,
+	parseTargetDiscordId,
 	stripPhotoStr,
 	type PlaygroundOp,
 } from "@/lib/vtc-playground";
@@ -13,16 +14,36 @@ import { API } from "../../../../../vtc-api/src/core/api";
 
 type RouteContext = { params: Promise<{ path: string[] }> };
 
-async function authorize(op: PlaygroundOp) {
+async function authorize(op: PlaygroundOp, url: URL) {
 	const user = await getAuthenticatedUser();
 	if (!user) {
 		return { error: NextResponse.json({ error: "Not authenticated" }, { status: 401 }) };
 	}
+	const isOwner = isPlaygroundOwner(user.discordId);
+	if (isOwnerOnlyOp(op.kind) && !isOwner) {
+		return { error: NextResponse.json({ error: "Not found" }, { status: 404 }) };
+	}
+
+	const target = parseTargetDiscordId(url.searchParams);
+	if (target && typeof target === "object") {
+		return { error: NextResponse.json({ error: target.error }, { status: 400 }) };
+	}
+	if (target && target !== user.discordId) {
+		if (!isOwner) {
+			return { error: NextResponse.json({ error: "Not found" }, { status: 404 }) };
+		}
+		const token = await getVtcTokenByDiscordId(target);
+		if (token === undefined) {
+			return { error: NextResponse.json({ error: "No account with that Discord ID" }, { status: 404 }) };
+		}
+		if (!token) {
+			return { error: NextResponse.json({ error: "That account has no stored VTC token" }, { status: 409 }) };
+		}
+		return { api: new API({ token }) };
+	}
+
 	if (!user.vtcToken) {
 		return { error: NextResponse.json({ error: "No stored VTC token. Sync your timetable first." }, { status: 403 }) };
-	}
-	if (isOwnerOnlyOp(op.kind) && !isPlaygroundOwner(user.discordId)) {
-		return { error: NextResponse.json({ error: "Not found" }, { status: 404 }) };
 	}
 	return { api: new API({ token: user.vtcToken }) };
 }
@@ -103,7 +124,7 @@ async function handle(request: Request, context: RouteContext) {
 		return NextResponse.json({ error: "Not found" }, { status: 404 });
 	}
 
-	const authz = await authorize(op);
+	const authz = await authorize(op, new URL(request.url));
 	if ("error" in authz) return authz.error;
 
 	try {

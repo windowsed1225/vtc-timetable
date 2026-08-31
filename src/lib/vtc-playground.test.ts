@@ -6,6 +6,7 @@ import {
 	isPlaygroundOwner,
 	parseMonthYear,
 	parsePlaygroundPath,
+	parseTargetDiscordId,
 	rememberEcardPlaygroundSession,
 	resolvePlaygroundRequestUrl,
 	stripPhotoStr,
@@ -72,6 +73,23 @@ describe("query parsing", () => {
 	});
 });
 
+describe("target discordId parsing", () => {
+	test("returns null when absent or blank", () => {
+		expect(parseTargetDiscordId(new URLSearchParams())).toBeNull();
+		expect(parseTargetDiscordId(new URLSearchParams("discordId=  "))).toBeNull();
+	});
+
+	test("accepts a snowflake", () => {
+		expect(parseTargetDiscordId(new URLSearchParams("discordId=123456789012345678"))).toBe("123456789012345678");
+	});
+
+	test("rejects non-snowflake input", () => {
+		expect(parseTargetDiscordId(new URLSearchParams("discordId=abc"))).toHaveProperty("error");
+		expect(parseTargetDiscordId(new URLSearchParams("discordId=123"))).toHaveProperty("error");
+		expect(parseTargetDiscordId(new URLSearchParams("discordId[$ne]=1"))).toBeNull();
+	});
+});
+
 describe("photo stripping", () => {
 	test("removes photoStr at any depth and does not mutate the input", () => {
 		const input = {
@@ -105,6 +123,26 @@ describe("OpenAPI document", () => {
 		expect(JSON.stringify(paths["/ecard/register"])).toContain("dummy");
 		expect(JSON.stringify(paths["/ecard"])).toContain('"required":false');
 		expect(JSON.stringify(paths["/ecard/register"])).toContain("AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA");
+	});
+
+	test("exposes the account switch only to the owner", () => {
+		const ownerSpec = buildOpenApiDocument({ isOwner: true, dummyDeviceId: "AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA" });
+		const ownerPaths = ownerSpec.paths as Record<string, Record<string, { parameters?: { name: string }[] }>>;
+		for (const item of Object.values(ownerPaths)) {
+			for (const operation of Object.values(item)) {
+				expect(operation.parameters?.some((parameter) => parameter.name === "discordId")).toBe(true);
+			}
+		}
+
+		const visitorSpec = buildOpenApiDocument({ isOwner: false });
+		expect(JSON.stringify(visitorSpec.paths)).not.toContain("discordId");
+	});
+
+	test("keeps existing operation parameters when adding the account switch", () => {
+		const spec = buildOpenApiDocument({ isOwner: true, dummyDeviceId: "AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA" });
+		const paths = spec.paths as Record<string, Record<string, { parameters?: { name: string }[] }>>;
+		const names = paths["/moodle"].get.parameters?.map((parameter) => parameter.name);
+		expect(names).toEqual(["month", "year", "isPlural", "discordId"]);
 	});
 
 	test("uses a same-origin relative server so reverse proxies cannot poison the Try-it host", () => {

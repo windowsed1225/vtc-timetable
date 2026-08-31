@@ -1,33 +1,17 @@
 "use client";
 
-import { checkStoredToken } from "@/app/actions";
 import SessionSplash from "@/components/SessionSplash";
 import SignInModal from "@/components/SignInModal";
 import StudentCardPanel from "@/components/StudentCard";
 import { useSession } from "@/lib/auth-client";
 import { Link } from "@/lib/navigation";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export default function StudentCardPage() {
 	const t = useTranslations("settings");
 	const { data: session, isPending } = useSession();
 	const [showSignIn, setShowSignIn] = useState(false);
-	const [tokenReady, setTokenReady] = useState<boolean | null>(null);
-
-	useEffect(() => {
-		if (!session) {
-			setTokenReady(null);
-			return;
-		}
-		let cancelled = false;
-		void checkStoredToken().then((result) => {
-			if (!cancelled) setTokenReady(result.valid);
-		});
-		return () => {
-			cancelled = true;
-		};
-	}, [session]);
 
 	if (isPending) return <SessionSplash />;
 
@@ -57,11 +41,9 @@ export default function StudentCardPage() {
 					</button>
 					<SignInModal isOpen={showSignIn} onClose={() => setShowSignIn(false)} />
 				</main>
-			) : tokenReady === null ? (
-				<SessionSplash />
 			) : (
 				<main className="student-card-page-main">
-					<StudentCardPanel enabled={tokenReady} />
+					<StudentCardPanel enabled />
 				</main>
 			)}
 		</div>

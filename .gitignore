@@ -67,3 +67,6 @@ skills-lock.json
 
 .vercel
 .env*.local
+
+highdip.json
+.tmp-bun/
