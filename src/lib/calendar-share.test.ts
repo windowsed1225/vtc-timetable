@@ -9,6 +9,7 @@ import {
 	isValidDiscordId,
 	isValidCalendarShareToken,
 	normalizeCalendarShareMonth,
+	normalizeCalendarShareVersion,
 	normalizeCalendarShareView,
 	sharedCalendarWindowEnd,
 	shiftCalendarShareMonth,
@@ -106,16 +107,35 @@ describe("calendar sharing", () => {
 
 	test("carries a chosen month across every view link", () => {
 		const token = "a".repeat(32);
-		expect(calendarSharePath("en", token, "month", "2026-12")).toBe(
+		expect(calendarSharePath("en", token, "month", { month: "2026-12" })).toBe(
 			`/en/share/calendar/${token}?view=month&month=2026-12`,
 		);
-		expect(calendarSharePath("en", token, "week", "2026-12")).toBe(
+		expect(calendarSharePath("en", token, "week", { month: "2026-12" })).toBe(
 			`/en/share/calendar/${token}?view=week&month=2026-12`,
 		);
 		expect(calendarSharePath("en", token, "month")).toBe(`/en/share/calendar/${token}?view=month`);
-		expect(calendarSharePath("en", token, "month", "2026-13")).toBe(`/en/share/calendar/${token}?view=month`);
-		expect(calendarOwnerViewPath("en", "123456789012345678", "month", "2026-12")).toBe(
+		expect(calendarSharePath("en", token, "month", { month: "2026-13" })).toBe(
+			`/en/share/calendar/${token}?view=month`,
+		);
+		expect(calendarOwnerViewPath("en", "123456789012345678", "month", { month: "2026-12" })).toBe(
 			"/en/share/calendar/123456789012345678?view=month&month=2026-12",
+		);
+	});
+
+	test("appends the Discord cache buster last", () => {
+		const token = "a".repeat(32);
+		expect(calendarSharePath("en", token, "month", { month: "2026-12", version: "2" })).toBe(
+			`/en/share/calendar/${token}?view=month&month=2026-12&v=2`,
+		);
+		expect(calendarSharePath("en", token, "week", { version: "abc-1_9" })).toBe(
+			`/en/share/calendar/${token}?view=week&v=abc-1_9`,
+		);
+		expect(normalizeCalendarShareVersion(" 2 ")).toBe("2");
+		expect(normalizeCalendarShareVersion("a".repeat(17))).toBeNull();
+		expect(normalizeCalendarShareVersion("bad value")).toBeNull();
+		expect(normalizeCalendarShareVersion("")).toBeNull();
+		expect(calendarSharePath("en", token, "week", { version: "bad value" })).toBe(
+			`/en/share/calendar/${token}?view=week`,
 		);
 	});
 

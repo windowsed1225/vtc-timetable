@@ -114,6 +114,7 @@
     "shareCalendarCopied": "已複製",
     "shareCalendarPreview": "預覽",
     "shareCalendarShare": "分享",
+    "shareCalendarRefreshPreview": "重新整理 Discord 預覽",
     "shareCalendarShareText": "這是我未來七日的 VTC 課表。",
     "shareCalendarRegenerate": "重新產生連結",
     "shareCalendarDisable": "停用連結",
@@ -455,7 +456,12 @@
     "privacyBadge": "只顯示課堂時間表",
     "ownerViewBadge": "擁有者私人檢視",
     "noClassesTitle": "沒有即將開始的課堂",
-    "noClassesDescription": "未來七日暫時沒有課堂。",
+    "noClassesTitleMonth": "沒有安排課堂",
+    "noClassesDescription": {
+      "day": "今日餘下時間沒有課堂。",
+      "week": "未來七日暫時沒有課堂。",
+      "monthOf": "{month}沒有課堂。"
+    },
     "roomTba": "課室待定",
     "backToApp": "開啟 VTC 課表",
     "liveNote": "此公開頁面會按照擁有者已同步的課表更新。",

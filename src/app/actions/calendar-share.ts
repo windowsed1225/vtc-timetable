@@ -2,6 +2,7 @@
 
 import { auth } from "@/auth";
 import { createCalendarShareToken } from "@/lib/calendar-share";
+import { invalidateSharedCalendarCache } from "@/lib/cache";
 import connectDB from "@/lib/db";
 import { isPlaygroundOwner } from "@/lib/vtc-playground";
 import User from "@/models/User";
@@ -61,6 +62,9 @@ async function writeCalendarShareToken(regenerate: boolean): Promise<CalendarSha
 			? user.calendarShareToken
 			: createCalendarShareToken();
 		await User.updateOne({ discordId }, { $set: { calendarShareToken: token } });
+		if (user.calendarShareToken && user.calendarShareToken !== token) {
+			await invalidateSharedCalendarCache(user.calendarShareToken);
+		}
 
 		return { success: true, enabled: true, token, ownerLookupAllowed: isPlaygroundOwner(discordId) };
 	} catch {
@@ -82,7 +86,10 @@ export async function disableCalendarShare(): Promise<CalendarShareState> {
 
 	try {
 		await connectDB();
+		const user = await User.findOne({ discordId }).select("calendarShareToken").lean();
 		await User.updateOne({ discordId }, { $unset: { calendarShareToken: "" } });
+		// Revoking has to take effect now, not when the cached copies expire.
+		if (user?.calendarShareToken) await invalidateSharedCalendarCache(user.calendarShareToken);
 		return { success: true, enabled: false, ownerLookupAllowed: isPlaygroundOwner(discordId) };
 	} catch {
 		return { success: false, enabled: false, error: "Could not update calendar sharing" };

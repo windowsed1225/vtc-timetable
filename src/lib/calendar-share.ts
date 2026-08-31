@@ -2,11 +2,22 @@ const SHARE_TOKEN_BYTES = 24;
 const SHARE_TOKEN_PATTERN = /^[A-Za-z0-9_-]{32}$/;
 const DISCORD_ID_PATTERN = /^\d{17,20}$/;
 const SHARE_MONTH_PATTERN = /^(\d{4})-(0[1-9]|1[0-2])$/;
+const SHARE_VERSION_PATTERN = /^[A-Za-z0-9_-]{1,16}$/;
 const BASE64_URL_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 const SHARED_WINDOW_DAYS = 7;
 const HONG_KONG_UTC_OFFSET_MS = 8 * 60 * 60 * 1_000;
 
 export type CalendarShareView = "day" | "week" | "month";
+
+export type CalendarShareLinkOptions = {
+	/** `YYYY-MM` anchor for the month view. */
+	month?: string | null;
+	/**
+	 * Opaque cache buster. Discord keys an embed on the exact URL it scraped, so
+	 * bumping `?v=` is how a re-posted link gets a fresh preview.
+	 */
+	version?: string | null;
+};
 
 export type SharedCalendarEvent = {
 	courseCode: string;
@@ -78,19 +89,27 @@ export function shiftCalendarShareMonth(monthKey: string, offset: number): strin
 	return `${shifted.getUTCFullYear()}-${String(shifted.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
-function shareQuery(view: CalendarShareView, monthKey: string | null): string {
-	const month = normalizeCalendarShareMonth(monthKey);
-	return `?view=${view}${month ? `&month=${month}` : ""}`;
+/** Accepts the opaque `?v=` cache buster that forces Discord to re-scrape a link. */
+export function normalizeCalendarShareVersion(value: unknown): string | null {
+	if (typeof value !== "string") return null;
+	const version = value.trim();
+	return SHARE_VERSION_PATTERN.test(version) ? version : null;
+}
+
+export function calendarShareQuery(view: CalendarShareView, options: CalendarShareLinkOptions = {}): string {
+	const month = normalizeCalendarShareMonth(options.month);
+	const version = normalizeCalendarShareVersion(options.version);
+	return `?view=${view}${month ? `&month=${month}` : ""}${version ? `&v=${version}` : ""}`;
 }
 
 export function calendarSharePath(
 	locale: "en" | "zh-HK",
 	token: string,
 	view: CalendarShareView = "week",
-	monthKey: string | null = null,
+	options: CalendarShareLinkOptions = {},
 ): string | null {
 	return isValidCalendarShareToken(token)
-		? `/${locale}/share/calendar/${token}${shareQuery(view, monthKey)}`
+		? `/${locale}/share/calendar/${token}${calendarShareQuery(view, options)}`
 		: null;
 }
 
@@ -98,10 +117,10 @@ export function calendarOwnerViewPath(
 	locale: "en" | "zh-HK",
 	discordId: string,
 	view: CalendarShareView = "week",
-	monthKey: string | null = null,
+	options: CalendarShareLinkOptions = {},
 ): string | null {
 	return isValidDiscordId(discordId)
-		? `/${locale}/share/calendar/${discordId}${shareQuery(view, monthKey)}`
+		? `/${locale}/share/calendar/${discordId}${calendarShareQuery(view, options)}`
 		: null;
 }
 

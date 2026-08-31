@@ -4,9 +4,12 @@ import {
 	attendanceCacheKey,
 	coursesCacheKey,
 	programmeCacheKey,
+	sharedCalendarCacheKey,
+	sharedCalendarVersionKey,
 	timetableCacheKey,
 	userCacheVersionKey,
 } from "./cache-policy";
+import { readFileSync } from "node:fs";
 
 describe("cache key isolation", () => {
 	test("scopes keys by schema version, user, and cache version", () => {
@@ -16,6 +19,25 @@ describe("cache key isolation", () => {
 		expect(coursesCacheKey("user-b", 3)).toBe("vtc:v1:user:user-b:cv3:courses");
 		expect(programmeCacheKey("user-a", 3)).toBe("vtc:v1:user:user-a:cv3:programme:v2");
 		expect(timetableCacheKey("user-a", 3)).not.toBe(timetableCacheKey("user-b", 3));
+	});
+
+	test("keys public calendar shares by token, view, and range instead of user", () => {
+		expect(sharedCalendarVersionKey("tok")).toBe("vtc:v1:share:tok:cv");
+		expect(sharedCalendarCacheKey("tok", 2, "month", 1_767_196_800_000)).toBe(
+			"vtc:v1:share:tok:cv2:month:1767196800000",
+		);
+		expect(sharedCalendarCacheKey("tok", 2, "week", 1)).not.toBe(sharedCalendarCacheKey("tok", 2, "day", 1));
+		expect(sharedCalendarCacheKey("tok", 2, "week", 1)).not.toBe(sharedCalendarCacheKey("tok", 3, "week", 1));
+	});
+
+	test("serves cached shares without opening a MongoDB connection", () => {
+		const loader = readFileSync(new URL("./load-shared-calendar.ts", import.meta.url), "utf8");
+		const actions = readFileSync(new URL("../app/actions/calendar-share.ts", import.meta.url), "utf8");
+
+		// connectDB has to sit inside the cacheAside loader, not before it.
+		expect(loader).toMatch(/cacheAside\([\s\S]*?connectDB\(\)/);
+		expect(loader).not.toMatch(/await connectDB\(\);[\s\S]*?cacheAside\(/);
+		expect(actions).toContain("invalidateSharedCalendarCache");
 	});
 
 	test("includes the effective passing rate in attendance keys", () => {

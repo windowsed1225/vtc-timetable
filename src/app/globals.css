@@ -1990,6 +1990,20 @@ body {
 	font-size: 12px;
 }
 .calendar-share-link-row input:focus { border-color: var(--accent-blue); outline: 2px solid color-mix(in srgb, var(--accent-blue) 20%, transparent); }
+.calendar-share-refresh {
+	justify-self: start;
+	margin: 10px 0 2px;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--text-tertiary);
+	font-size: 11px;
+	font-weight: 650;
+	text-decoration: underline;
+	text-underline-offset: 3px;
+	cursor: pointer;
+}
+.calendar-share-refresh:hover { color: var(--foreground); }
 .calendar-share-primary-actions {
 	display: grid;
 	grid-template-columns: 1fr 1fr;

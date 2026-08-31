@@ -1,10 +1,12 @@
 import {
 	calendarOwnerViewPath,
 	calendarSharePath,
+	calendarShareQuery,
 	calendarShareRange,
 	currentCalendarShareMonth,
 	isValidDiscordId,
 	normalizeCalendarShareMonth,
+	normalizeCalendarShareVersion,
 	normalizeCalendarShareView,
 	shiftCalendarShareMonth,
 	type CalendarShareView,
@@ -24,7 +26,7 @@ export const dynamic = "force-dynamic";
 
 type PageProps = {
 	params: Promise<{ locale: string; token: string }>;
-	searchParams: Promise<{ view?: string | string[]; month?: string | string[] }>;
+	searchParams: Promise<{ view?: string | string[]; month?: string | string[]; v?: string | string[] }>;
 };
 
 function appBaseUrl(): URL {
@@ -103,9 +105,11 @@ async function resolvePage(props: PageProps) {
 	const [{ locale, token }, rawSearch] = await Promise.all([props.params, props.searchParams]);
 	const viewValue = Array.isArray(rawSearch.view) ? rawSearch.view[0] : rawSearch.view;
 	const monthValue = Array.isArray(rawSearch.month) ? rawSearch.month[0] : rawSearch.month;
+	const versionValue = Array.isArray(rawSearch.v) ? rawSearch.v[0] : rawSearch.v;
 	const view = normalizeCalendarShareView(viewValue);
 	const month = normalizeCalendarShareMonth(monthValue);
-	const displayLocale = locale === "zh-HK" ? "zh-HK" : "en";
+	const version = normalizeCalendarShareVersion(versionValue);
+	const displayLocale: "en" | "zh-HK" = locale === "zh-HK" ? "zh-HK" : "en";
 	let shared = await loadSharedCalendar(token, view, month);
 	let ownerView = false;
 	if (!shared && isValidDiscordId(token)) {
@@ -116,20 +120,23 @@ async function resolvePage(props: PageProps) {
 			ownerView = Boolean(shared);
 		}
 	}
-	return { displayLocale, month, ownerView, shared, token, view };
+	return { displayLocale, month, ownerView, shared, token, version, view };
 }
 
 export async function generateMetadata(props: PageProps): Promise<Metadata> {
-	const { displayLocale, month, ownerView, shared, token, view } = await resolvePage(props);
+	const { displayLocale, month, ownerView, shared, token, version, view } = await resolvePage(props);
 	if (!shared) return { title: "Shared calendar unavailable", robots: { index: false, follow: false } };
 
 	const t = await getTranslations({ locale: displayLocale, namespace: "calendarShare" });
 	const description = t("metaDescription", { count: shared.events.length });
+	const linkOptions = { month: view === "month" ? month : null, version };
 	const pagePath = ownerView
-		? calendarOwnerViewPath(displayLocale, token, view, month)
-		: calendarSharePath(displayLocale, token, view, month);
+		? calendarOwnerViewPath(displayLocale, token, view, linkOptions)
+		: calendarSharePath(displayLocale, token, view, linkOptions);
+	// The preview image carries `?v=` too: Discord caches the image by its own URL,
+	// so a bumped page link would otherwise re-scrape into the same stale picture.
 	const imageUrl = new URL(
-		`/api/calendar/share/${encodeURIComponent(token)}/image?view=${view}${view === "month" && month ? `&month=${month}` : ""}`,
+		`/api/calendar/share/${encodeURIComponent(token)}/image${calendarShareQuery(view, linkOptions)}`,
 		appBaseUrl(),
 	);
 
@@ -183,15 +190,15 @@ function SharedEventCard({
 }
 
 export default async function SharedCalendarPage(props: PageProps) {
-	const { displayLocale, month, ownerView, shared, token, view } = await resolvePage(props);
+	const { displayLocale, month, ownerView, shared, token, version, view } = await resolvePage(props);
 	if (!shared) notFound();
 	const t = await getTranslations({ locale: displayLocale, namespace: "calendarShare" });
 	const grouped = eventsByDay(shared.events);
 	const days = rangeDays(view, new Date(), month);
 	const activeMonth = month ?? currentCalendarShareMonth(new Date());
 	const monthHref = (target: string) => (ownerView
-		? calendarOwnerViewPath(displayLocale, token, "month", target)
-		: calendarSharePath(displayLocale, token, "month", target));
+		? calendarOwnerViewPath(displayLocale, token, "month", { month: target, version })
+		: calendarSharePath(displayLocale, token, "month", { month: target, version }));
 	const firstMonthWeekday = view === "month" && days[0]
 		? new Date(days[0].getTime() + 8 * 60 * 60 * 1_000).getUTCDay()
 		: 0;
@@ -212,8 +219,8 @@ export default async function SharedCalendarPage(props: PageProps) {
 				<nav className="shared-calendar-view-tabs" aria-label={t("title")}>
 					{(["day", "week", "month"] as const).map((option) => {
 						const href = ownerView
-							? calendarOwnerViewPath(displayLocale, token, option, month)
-							: calendarSharePath(displayLocale, token, option, month);
+							? calendarOwnerViewPath(displayLocale, token, option, { month, version })
+							: calendarSharePath(displayLocale, token, option, { month, version });
 						return href ? (
 							<a key={option} href={href} className={view === option ? "is-active" : ""} aria-current={view === option ? "page" : undefined}>
 								{t(`view.${option}`)}
@@ -236,8 +243,10 @@ export default async function SharedCalendarPage(props: PageProps) {
 
 				{shared.events.length === 0 ? (
 					<div className="shared-calendar-empty">
-						<h2>{t("noClassesTitle")}</h2>
-						<p>{t("noClassesDescription")}</p>
+						<h2>{t(view === "month" ? "noClassesTitleMonth" : "noClassesTitle")}</h2>
+						<p>{view === "month"
+							? t("noClassesDescription.monthOf", { month: monthLabel(activeMonth, displayLocale) })
+							: t(`noClassesDescription.${view}`)}</p>
 					</div>
 				) : view === "month" ? (
 					<div className="shared-calendar-month-grid">

@@ -18,6 +18,7 @@ export const CACHE_TTL_SECONDS = {
 	printQuota: readTtlSeconds("CACHE_TTL_PRINT_QUOTA_SECONDS", 2 * 60),
 	programme: readTtlSeconds("CACHE_TTL_PROGRAMME_SECONDS", 60 * 60),
 	courseHours: readTtlSeconds("CACHE_TTL_COURSE_HOURS_SECONDS", 60),
+	sharedCalendar: readTtlSeconds("CACHE_TTL_SHARED_CALENDAR_SECONDS", 60),
 } as const;
 
 export type CacheKind = keyof typeof CACHE_TTL_SECONDS;
@@ -28,6 +29,24 @@ function userPrefix(userId: string, cacheVersion: number): string {
 
 export function userCacheVersionKey(userId: string): string {
 	return `vtc:${CACHE_SCHEMA_VERSION}:user:${userId}:cv`;
+}
+
+/**
+ * Public calendar shares are read without a session, so they are keyed by the
+ * capability token (or `owner:<discordId>` for the owner-only viewer) instead of
+ * a user id. Bumping this version is how revoking a link drops its cached copies.
+ */
+export function sharedCalendarVersionKey(scope: string): string {
+	return `vtc:${CACHE_SCHEMA_VERSION}:share:${scope}:cv`;
+}
+
+export function sharedCalendarCacheKey(
+	scope: string,
+	cacheVersion: number,
+	view: string,
+	rangeStartMs: number,
+): string {
+	return `vtc:${CACHE_SCHEMA_VERSION}:share:${scope}:cv${cacheVersion}:${view}:${rangeStartMs}`;
 }
 
 export function timetableCacheKey(userId: string, cacheVersion: number): string {

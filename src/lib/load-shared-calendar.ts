@@ -7,6 +7,8 @@ import {
 	type CalendarShareView,
 	type SharedCalendarEvent,
 } from "@/lib/calendar-share";
+import { cacheAside, getSharedCalendarCacheVersion } from "@/lib/cache";
+import { CACHE_TTL_SECONDS, sharedCalendarCacheKey } from "@/lib/cache-policy";
 import connectDB from "@/lib/db";
 import Event from "@/models/Event";
 import User from "@/models/User";
@@ -19,8 +21,10 @@ export type SharedCalendar = {
 	events: SharedCalendarEvent[];
 };
 
+type ShareOwner = { vtcStudentId?: string | null; locale?: string | null } | null;
+
 async function loadCalendarForUser(
-	user: { vtcStudentId?: string | null; locale?: string | null } | null,
+	user: ShareOwner,
 	view: CalendarShareView,
 	month: string | null,
 ): Promise<SharedCalendar | null> {
@@ -55,6 +59,27 @@ async function loadCalendarForUser(
 	};
 }
 
+/**
+ * Serves a share from Redis when it is configured, so a link that Discord and its
+ * readers hit repeatedly does not reach MongoDB at all. Without Redis this is a
+ * plain pass-through to the database.
+ */
+async function loadCachedCalendar(
+	scope: string,
+	view: CalendarShareView,
+	month: string | null,
+	findOwner: () => Promise<ShareOwner>,
+): Promise<SharedCalendar | null> {
+	const range = calendarShareRange(view, new Date(), month);
+	const version = await getSharedCalendarCacheVersion(scope);
+	const key = sharedCalendarCacheKey(scope, version, view, range.start.getTime());
+
+	return cacheAside(key, CACHE_TTL_SECONDS.sharedCalendar, async () => {
+		await connectDB();
+		return loadCalendarForUser(await findOwner(), view, month);
+	});
+}
+
 export const loadSharedCalendar = cache(async (
 	token: string,
 	view: CalendarShareView,
@@ -62,11 +87,10 @@ export const loadSharedCalendar = cache(async (
 ): Promise<SharedCalendar | null> => {
 	if (!isValidCalendarShareToken(token)) return null;
 
-	await connectDB();
-	const user = await User.findOne({ calendarShareToken: token })
+	return loadCachedCalendar(token, view, month, () => User
+		.findOne({ calendarShareToken: token })
 		.select("vtcStudentId locale")
-		.lean();
-	return loadCalendarForUser(user, view, month);
+		.lean());
 });
 
 export const loadOwnerCalendar = cache(async (
@@ -77,9 +101,8 @@ export const loadOwnerCalendar = cache(async (
 ): Promise<SharedCalendar | null> => {
 	if (!isPlaygroundOwner(requesterDiscordId) || !isValidDiscordId(discordId)) return null;
 
-	await connectDB();
-	const user = await User.findOne({ discordId })
+	return loadCachedCalendar(`owner:${discordId}`, view, month, () => User
+		.findOne({ discordId })
 		.select("vtcStudentId locale")
-		.lean();
-	return loadCalendarForUser(user, view, month);
+		.lean());
 });

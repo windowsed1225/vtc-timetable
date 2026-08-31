@@ -1,4 +1,4 @@
-import { userCacheVersionKey } from "@/lib/cache-policy";
+import { sharedCalendarVersionKey, userCacheVersionKey } from "@/lib/cache-policy";
 import { getRedis } from "@/lib/redis";
 
 const inflight = new Map<string, Promise<unknown>>();
@@ -43,15 +43,15 @@ export async function cacheDelete(key: string): Promise<void> {
 
 const versionInflight = new Map<string, Promise<number>>();
 
-export async function getUserCacheVersion(userId: string): Promise<number> {
-	const existing = versionInflight.get(userId);
+async function getCacheVersion(versionKey: string): Promise<number> {
+	const existing = versionInflight.get(versionKey);
 	if (existing) return existing;
 
 	const pending = (async () => {
 		try {
 			const redis = await getRedis();
 			if (!redis) return 0;
-			const raw = await redis.get(userCacheVersionKey(userId));
+			const raw = await redis.get(versionKey);
 			const parsed = raw === null ? 0 : Number(raw);
 			return Number.isFinite(parsed) ? parsed : 0;
 		} catch (error) {
@@ -59,21 +59,38 @@ export async function getUserCacheVersion(userId: string): Promise<number> {
 			return 0;
 		}
 	})().finally(() => {
-		versionInflight.delete(userId);
+		versionInflight.delete(versionKey);
 	});
 
-	versionInflight.set(userId, pending);
+	versionInflight.set(versionKey, pending);
 	return pending;
 }
 
-export async function invalidateUserCaches(userId: string): Promise<void> {
+async function bumpCacheVersion(versionKey: string): Promise<void> {
 	try {
 		const redis = await getRedis();
 		if (!redis) return;
-		await redis.incr(userCacheVersionKey(userId));
+		await redis.incr(versionKey);
 	} catch (error) {
 		logCacheError("invalidate", error);
 	}
+}
+
+export async function getUserCacheVersion(userId: string): Promise<number> {
+	return getCacheVersion(userCacheVersionKey(userId));
+}
+
+export async function invalidateUserCaches(userId: string): Promise<void> {
+	await bumpCacheVersion(userCacheVersionKey(userId));
+}
+
+export async function getSharedCalendarCacheVersion(scope: string): Promise<number> {
+	return getCacheVersion(sharedCalendarVersionKey(scope));
+}
+
+/** Drops every cached view of a share the moment its link is regenerated or disabled. */
+export async function invalidateSharedCalendarCache(scope: string): Promise<void> {
+	await bumpCacheVersion(sharedCalendarVersionKey(scope));
 }
 
 export async function cacheAside<T>(key: string, ttlSeconds: number, loader: () => Promise<T>): Promise<T> {

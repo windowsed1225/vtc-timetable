@@ -28,6 +28,7 @@ export default function ShareCalendarButton() {
 	const [error, setError] = useState<string | null>(null);
 	const [view, setView] = useState<CalendarShareView>("week");
 	const [month, setMonth] = useState("");
+	const [version, setVersion] = useState("");
 	const [ownerDiscordId, setOwnerDiscordId] = useState("");
 
 	useEffect(() => {
@@ -36,7 +37,9 @@ export default function ShareCalendarButton() {
 	}, []);
 
 	const sharedMonth = view === "month" ? month : null;
-	const sharePath = state?.token ? calendarSharePath(locale, state.token, view, sharedMonth) : null;
+	const sharePath = state?.token
+		? calendarSharePath(locale, state.token, view, { month: sharedMonth, version })
+		: null;
 	const shareUrl = origin && sharePath ? `${origin}${sharePath}` : "";
 
 	const runAction = async (action: () => Promise<CalendarShareState>) => {
@@ -99,7 +102,7 @@ export default function ShareCalendarButton() {
 	};
 
 	const openOwnerCalendar = () => {
-		const ownerPath = calendarOwnerViewPath(locale, ownerDiscordId.trim(), view, sharedMonth);
+		const ownerPath = calendarOwnerViewPath(locale, ownerDiscordId.trim(), view, { month: sharedMonth, version });
 		if (!ownerPath || !origin) {
 			setError(t("shareCalendarOwnerInvalidDiscordId"));
 			return;
@@ -204,6 +207,13 @@ export default function ShareCalendarButton() {
 										{copied ? t("shareCalendarCopied") : t("shareCalendarCopy")}
 									</button>
 								</div>
+								<button
+									type="button"
+									className="calendar-share-refresh"
+									onClick={() => setVersion(String(Number(version || "1") + 1))}
+								>
+									{t("shareCalendarRefreshPreview")}{version ? ` (v${version})` : ""}
+								</button>
 								<div className="calendar-share-primary-actions">
 									<a className="btn-secondary" href={shareUrl} target="_blank" rel="noreferrer">{t("shareCalendarPreview")}</a>
 									<button type="button" className="btn-primary" onClick={() => void shareLink()} disabled={working}>{t("shareCalendarShare")}</button>

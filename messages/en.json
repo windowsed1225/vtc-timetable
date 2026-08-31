@@ -114,6 +114,7 @@
     "shareCalendarCopied": "Copied",
     "shareCalendarPreview": "Preview",
     "shareCalendarShare": "Share",
+    "shareCalendarRefreshPreview": "Refresh Discord preview",
     "shareCalendarShareText": "Here is my VTC timetable for the next seven days.",
     "shareCalendarRegenerate": "Regenerate link",
     "shareCalendarDisable": "Disable link",
@@ -455,7 +456,12 @@
     "privacyBadge": "Course schedule only",
     "ownerViewBadge": "Private owner view",
     "noClassesTitle": "No upcoming classes",
-    "noClassesDescription": "This calendar is clear for the next seven days.",
+    "noClassesTitleMonth": "Nothing scheduled",
+    "noClassesDescription": {
+      "day": "This calendar is clear for the rest of today.",
+      "week": "This calendar is clear for the next seven days.",
+      "monthOf": "This calendar has no classes in {month}."
+    },
     "roomTba": "Room TBA",
     "backToApp": "Open VTC Timetable",
     "liveNote": "This public view updates from the owner's synchronized calendar.",
