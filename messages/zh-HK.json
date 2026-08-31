@@ -341,7 +341,12 @@
     "signInPrompt": "請先登入，才能用帳戶內已儲存的 token 測試 VTC API。",
     "signIn": "登入",
     "syncPrompt": "請先同步課表，本頁才能附加已儲存的 token。Token 不會在此顯示。",
-    "goSync": "前往行事曆"
+    "goSync": "前往行事曆",
+    "actAsLabel": "以其他帳戶身分查詢",
+    "actAsPlaceholder": "Discord ID（留空即用自己的帳戶）",
+    "actAsHint": "僅限擁有者。以下每個請求都會使用此帳戶已儲存的 VTC token 及資料。",
+    "actAsInvalid": "請輸入 17 至 20 位數字的 Discord ID。",
+    "actAsActive": "正在以 {discordId} 的身分查詢"
   },
   "skipping": {
     "title": "缺課計算器",

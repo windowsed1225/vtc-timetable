@@ -341,7 +341,12 @@
     "signInPrompt": "Sign in to try VTC API calls with the token saved on your account.",
     "signIn": "Sign in",
     "syncPrompt": "Sync your VTC timetable first so this page can attach your stored token. The token is never shown here.",
-    "goSync": "Go to calendar"
+    "goSync": "Go to calendar",
+    "actAsLabel": "Act as account",
+    "actAsPlaceholder": "Discord ID (leave empty for your own)",
+    "actAsHint": "Owner only. Every request below runs against this account's stored VTC token and stored data.",
+    "actAsInvalid": "Enter a Discord ID of 17-20 digits.",
+    "actAsActive": "Acting as {discordId}"
   },
   "skipping": {
     "title": "Skipping Calculator",

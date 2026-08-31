@@ -34,10 +34,12 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> 
 	};
 }
 
-/** Owner-only playground lookup: the VTC token stored on another account. */
-export async function getVtcTokenByDiscordId(discordId: string): Promise<string | null | undefined> {
+/** Owner-only playground lookup: the VTC credentials stored on another account. */
+export async function getVtcAccountByDiscordId(
+	discordId: string,
+): Promise<{ vtcToken: string | null; vtcStudentId: string | null } | null> {
 	await connectDB();
-	const user = await User.findOne({ discordId }).select("vtcToken").lean();
-	if (!user) return undefined;
-	return user.vtcToken ?? null;
+	const user = await User.findOne({ discordId }).select("vtcToken vtcStudentId").lean();
+	if (!user) return null;
+	return { vtcToken: user.vtcToken ?? null, vtcStudentId: user.vtcStudentId ?? null };
 }

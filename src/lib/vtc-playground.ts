@@ -7,7 +7,11 @@ export type PlaygroundOp =
 	| { kind: "print-quota" }
 	| { kind: "ecard-register" }
 	| { kind: "ecard-get" }
-	| { kind: "ecard-refresh" };
+	| { kind: "ecard-refresh" }
+	| { kind: "db-account" }
+	| { kind: "db-user" }
+	| { kind: "db-events" }
+	| { kind: "db-attendance" };
 
 const COURSE_CODE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$/;
 
@@ -17,7 +21,23 @@ export function isPlaygroundOwner(discordId: string, ownerDiscordId = process.en
 }
 
 export function isOwnerOnlyOp(kind: PlaygroundOp["kind"]): boolean {
-	return kind === "ecard-register" || kind === "ecard-get" || kind === "ecard-refresh";
+	return kind.startsWith("ecard-") || kind.startsWith("db-");
+}
+
+/** Stored-data reads answer from MongoDB only, so a broken VTC token cannot affect them. */
+export function isStoredDataOp(kind: PlaygroundOp["kind"]): boolean {
+	return kind.startsWith("db-");
+}
+
+/**
+ * A stored token and the `vtcStudentId` beside it are written together from one
+ * checkAccessToken response, so a disagreement means the row was corrupted by an older
+ * write path and the token belongs to someone else. Returning it would silently hand the
+ * caller the wrong student's data.
+ */
+export function mismatchedAccountError(storedStudentId: string | null, tokenStudentId: string): string | null {
+	if (!storedStudentId || storedStudentId === tokenStudentId) return null;
+	return `That account's stored VTC token authenticates as ${tokenStudentId}, but the account is registered as ${storedStudentId}. The token no longer belongs to that account — it must sign in and sync again.`;
 }
 
 export function parsePlaygroundPath(method: string, path: string[]): PlaygroundOp | null {
@@ -39,6 +59,13 @@ export function parsePlaygroundPath(method: string, path: string[]): PlaygroundO
 	if (verb === "GET" && parts.length === 2 && parts[0] === "attendance") {
 		if (!COURSE_CODE.test(parts[1])) return null;
 		return { kind: "attendance-detail", courseCode: parts[1] };
+	}
+	if (verb === "GET" && parts.length === 2 && parts[0] === "db") {
+		if (parts[1] === "account") return { kind: "db-account" };
+		if (parts[1] === "user") return { kind: "db-user" };
+		if (parts[1] === "events") return { kind: "db-events" };
+		if (parts[1] === "attendance") return { kind: "db-attendance" };
+		return null;
 	}
 	if (verb === "GET" && parts.length === 1 && parts[0] === "print-quota") {
 		return { kind: "print-quota" };
@@ -81,6 +108,10 @@ export function parseIsPlural(search: URLSearchParams): number | { error: string
 const DISCORD_ID = /^\d{17,20}$/;
 
 /** Owner-only: which account's stored VTC token the playground call should use. */
+export function isValidTargetDiscordId(value: string): boolean {
+	return DISCORD_ID.test(value.trim());
+}
+
 export function parseTargetDiscordId(search: URLSearchParams): string | null | { error: string } {
 	const raw = search.get("discordId")?.trim();
 	if (!raw) return null;
@@ -94,6 +125,11 @@ export function stripPhotoStr(value: unknown): unknown {
 		return value.map(stripPhotoStr);
 	}
 	if (value && typeof value === "object") {
+		// Dates, ObjectIds and Buffers carry their own toJSON; walking their entries would
+		// flatten a Date to {} and an ObjectId to its internal buffer.
+		const prototype = Object.getPrototypeOf(value);
+		if (prototype !== Object.prototype && prototype !== null) return value;
+
 		const out: Record<string, unknown> = {};
 		for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
 			if (key === "photoStr") continue;
@@ -195,14 +231,58 @@ export function dummyEcardDeviceId(): string {
 	return crypto.randomUUID().toUpperCase();
 }
 
-function deviceIdParameter(dummy: string) {
+export const PLAYGROUND_DEVICE_ID_STORAGE_KEY = "vtc-playground-device-ids";
+
+type DeviceIdStorage = Pick<Storage, "getItem" | "setItem">;
+
+/**
+ * A device UUID stays bound upstream to the first card registered with it, so it has to
+ * outlive the page: a fresh one per reload would leave GET /ecard unable to reuse an
+ * earlier registration. Storage can be unavailable (private mode, blocked site data),
+ * which only costs the caller that reuse, so it falls back to in-memory ids.
+ */
+export function loadEcardDeviceIds(storage: DeviceIdStorage | undefined): Map<string, string> {
+	let raw: string | null = null;
+	try {
+		raw = storage?.getItem(PLAYGROUND_DEVICE_ID_STORAGE_KEY) ?? null;
+	} catch {
+		return new Map();
+	}
+	if (!raw) return new Map();
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(raw);
+	} catch {
+		return new Map();
+	}
+	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return new Map();
+	const entries = Object.entries(parsed as Record<string, unknown>).flatMap<[string, string]>(([key, value]) =>
+		typeof value === "string" && value.trim() ? [[key, value.trim()]] : [],
+	);
+	return new Map(entries);
+}
+
+export function saveEcardDeviceIds(storage: DeviceIdStorage | undefined, deviceIds: Map<string, string>): void {
+	try {
+		storage?.setItem(PLAYGROUND_DEVICE_ID_STORAGE_KEY, JSON.stringify(Object.fromEntries(deviceIds)));
+	} catch {
+		// Storage being unavailable only loses reuse across reloads.
+	}
+}
+
+/**
+ * Deliberately unprefilled. A device UUID stays bound to the first card registered with it
+ * upstream, so a single shared default would make every account's register return that card.
+ * Left empty, the playground sends a fresh UUID per account.
+ */
+function deviceIdParameter() {
 	return {
 		name: "deviceId",
 		in: "query",
 		required: false,
-		description: "Prefill is a dummy uppercase UUID. You can send it as-is.",
-		example: dummy,
-		schema: { type: "string", format: "uuid", default: dummy, example: dummy },
+		description:
+			"Leave empty. The playground sends a fresh uppercase UUID per account — a device UUID stays bound to the first card registered with it.",
+		schema: { type: "string", format: "uuid" },
 	};
 }
 
@@ -223,6 +303,35 @@ export function rememberEcardPlaygroundSession(
 	if (access) next.accessToken = access;
 	if (refresh) next.refreshToken = refresh;
 	return next;
+}
+
+/**
+ * E-card JWTs identify the cardholder, not the caller, so a remembered access/refresh
+ * token must never be replayed against a different account's request.
+ */
+export function ecardSessionKey(url: URL): string {
+	return url.searchParams.get("discordId")?.trim() ?? "";
+}
+
+/**
+ * Session cookies are SameSite=Lax, so a cross-site top-level GET still carries them and
+ * these routes have upstream VTC side effects. Browsers that send Sec-Fetch-Site are judged
+ * on it; older ones fall back to Origin/Host. A caller with no browser headers has no
+ * ambient cookie to abuse, so it is allowed through to the normal session check.
+ */
+export function isSameOriginPlaygroundRequest(headers: Headers): boolean {
+	const site = headers.get("sec-fetch-site");
+	if (site) return site === "same-origin" || site === "none";
+
+	const origin = headers.get("origin");
+	if (!origin) return true;
+	const host = headers.get("host");
+	if (!host) return false;
+	try {
+		return new URL(origin).host === host;
+	} catch {
+		return false;
+	}
 }
 
 const PLAYGROUND_API_BASE = "/api/vtc";
@@ -288,7 +397,71 @@ function asHeaders(headers: RequestInit["headers"]): Record<string, string> {
 	return { ...headers };
 }
 
-function ownerPaths(dummyDeviceId: string): Record<string, unknown> {
+const SEMESTER_PARAMETER = {
+	name: "semester",
+	in: "query",
+	required: false,
+	description: "Optional semester filter, 1-9.",
+	schema: { type: "integer", minimum: 1, maximum: 9 },
+} as const;
+
+const LIMIT_PARAMETER = {
+	name: "limit",
+	in: "query",
+	required: false,
+	description: "Maximum rows to return, 1-1000. Defaults to 200.",
+	schema: { type: "integer", minimum: 1, maximum: 1000 },
+} as const;
+
+/**
+ * Reads straight from MongoDB rather than VTC, so these answer correctly for an account
+ * whose stored VTC token is broken or belongs to someone else.
+ */
+function storedDataPaths(): Record<string, unknown> {
+	return {
+		"/db/account": {
+			get: {
+				tags: ["Stored data (owner)"],
+				summary: "Account summary from the database",
+				description:
+					"vtcStudentId, lastSync, locale, whether a VTC token is stored, and how many stored events and attendance rows the account has.",
+				operationId: "getStoredAccount",
+				responses: { "200": { description: "Account summary" } },
+			},
+		},
+		"/db/user": {
+			get: {
+				tags: ["Stored data (owner)"],
+				summary: "Stored user document",
+				description: "The users row with vtcToken, password and calendarShareToken removed.",
+				operationId: "getStoredUser",
+				responses: { "200": { description: "User document without secrets" } },
+			},
+		},
+		"/db/events": {
+			get: {
+				tags: ["Stored data (owner)"],
+				summary: "Stored timetable events",
+				description: "Event rows for the account's vtcStudentId, oldest first.",
+				operationId: "getStoredEvents",
+				parameters: [SEMESTER_PARAMETER, LIMIT_PARAMETER],
+				responses: { "200": { description: "Stored events" } },
+			},
+		},
+		"/db/attendance": {
+			get: {
+				tags: ["Stored data (owner)"],
+				summary: "Stored attendance",
+				description: "Attendance rows for the account's vtcStudentId, with per-course class records.",
+				operationId: "getStoredAttendance",
+				parameters: [SEMESTER_PARAMETER, LIMIT_PARAMETER],
+				responses: { "200": { description: "Stored attendance" } },
+			},
+		},
+	};
+}
+
+function ownerPaths(): Record<string, unknown> {
 	return {
 		"/ecard/register": {
 			get: {
@@ -297,7 +470,7 @@ function ownerPaths(dummyDeviceId: string): Record<string, unknown> {
 				description:
 					"Uses the stored VTC token. If deviceId is omitted, the server sends a dummy uppercase UUID (same style as the VTC app). Photos are stripped.",
 				operationId: "registerEcard",
-				parameters: [deviceIdParameter(dummyDeviceId)],
+				parameters: [deviceIdParameter()],
 				responses: { "200": { description: "E-card register envelope without photoStr, includes the deviceId used" } },
 			},
 		},
@@ -316,7 +489,7 @@ function ownerPaths(dummyDeviceId: string): Record<string, unknown> {
 						description: "Optional e-card JWT from register. Leave empty to auto-register with a dummy device.",
 						schema: { type: "string" },
 					},
-					deviceIdParameter(dummyDeviceId),
+					deviceIdParameter(),
 				],
 				responses: { "200": { description: "E-card envelope without photoStr" } },
 			},
@@ -368,10 +541,7 @@ function withTargetDiscordId(paths: Record<string, unknown>): Record<string, unk
 	return out;
 }
 
-export function buildOpenApiDocument(options: {
-	isOwner: boolean;
-	dummyDeviceId?: string;
-}): Record<string, unknown> {
+export function buildOpenApiDocument(options: { isOwner: boolean }): Record<string, unknown> {
 	return {
 		openapi: "3.1.0",
 		info: {
@@ -387,12 +557,14 @@ export function buildOpenApiDocument(options: {
 					{ name: "Timetable" },
 					{ name: "Attendance" },
 					{ name: "E-card (owner)" },
+					{ name: "Stored data (owner)" },
 				]
 			: [{ name: "Account" }, { name: "Timetable" }, { name: "Attendance" }],
 		paths: options.isOwner
 			? withTargetDiscordId({
 					...classPaths(),
-					...ownerPaths(options.dummyDeviceId ?? dummyEcardDeviceId()),
+					...ownerPaths(),
+					...storedDataPaths(),
 				})
 			: classPaths(),
 	};

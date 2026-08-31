@@ -1,5 +1,5 @@
 import { getAuthenticatedUser } from "@/lib/authenticated-user";
-import { buildOpenApiDocument, dummyEcardDeviceId, isPlaygroundOwner } from "@/lib/vtc-playground";
+import { buildOpenApiDocument, isPlaygroundOwner } from "@/lib/vtc-playground";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -9,9 +9,6 @@ export async function GET() {
 	}
 
 	return NextResponse.json(
-		buildOpenApiDocument({
-			isOwner: isPlaygroundOwner(user.discordId),
-			dummyDeviceId: dummyEcardDeviceId(),
-		}),
+		buildOpenApiDocument({ isOwner: isPlaygroundOwner(user.discordId) }),
 	);
 }
