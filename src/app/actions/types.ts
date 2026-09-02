@@ -59,6 +59,7 @@ export interface HybridAttendanceStats extends AttendanceStats {
         conductedClasses: number;
         attendanceRate: number;
         calendarTotalClasses: number;
+        calendarTotalHours?: number;
     }>;
 }
 

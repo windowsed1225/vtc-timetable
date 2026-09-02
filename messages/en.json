@@ -171,7 +171,11 @@
     "emptyTitle": "No entries yet",
     "emptyDescription": "No attendance data yet. Sync your schedule to populate this grid.",
     "loading": "Loading attendance…",
-    "totalRow": "{count, plural, one {# course} other {# courses}} total"
+    "totalRow": "{count, plural, one {# course} other {# courses}} total",
+    "eyebrow": "Attendance",
+    "searchLabel": "Search courses",
+    "searchPlaceholder": "Search course or student…",
+    "noMatches": "No matching entries"
   },
   "courseDetail": {
     "back": "Back",
@@ -187,7 +191,13 @@
     "breakdownTitle": "Daily breakdown",
     "colDay": "Day",
     "colHours": "Hours",
-    "noRecords": "No attended classes recorded for this course yet."
+    "noRecords": "No attended classes recorded for this course yet.",
+    "loadFailed": "Could not load this course.",
+    "loadFailedHint": "Something went wrong fetching the hours breakdown. Try again in a moment.",
+    "notFoundTitle": "Course not found",
+    "notFoundHint": "No synced course matches {code}.",
+    "backToAttendance": "Back to attendance",
+    "viewCourse": "View course details for {code} {name}"
   },
   "event": {
     "date": "Date",
@@ -440,6 +450,20 @@
     "footer": {
       "madeWith": "Made with ❤️ for VTC students",
       "disclaimer": "Not affiliated with the Vocational Training Council."
+    },
+    "navLabel": "Landing navigation",
+    "navFeatures": "Features",
+    "navDemo": "Demo",
+    "preview": {
+      "nextClass": "Next class",
+      "courseTitle": "Final Year Project",
+      "countdown": "in 25 min",
+      "time": "14:00 – 15:50",
+      "room": "Room K1002",
+      "statAttendance": "Attendance",
+      "statToday": "Classes today",
+      "statDeadlines": "Deadlines this week",
+      "note": "Sample data — your own timetable syncs from your VTC account."
     }
   },
   "calendarShare": {
@@ -471,5 +495,100 @@
     "backToApp": "Open VTC Timetable",
     "liveNote": "This public view updates from the owner's synchronized calendar.",
     "metaDescription": "{count, plural, =0 {No classes scheduled in this shared calendar range.} one {# class in this shared VTC timetable.} other {# classes in this shared VTC timetable.}}"
+  },
+  "dashboard": {
+    "greeting": "Welcome back",
+    "greetingNamed": "Welcome back, {name}",
+    "todaySummary": "{count, plural, =0 {No classes today} one {# class today} other {# classes today}} · {courses, plural, one {# course} other {# courses}} synced",
+    "breadcrumb": "VTC Timetable · Personal schedule",
+    "pageTitle": "My timetable",
+    "pageSubtitle": "Your synced VTC classes, attendance and deadlines",
+    "yearWeekBadge": "{year} · Week {week}",
+    "footer": "VTC Timetable · Synced from your VTC account · Not an official VTC system",
+    "searchPlaceholder": "Search classes, courses…",
+    "searchLabel": "Search your classes",
+    "searchNoResults": "No matching classes",
+    "notificationsLabel": "Notifications",
+    "notificationsEmpty": "Nothing needs your attention",
+    "notifTokenExpired": "Your VTC sign-in expired. Re-sync to refresh your timetable.",
+    "notifDeadline": "{title} is due {when}",
+    "notifNextClass": "{title} starts {when}",
+    "morning": "Morning",
+    "afternoon": "Afternoon",
+    "evening": "Evening",
+    "nextClassLabel": "Next class",
+    "nextClassEn": "Next class",
+    "nextClassEmptyTitle": "No upcoming class",
+    "nextClassEmptyHint": "Nothing scheduled after now in your synced timetable.",
+    "nextClassInMinutes": "in {count} min",
+    "nextClassInHours": "in {count} h",
+    "nextClassInDays": "in {count} d",
+    "viewClass": "View class"
+  },
+  "nav": {
+    "label": "Main navigation",
+    "home": "Home",
+    "attendance": "Attendance",
+    "attendanceGrid": "Attendance hours",
+    "studentCard": "Student card",
+    "api": "API playground",
+    "settings": "Settings",
+    "moodle": "Moodle"
+  },
+  "week": {
+    "regionLabel": "This week's timetable",
+    "thisWeek": "This week",
+    "weekOf": "Week of {range}",
+    "subtitle": "Monday to Friday · {range}",
+    "weekBadge": "Week {week}",
+    "noClasses": "No classes",
+    "state": {
+      "attended": "Attended",
+      "absent": "Absent",
+      "upcoming": "Upcoming",
+      "cancelled": "Cancelled"
+    }
+  },
+  "attendancePage": {
+    "breadcrumb": "Attendance",
+    "title": "Attendance overview",
+    "subtitle": "Track your attendance percentage by course.",
+    "entry": "Attendance Entry",
+    "currentSemester": "Current semester",
+    "selectSemester": "Select semester",
+    "courseAttendance": "Course attendance",
+    "courseCount": "{count, plural, one {# course} other {# courses}}",
+    "hoursCount": "{hours} hours",
+    "classesCount": "{attended}/{total} classes",
+    "absencesCount": "{count, plural, one {# absence} other {# absences}}",
+    "totalClasses": "Total classes",
+    "noData": "No data",
+    "loadFailed": "Could not load your attendance.",
+    "refreshFailed": "Could not refresh attendance from VTC.",
+    "emptyHint": "Sync your timetable and attendance to see your rate per course.",
+    "emptyAction": "Go to my timetable",
+    "signInHint": "Sign in to see your attendance."
+  },
+  "moodle": {
+    "breadcrumb": "VTC Timetable · Moodle",
+    "pageTitle": "Moodle to-do",
+    "pageSubtitle": "Assignments and deadlines pulled from your VTC Moodle account",
+    "cardTitle": "Moodle to-do",
+    "cardSubtitle": "Assignments & updates",
+    "openMoodle": "Open Moodle",
+    "openMoodleHome": "Open Moodle home",
+    "itemLabel": "Open {title} on Moodle",
+    "typeAssignment": "Assignment",
+    "typeQuiz": "Quiz",
+    "typeMaterial": "Material",
+    "dueOverdue": "Overdue · {date}",
+    "dueToday": "Due today · {time}",
+    "dueOn": "Due {date} · {time}",
+    "loading": "Loading your Moodle deadlines…",
+    "loadFailed": "Could not load your Moodle deadlines.",
+    "empty": "Nothing due right now",
+    "emptyHint": "Deadlines show up here once Moodle has something for you in the next two months.",
+    "missingLink": "Moodle did not return a verified link for this item.",
+    "signInHint": "Sign in to see your Moodle to-do list."
   }
 }

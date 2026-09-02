@@ -171,7 +171,11 @@
     "emptyTitle": "尚無紀錄",
     "emptyDescription": "尚無出席資料。請先同步課表以填入此格狀檢視。",
     "loading": "正在載入出席紀錄…",
-    "totalRow": "共 {count} 個科目"
+    "totalRow": "共 {count} 個科目",
+    "eyebrow": "出席紀錄",
+    "searchLabel": "搜尋科目",
+    "searchPlaceholder": "搜尋科目或學生…",
+    "noMatches": "沒有符合的紀錄"
   },
   "courseDetail": {
     "back": "返回",
@@ -187,7 +191,13 @@
     "breakdownTitle": "每日明細",
     "colDay": "日期",
     "colHours": "小時",
-    "noRecords": "此科目尚未有出席課堂紀錄。"
+    "noRecords": "此科目尚未有出席課堂紀錄。",
+    "loadFailed": "無法載入此科目。",
+    "loadFailedHint": "擷取時數明細時出錯，請稍後再試。",
+    "notFoundTitle": "找不到科目",
+    "notFoundHint": "沒有已同步的科目符合 {code}。",
+    "backToAttendance": "返回出席紀錄",
+    "viewCourse": "查看 {code} {name} 的課程詳情"
   },
   "event": {
     "date": "日期",
@@ -440,6 +450,20 @@
     "footer": {
       "madeWith": "為 VTC 學生用 ❤️ 製作",
       "disclaimer": "與職業訓練局並無任何關聯。"
+    },
+    "navLabel": "頁面導覽",
+    "navFeatures": "功能",
+    "navDemo": "示範",
+    "preview": {
+      "nextClass": "下一堂課",
+      "courseTitle": "畢業專題習作",
+      "countdown": "25 分鐘後",
+      "time": "14:00 – 15:50",
+      "room": "K1002 室",
+      "statAttendance": "出席率",
+      "statToday": "今日課堂",
+      "statDeadlines": "本週限期",
+      "note": "示範資料 — 你的課表會由 VTC 帳戶同步。"
     }
   },
   "calendarShare": {
@@ -471,5 +495,100 @@
     "backToApp": "開啟 VTC 課表",
     "liveNote": "此公開頁面會按照擁有者已同步的課表更新。",
     "metaDescription": "此 VTC 分享課表範圍共有 {count} 堂課。"
+  },
+  "dashboard": {
+    "greeting": "歡迎回來",
+    "greetingNamed": "歡迎回來，{name}",
+    "todaySummary": "{count, plural, =0 {今日沒有課堂} other {今日有 # 堂課}} · 已同步 {courses} 個科目",
+    "breadcrumb": "VTC 課表 · 個人時間表",
+    "pageTitle": "我的課表",
+    "pageSubtitle": "已同步的 VTC 課堂、出席紀錄與限期",
+    "yearWeekBadge": "{year} · 第 {week} 週",
+    "footer": "VTC 課表 · 由你的 VTC 帳戶同步 · 並非 VTC 官方系統",
+    "searchPlaceholder": "搜尋課堂、科目…",
+    "searchLabel": "搜尋你的課堂",
+    "searchNoResults": "沒有符合的課堂",
+    "notificationsLabel": "通知",
+    "notificationsEmpty": "沒有需要你處理的事項",
+    "notifTokenExpired": "你的 VTC 登入已過期。請重新同步以更新課表。",
+    "notifDeadline": "{title} 將於 {when} 到期",
+    "notifNextClass": "{title} 將於 {when} 開始",
+    "morning": "早晨",
+    "afternoon": "下午",
+    "evening": "晚上",
+    "nextClassLabel": "下一堂課",
+    "nextClassEn": "Next class",
+    "nextClassEmptyTitle": "沒有即將開始的課堂",
+    "nextClassEmptyHint": "同步時間表中，現時之後沒有課堂。",
+    "nextClassInMinutes": "{count} 分鐘後",
+    "nextClassInHours": "{count} 小時後",
+    "nextClassInDays": "{count} 日後",
+    "viewClass": "查看課堂"
+  },
+  "nav": {
+    "label": "主要導覽",
+    "home": "主頁",
+    "attendance": "出席紀錄",
+    "attendanceGrid": "出席時數",
+    "studentCard": "學生證",
+    "api": "API 遊樂場",
+    "settings": "設定",
+    "moodle": "Moodle"
+  },
+  "week": {
+    "regionLabel": "本週課表",
+    "thisWeek": "本週",
+    "weekOf": "{range} 那一週",
+    "subtitle": "星期一至五 · {range}",
+    "weekBadge": "第 {week} 週",
+    "noClasses": "沒有課堂",
+    "state": {
+      "attended": "已出席",
+      "absent": "缺席",
+      "upcoming": "即將開始",
+      "cancelled": "已取消"
+    }
+  },
+  "attendancePage": {
+    "breadcrumb": "出席紀錄",
+    "title": "出席概覽",
+    "subtitle": "按科目追蹤你的出席率。",
+    "entry": "出席紀錄輸入",
+    "currentSemester": "本學期",
+    "selectSemester": "選擇學期",
+    "courseAttendance": "科目出席率",
+    "courseCount": "{count} 個科目",
+    "hoursCount": "{hours} 小時",
+    "classesCount": "{attended}/{total} 堂",
+    "absencesCount": "缺席 {count} 堂",
+    "totalClasses": "總課堂數",
+    "noData": "沒有資料",
+    "loadFailed": "無法載入你的出席紀錄。",
+    "refreshFailed": "無法從 VTC 重新整理出席紀錄。",
+    "emptyHint": "同步課表與出席紀錄後，即可查看各科目的出席率。",
+    "emptyAction": "前往我的課表",
+    "signInHint": "登入以查看你的出席紀錄。"
+  },
+  "moodle": {
+    "breadcrumb": "VTC 課表 · Moodle",
+    "pageTitle": "Moodle 待辦",
+    "pageSubtitle": "由你的 VTC Moodle 帳戶擷取的作業與限期",
+    "cardTitle": "Moodle 待辦",
+    "cardSubtitle": "作業與更新",
+    "openMoodle": "開啟 Moodle",
+    "openMoodleHome": "開啟 Moodle 首頁",
+    "itemLabel": "在 Moodle 開啟 {title}",
+    "typeAssignment": "作業",
+    "typeQuiz": "測驗",
+    "typeMaterial": "教材",
+    "dueOverdue": "已逾期 · {date}",
+    "dueToday": "今日到期 · {time}",
+    "dueOn": "{date} 到期 · {time}",
+    "loading": "正在載入 Moodle 限期…",
+    "loadFailed": "無法載入你的 Moodle 限期。",
+    "empty": "暫時沒有待辦事項",
+    "emptyHint": "當 Moodle 在未來兩個月內有事項時，會在此顯示。",
+    "missingLink": "Moodle 沒有為此項目提供已驗證的連結。",
+    "signInHint": "登入以查看你的 Moodle 待辦。"
   }
 }

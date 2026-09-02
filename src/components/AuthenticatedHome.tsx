@@ -8,7 +8,6 @@ import {
     HybridAttendanceStats,
     listAttendanceCoursesStored,
     prepareVtcSync,
-    refreshAttendance,
     shouldAutoSync,
     syncCourseAttendanceStored,
     syncSemesterFromStoredToken,
@@ -21,13 +20,18 @@ import SyncModal, { type SyncProgress } from "@/components/SyncModal";
 import TutorialSimulation from "@/components/TutorialSimulation";
 import TopNavbar from "@/components/TopNavbar";
 import TimetableCalendar from "@/components/TimetableCalendar";
+import TimetableWeek from "@/components/TimetableWeek";
+import NextClassCard from "@/components/NextClassCard";
+import MoodleTodoCard from "@/components/MoodleTodoCard";
 import CalendarTopActions from "@/components/CalendarTopActions";
-import MobileAttendanceView from "@/components/MobileAttendanceView";
 import MobileBottomNav from "@/components/MobileBottomNav";
+import DashboardOverview from "@/components/DashboardOverview";
+import UserDropdown from "@/components/UserDropdown";
 import { jumpMonthForSemester } from "@/lib/semester";
 import { getDateArray, getSemestersToSync } from "@/lib/utils";
 import { CalendarEvent } from "@/types/timetable";
 import { createEvents, EventAttributes } from "ics";
+import { useRouter } from "@/lib/navigation";
 import { useSession } from "@/lib/auth-client";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -58,6 +62,8 @@ export default function AuthenticatedHome() {
     const t = useTranslations("sync");
     const tc = useTranslations("calendar");
     const tTour = useTranslations("tour");
+    const tDash = useTranslations("dashboard");
+    const router = useRouter();
     const locale = useLocale();
 
     // Auth state
@@ -77,7 +83,6 @@ export default function AuthenticatedHome() {
     const [date, setDate] = useState(new Date());
     const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [semesterFilter, setSemesterFilter] = useState<string>("all");
-    const [mobileTab, setMobileTab] = useState<"calendar" | "attendance">("calendar");
 
     // Data state
     const [courses, setCourses] = useState<
@@ -88,7 +93,6 @@ export default function AuthenticatedHome() {
     // UI state
     const [vtcUrl, setVtcUrl] = useState("");
     const [isSyncing, setIsSyncing] = useState(false);
-    const [isRefreshingAttendance, setIsRefreshingAttendance] = useState(false);
     const [isRefreshingCalendar, setIsRefreshingCalendar] = useState(false);
     const [showSyncModal, setShowSyncModal] = useState(false);
     const [showSignInModal, setShowSignInModal] = useState(false);
@@ -122,6 +126,17 @@ export default function AuthenticatedHome() {
         });
         return () => window.cancelAnimationFrame(frame);
     }, [status, loadStoredData]);
+
+    // Routes without the sync modal (the attendance page's rail) hand off here
+    // with ?sync=1; open the modal once and drop the flag from the URL.
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        const url = new URL(window.location.href);
+        if (url.searchParams.get("sync") !== "1") return;
+        url.searchParams.delete("sync");
+        window.history.replaceState(null, "", url.pathname + url.search);
+        setShowSyncModal(true);
+    }, []);
 
     // Load stored events from localStorage URL
     useEffect(() => {
@@ -256,36 +271,6 @@ export default function AuthenticatedHome() {
         performAutoSync();
     }, [status]);
 
-
-    // Handle refresh attendance from VTC API
-    const handleRefreshAttendance = async () => {
-        setIsRefreshingAttendance(true);
-        try {
-            const result = await refreshAttendance();
-            if (result.success) {
-                await fetchAttendance();
-                setNotification({
-                    type: "success",
-                    message: t("refreshedAttendance", { count: result.updatedCount || 0 }),
-                });
-                setTimeout(() => setNotification(null), 3000);
-            } else {
-                setNotification({
-                    type: "error",
-                    message: result.error || t("failedRefreshAttendance"),
-                });
-                setTimeout(() => setNotification(null), 5000);
-            }
-        } catch (error) {
-            setNotification({
-                type: "error",
-                message: error instanceof Error ? error.message : t("failedRefreshAttendance"),
-            });
-            setTimeout(() => setNotification(null), 5000);
-        } finally {
-            setIsRefreshingAttendance(false);
-        }
-    };
 
     // Handle refresh calendar — forced full sync from VTC API (all 3 semesters)
     // This is the "Refresh" button next to MY CALENDARS in the sidebar
@@ -502,10 +487,8 @@ export default function AuthenticatedHome() {
         <div className="dashboard-shell h-screen flex flex-col bg-[var(--background)] overflow-hidden">
             {/* Top Navbar */}
             <TopNavbar
-                onSignIn={() => setShowSignInModal(true)}
                 onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
                 sidebarOpen={sidebarOpen}
-                actions={<CalendarTopActions courses={courses} discordId={session.user.discordId} onRefresh={handleRefreshCalendar} />}
             />
 
             {/* Body: Sidebar + Main */}
@@ -521,10 +504,8 @@ export default function AuthenticatedHome() {
                 events={events}
                 attendance={attendance}
                 onSyncClick={() => { if (session) { setShowSyncModal(true); } else { setShowSignInModal(true); } setSidebarOpen(false); }}
-                onRefreshAttendance={handleRefreshAttendance}
                 onRefreshCalendar={handleRefreshCalendar}
                 isSyncing={isSyncing}
-                isRefreshingAttendance={isRefreshingAttendance}
                 isRefreshingCalendar={isRefreshingCalendar}
                 vtcUrl={vtcUrl}
                 user={session?.user}
@@ -533,8 +514,26 @@ export default function AuthenticatedHome() {
             />
 
             {/* Main Content */}
-            <main data-tour="calendar" className={`dashboard-main flex-1 flex flex-col overflow-hidden relative mobile-tab-${mobileTab}`}>
+            <main data-tour="calendar" className="dashboard-main flex-1 flex flex-col relative">
                 <div className="calendar-workspace-content">
+                <DashboardOverview
+                    events={events}
+                    userName={session.user.name}
+                    tokenExpired={showTokenExpiredWarning}
+                    weekDate={date}
+                    onSelectEvent={(event) => setSelectedEvent(event)}
+                    onNavigateToDate={setDate}
+                    headerActions={
+                        <>
+                            <CalendarTopActions
+                                courses={courses}
+                                discordId={session.user.discordId}
+                                onRefresh={handleRefreshCalendar}
+                            />
+                            <UserDropdown user={session.user} />
+                        </>
+                    }
+                />
                 {/* Token Expired Warning Banner */}
                 {showTokenExpiredWarning && (
                     <div className="mb-4 flex items-center gap-3 px-4 py-3 rounded-xl bg-warning/15 border border-warning/30 text-warning animate-slideIn">
@@ -563,6 +562,21 @@ export default function AuthenticatedHome() {
                 )}
                 {events.length > 0 ? (
                     <>
+                        <div className="home-top-grid">
+                            <NextClassCard
+                                events={filteredEvents}
+                                onSelectEvent={(event) => setSelectedEvent(event)}
+                                onNavigateToDate={setDate}
+                            />
+                            <div id="moodle" className="home-moodle-slot scroll-mt-6">
+                                <MoodleTodoCard limit={5} />
+                            </div>
+                        </div>
+                        <TimetableWeek
+                            events={filteredEvents}
+                            date={date}
+                            onSelectEvent={(event) => setSelectedEvent(event)}
+                        />
                         <TimetableCalendar
                             events={filteredEvents}
                             view={view}
@@ -630,9 +644,9 @@ export default function AuthenticatedHome() {
                         </div>
                     </div>
                 )}
-                </div>
 
-                <MobileAttendanceView attendance={attendance} onRefresh={handleRefreshAttendance} isRefreshing={isRefreshingAttendance} />
+                <footer className="campus-footer">{tDash("footer")}</footer>
+                </div>
 
                 {/* Notification Toast */}
                 {notification && (
@@ -725,9 +739,9 @@ export default function AuthenticatedHome() {
             </main>
 
             <MobileBottomNav
-                active={mobileTab}
-                onCalendar={() => setMobileTab("calendar")}
-                onAttendance={() => setMobileTab("attendance")}
+                active="calendar"
+                onCalendar={() => setDate(new Date())}
+                onAttendance={() => router.push("/attendance")}
                 onMore={() => setSidebarOpen(true)}
             />
 

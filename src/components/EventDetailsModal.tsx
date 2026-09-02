@@ -5,6 +5,7 @@ import { APP_TIME_ZONE, formatClassDate } from "@/lib/event-date";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { updateEventDetails, setEventStatus, finishCourseEarly, toggleEventAttendance } from "@/app/actions";
+import { resolveMoodleActivityUrl, resolveMoodleCourseUrl } from "@/lib/moodle-links";
 
 interface EventDetailsModalProps {
     event: CalendarEvent | null;
@@ -203,11 +204,15 @@ export default function EventDetailsModal({
                         </div>
                     </div>
 
-                    {/* Actions */}
+                    {/* Actions — only verified VTC Moodle hosts (incl. moodleNNNN). */}
+                    {(() => {
+                        const activityHref = resolveMoodleActivityUrl(event.resource.actionUrl);
+                        const courseHref = resolveMoodleCourseUrl(event.resource.courseUrl);
+                        return (
                     <div className="flex flex-col gap-2">
-                        {event.resource.actionUrl && (
+                        {activityHref && (
                             <a
-                                href={event.resource.actionUrl}
+                                href={activityHref}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={handleClose}
@@ -219,9 +224,9 @@ export default function EventDetailsModal({
                                 Open Assignment
                             </a>
                         )}
-                        {event.resource.courseUrl && (
+                        {courseHref && (
                             <a
-                                href={event.resource.courseUrl}
+                                href={courseHref}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={handleClose}
@@ -234,6 +239,8 @@ export default function EventDetailsModal({
                             </a>
                         )}
                     </div>
+                        );
+                    })()}
                 </div>
             </div>
         );

@@ -3,8 +3,9 @@
 import { exportSemesterIcs } from "@/app/actions";
 import { getDefaultSemester, getSemesterDisplayLabel, getSemesterLabel } from "@/lib/utils";
 import { Link } from "@/lib/navigation";
+import { CalendarCog, Download, Table2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ManageEventsModal from "./ManageEventsModal";
 import ShareCalendarButton from "./ShareCalendarButton";
 import SubscribeButton from "./SubscribeButton";
@@ -39,6 +40,25 @@ export default function CalendarTopActions({ courses, discordId, onRefresh }: Ca
 	const [manageOpen, setManageOpen] = useState(false);
 	const [semester, setSemester] = useState(getDefaultSemester());
 	const [exporting, setExporting] = useState(false);
+	const toolsRef = useRef<HTMLDetailsElement>(null);
+
+	// Native <details> stays open on outside click; close it like the other header menus.
+	useEffect(() => {
+		const onPointerDown = (event: MouseEvent) => {
+			const root = toolsRef.current;
+			if (!root || !root.open) return;
+			const target = event.target;
+			if (!(target instanceof Node)) return;
+			if (root.contains(target)) return;
+			// Share dialog is portaled to document.body — leave the menu alone while it is open.
+			if (target instanceof Element && target.closest(".calendar-share-overlay, .calendar-share-dialog")) {
+				return;
+			}
+			root.open = false;
+		};
+		document.addEventListener("mousedown", onPointerDown);
+		return () => document.removeEventListener("mousedown", onPointerDown);
+	}, []);
 
 	const exportCalendar = async () => {
 		setExporting(true);
@@ -70,25 +90,19 @@ export default function CalendarTopActions({ courses, discordId, onRefresh }: Ca
 		<>
 			<div className="calendar-top-actions">
 				<button type="button" className="calendar-action-button is-primary" onClick={() => setManageOpen(true)}>
-					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} className="h-4 w-4" aria-hidden="true">
-						<path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15" />
-					</svg>
+					<CalendarCog className="h-4 w-4" aria-hidden="true" />
 					{t("manageEvents")}
 				</button>
 
-				<details className="calendar-tools-menu">
+				<details ref={toolsRef} className="calendar-tools-menu">
 					<summary className="calendar-action-button">
-						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} className="h-4 w-4" aria-hidden="true">
-							<path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12m0 0 4-4m-4 4-4-4M4 20h16" />
-						</svg>
+						<Download className="h-4 w-4" aria-hidden="true" />
 						{t("calendarTools")}
 					</summary>
 					<div className="calendar-tools-popover">
 						<div className="calendar-tools-list">
 							<Link href="/attendance-grid" className="calendar-tools-row">
-								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} aria-hidden="true">
-									<path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75h16.5v16.5H3.75zM3.75 9h16.5M3.75 14.25h16.5M9 3.75v16.5M15 3.75v16.5" />
-								</svg>
+								<Table2 aria-hidden="true" />
 								<span>{tAttendanceGrid("navLabel")}</span>
 								<span className="calendar-tools-row-chevron" aria-hidden="true">→</span>
 							</Link>

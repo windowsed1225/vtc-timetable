@@ -187,7 +187,7 @@ export function buildHybridAttendanceStats(
 		for (const cls of classes) {
 			const sem = getClassSeasonTag(cls.date);
 			if (!semesterBreakdowns[sem]) {
-				semesterBreakdowns[sem] = { attended: 0, conductedClasses: 0, attendanceRate: 0, calendarTotalClasses: 0 };
+				semesterBreakdowns[sem] = { attended: 0, conductedClasses: 0, attendanceRate: 0, calendarTotalClasses: 0, calendarTotalHours: 0 };
 			}
 			semesterBreakdowns[sem].conductedClasses++;
 			if (cls.status === "attended" || cls.status === "late") semesterBreakdowns[sem].attended++;
@@ -196,14 +196,23 @@ export function buildHybridAttendanceStats(
 			const sem = toSemesterTag(event.semester);
 			if (!sem) continue;
 			if (!semesterBreakdowns[sem]) {
-				semesterBreakdowns[sem] = { attended: 0, conductedClasses: 0, attendanceRate: 0, calendarTotalClasses: 0 };
+				semesterBreakdowns[sem] = { attended: 0, conductedClasses: 0, attendanceRate: 0, calendarTotalClasses: 0, calendarTotalHours: 0 };
 			}
 			semesterBreakdowns[sem].calendarTotalClasses++;
+			const startTime = new Date(event.startTime);
+			const endTime = new Date(event.endTime);
+			const durationMinutes =
+				typeof event.actualDuration === "number" && event.actualDuration > 0
+					? event.actualDuration
+					: getDurationInMinutes(startTime, endTime);
+			semesterBreakdowns[sem].calendarTotalHours =
+				(semesterBreakdowns[sem].calendarTotalHours ?? 0) + durationMinutes / 60;
 		}
 		for (const sem of Object.keys(semesterBreakdowns)) {
 			const breakdown = semesterBreakdowns[sem]!;
 			breakdown.attendanceRate =
 				breakdown.conductedClasses > 0 ? Math.round((breakdown.attended / breakdown.conductedClasses) * 1000) / 10 : 0;
+			breakdown.calendarTotalHours = Math.round((breakdown.calendarTotalHours ?? 0) * 10) / 10;
 		}
 
 		let currentSemesterStats: HybridAttendanceStats["currentSemesterStats"];
