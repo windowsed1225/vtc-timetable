@@ -2,20 +2,25 @@
 
 import { Menu, X } from "lucide-react";
 import Image from "next/image";
+import UserDropdown from "./UserDropdown";
 
 interface TopNavbarProps {
 	onSidebarToggle: () => void;
 	sidebarOpen: boolean;
+	/** Signed-in account. On phone the avatar lives here; desktop keeps it in the page header. */
+	user?: {
+		name?: string | null;
+		image?: string | null;
+	} | null;
 }
 
-// Compact chrome for viewports without the persistent sidebar. The account menu
-// and calendar tools live in the page header (DashboardOverview) at every width,
-// so this bar only carries the drawer toggle and the brand lockup.
-export default function TopNavbar({ onSidebarToggle, sidebarOpen }: TopNavbarProps) {
+// Compact chrome: drawer toggle + brand on the left. Phone also gets the account
+// menu on the right so it stays out of the stacked greeting row.
+export default function TopNavbar({ onSidebarToggle, sidebarOpen, user }: TopNavbarProps) {
 	return (
 		<nav className="top-navbar" aria-label="Application navigation">
-			<div className="flex items-center gap-3 min-w-0">
-				<button className="top-navbar-hamburger" onClick={onSidebarToggle} aria-label="Toggle sidebar">
+			<div className="top-navbar-start">
+				<button type="button" className="top-navbar-hamburger" onClick={onSidebarToggle} aria-label="Toggle sidebar">
 					{sidebarOpen ? <X className="w-5 h-5" aria-hidden="true" /> : <Menu className="w-5 h-5" aria-hidden="true" />}
 				</button>
 
@@ -28,6 +33,12 @@ export default function TopNavbar({ onSidebarToggle, sidebarOpen }: TopNavbarPro
 					</div>
 				</div>
 			</div>
+
+			{user ? (
+				<div className="top-navbar-end">
+					<UserDropdown user={user} />
+				</div>
+			) : null}
 		</nav>
 	);
 }

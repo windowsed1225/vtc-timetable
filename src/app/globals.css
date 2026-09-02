@@ -2033,13 +2033,34 @@ body {
 		align-items: stretch;
 		flex-direction: column;
 		gap: 14px;
-		margin-bottom: 24px;
+		margin-bottom: 20px;
 	}
-	.campus-header-actions { flex-wrap: wrap; }
+	.campus-header h1 { font-size: 22px; }
+	.campus-header-actions {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		align-items: center;
+		gap: 8px;
+		width: 100%;
+	}
 	/* Stacked on phones there is room for a real field, so the pill grows back. */
-	.campus-search { flex: 1; padding: 0 16px; }
+	.campus-search {
+		grid-column: 1;
+		flex: 1;
+		min-width: 0;
+		padding: 0 14px;
+	}
 	.campus-search input { width: 100%; min-width: 0; }
-	.campus-search-results { left: 0; right: auto; }
+	.campus-search-results { left: 0; right: auto; width: min(100vw - 24px, 340px); }
+	.campus-bell-wrap { grid-column: 2; }
+	.campus-header-actions .calendar-top-actions {
+		grid-column: 1 / -1;
+	}
+	.campus-notifications {
+		right: 0;
+		left: auto;
+		width: min(100vw - 24px, 320px);
+	}
 }
 
 @media (max-width: 520px) {
@@ -2232,20 +2253,208 @@ body {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
+	gap: 12px;
 	height: 68px;
 	padding: 0 22px;
 	overflow: visible;
 	background: var(--sidebar-bg);
 	border-bottom: 1px solid var(--border-default);
 	flex-shrink: 0;
-	/* Keep overflowing Calendar Tools popover above the main calendar */
+	/* Keep overflowing menus above the main calendar */
 	z-index: 40;
+}
+.top-navbar-start {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-width: 0;
+}
+/* Phone only — desktop keeps the account menu in the page header. */
+.top-navbar-end {
+	display: none;
+	flex: none;
+	align-items: center;
+}
+.campus-header-account {
+	display: flex;
+	flex: none;
+	align-items: center;
 }
 .top-navbar-brand {
 	display: flex;
 	align-items: center;
 	gap: 10px;
 	min-width: 0;
+}
+
+/* ── Account menu (UserDropdown) ───────────────── */
+.user-menu {
+	position: relative;
+	display: flex;
+	flex: none;
+	align-items: center;
+}
+.user-menu-trigger {
+	display: inline-flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	width: auto;
+	height: 40px;
+	min-width: 40px;
+	min-height: 40px;
+	padding: 4px;
+	border: 1px solid var(--border-default);
+	border-radius: 999px;
+	background: var(--bg-surface);
+	color: var(--foreground);
+	line-height: 0;
+	cursor: pointer;
+	transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.user-menu-trigger:hover {
+	background: var(--bg-overlay);
+}
+.user-menu-trigger[aria-expanded="true"] {
+	border-color: color-mix(in oklab, var(--accent-blue) 45%, var(--border-default));
+	box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent-blue) 18%, transparent);
+}
+.user-menu-avatar {
+	display: block;
+	width: 30px;
+	height: 30px;
+	flex: none;
+	border-radius: 999px;
+	object-fit: cover;
+}
+.user-menu-avatar-fallback {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--accent);
+	color: #fff;
+	font-size: 12px;
+	font-weight: 700;
+	line-height: 1;
+}
+.user-menu-chevron {
+	display: none;
+	width: 14px;
+	height: 14px;
+	margin-right: 4px;
+	color: var(--text-tertiary);
+	flex: none;
+}
+/* Room for the chevron on wider header placements. */
+@media (min-width: 1024px) {
+	.user-menu-trigger {
+		padding: 4px 8px 4px 4px;
+	}
+	.user-menu-chevron {
+		display: block;
+	}
+}
+.user-menu-panel {
+	position: absolute;
+	top: calc(100% + 8px);
+	right: 0;
+	z-index: 60;
+	width: min(240px, calc(100vw - 24px));
+	padding: 4px 0;
+	border: 1px solid var(--border-default);
+	border-radius: var(--radius-xl);
+	background: var(--bg-surface);
+	box-shadow: var(--shadow-lg);
+	animation: fadeIn 0.12s ease;
+}
+.user-menu-head {
+	padding: 12px 16px;
+	border-bottom: 1px solid var(--border-default);
+}
+.user-menu-name {
+	overflow: hidden;
+	color: var(--foreground);
+	font-size: 14px;
+	font-weight: 600;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.user-menu-caption {
+	margin-top: 2px;
+	color: var(--text-tertiary);
+	font-size: 12px;
+}
+.user-menu-body {
+	padding: 4px 0;
+}
+.user-menu-item {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	width: 100%;
+	padding: 9px 16px;
+	border: 0;
+	background: transparent;
+	color: var(--text-secondary);
+	font-family: inherit;
+	font-size: 14px;
+	text-align: left;
+	cursor: pointer;
+	transition: background 0.12s ease, color 0.12s ease;
+}
+.user-menu-item:hover {
+	background: var(--bg-active);
+	color: var(--foreground);
+}
+.user-menu-item.is-danger {
+	color: var(--error);
+}
+.user-menu-item.is-danger:hover {
+	background: var(--error-bg);
+	color: var(--error);
+}
+.user-menu-locale {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 8px 16px;
+}
+.user-menu-locale-label {
+	flex: 1;
+	color: var(--text-secondary);
+	font-size: 14px;
+}
+.user-menu-locale-switch {
+	display: flex;
+	overflow: hidden;
+	border: 1px solid var(--border-strong);
+	border-radius: var(--radius-lg);
+}
+.user-menu-locale-switch button {
+	padding: 5px 10px;
+	border: 0;
+	background: transparent;
+	color: var(--text-secondary);
+	font-family: inherit;
+	font-size: 12px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.12s ease, color 0.12s ease;
+}
+.user-menu-locale-switch button + button {
+	border-left: 1px solid var(--border-strong);
+}
+.user-menu-locale-switch button.is-active {
+	background: var(--accent-blue);
+	color: #fff;
+}
+.user-menu-locale-switch button:not(.is-active):hover {
+	background: var(--bg-active);
+}
+.user-menu-divider {
+	margin: 4px 0;
+	border-top: 1px solid var(--border-default);
 }
 .top-navbar-brand > div {
 	display: flex;
@@ -3611,8 +3820,7 @@ body {
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
-.mobile-attendance-view,
-.mobile-bottom-nav { display: none; }
+.mobile-attendance-view { display: none; }
 .top-navbar-hamburger {
 	display: none;
 	padding: 6px;
@@ -3642,10 +3850,17 @@ body {
 }
 
 /* Below the reference's lg breakpoint the rail leaves the flow and becomes a
-   drawer, so the top bar and its hamburger are the only chrome. */
+   drawer, so the top bar and its hamburger are the only chrome. Account menu
+   moves into the top bar so it no longer stacks into the greeting row. */
 @media (max-width: 1023px) {
 	.top-navbar-hamburger {
 		display: flex;
+	}
+	.top-navbar-end {
+		display: flex;
+	}
+	.campus-header-account {
+		display: none !important;
 	}
 	.glass {
 		position: fixed;
@@ -3758,12 +3973,25 @@ body {
 	.settings-row { align-items: flex-start; gap: 12px; }
 	.top-navbar {
 		position: relative;
-		height: 58px;
+		height: 56px;
 		padding: 0 12px;
 	}
 	.top-navbar-logo {
-		width: 30px;
-		height: 30px;
+		width: 32px;
+		height: 32px;
+		padding: 5px;
+	}
+	.user-menu-trigger {
+		width: 40px;
+		height: 40px;
+		min-width: 40px;
+		padding: 0;
+		border-radius: 999px;
+	}
+	.user-menu-avatar {
+		width: 36px;
+		height: 36px;
+		border-radius: 999px;
 	}
 	.calendar-top-actions {
 		display: grid;
@@ -3785,42 +4013,8 @@ body {
 	}
 
 	.dashboard-main .calendar-workspace-content {
-		padding: 12px 12px 84px !important;
+		padding: 12px 12px max(20px, env(safe-area-inset-bottom)) !important;
 	}
-	.mobile-tab-attendance .calendar-workspace-content { display: none; }
-	.mobile-tab-attendance .mobile-attendance-view { display: block; }
-	.mobile-bottom-nav {
-		position: fixed;
-		left: 10px;
-		right: 10px;
-		bottom: max(10px, env(safe-area-inset-bottom));
-		z-index: 38;
-		display: grid;
-		grid-template-columns: repeat(3, 1fr);
-		padding: 5px;
-		border: 1px solid var(--border-default);
-		border-radius: var(--radius-md);
-		background: color-mix(in srgb, var(--bg-surface) 92%, transparent);
-		box-shadow: 0 12px 30px color-mix(in oklab, var(--foreground) 20%, transparent);
-		backdrop-filter: blur(18px);
-	}
-	.mobile-bottom-nav button {
-		display: flex;
-		min-height: 50px;
-		align-items: center;
-		justify-content: center;
-		flex-direction: column;
-		gap: 3px;
-		border-radius: var(--radius-sm);
-		color: var(--text-tertiary);
-		font-size: 10px;
-		font-weight: 650;
-	}
-	.mobile-bottom-nav button.is-active {
-		background: var(--bg-active);
-		color: var(--accent-blue);
-	}
-	.mobile-bottom-nav svg { width: 19px; height: 19px; }
 	.semester-select {
 		min-height: 44px;
 	}

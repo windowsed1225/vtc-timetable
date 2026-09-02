@@ -67,60 +67,53 @@ export default function UserDropdown({ user }: UserDropdownProps) {
 		if (!mounted) return null;
 		switch (theme) {
 			case "light":
-				return (
-					<Sun className="w-4 h-4" aria-hidden="true" />
-				);
+				return <Sun className="w-4 h-4" aria-hidden="true" />;
 			case "dark":
-				return (
-					<Moon className="w-4 h-4" aria-hidden="true" />
-				);
+				return <Moon className="w-4 h-4" aria-hidden="true" />;
 			default:
-				return (
-					<Monitor className="w-4 h-4" aria-hidden="true" />
-				);
+				return <Monitor className="w-4 h-4" aria-hidden="true" />;
 		}
 	};
 
 	return (
-		<div className="relative" ref={dropdownRef}>
-			{/* Avatar Button */}
+		<div className="user-menu" ref={dropdownRef}>
 			<button
 				type="button"
 				onClick={() => setIsOpen(!isOpen)}
-				className="flex items-center gap-2 p-1 rounded-lg hover:bg-[var(--bg-active)] transition-colors"
+				className="user-menu-trigger"
 				title="User menu"
 				aria-expanded={isOpen}
+				aria-haspopup="menu"
 			>
 				{user.image ? (
 					<img
 						src={user.image}
 						alt={user.name || "User"}
-						className="w-7 h-7 rounded-full ring-1 ring-border-strong"
+						className="user-menu-avatar"
+						width={28}
+						height={28}
+						referrerPolicy="no-referrer"
 					/>
 				) : (
-					<div className="w-7 h-7 rounded-full bg-accent flex items-center justify-center">
-						<span className="text-white font-semibold text-xs">
-							{user.name?.charAt(0).toUpperCase() || "U"}
-						</span>
-					</div>
+					<span className="user-menu-avatar user-menu-avatar-fallback" aria-hidden="true">
+						{user.name?.charAt(0).toUpperCase() || "U"}
+					</span>
 				)}
-				<ChevronDown aria-hidden="true" />
+				<ChevronDown className="user-menu-chevron" aria-hidden="true" />
 			</button>
 
-			{/* Dropdown Menu */}
 			{isOpen && (
-				<div className="absolute right-0 mt-2 w-56 bg-[var(--bg-surface)] rounded-xl shadow-lg border border-border py-1 z-50 animate-fadeIn">
-					<div className="px-4 py-3 border-b border-border">
-						<p className="text-sm font-semibold text-[var(--foreground)] truncate">
-							{user.name || "User"}
-						</p>
-						<p className="text-xs text-[var(--text-tertiary)]">{t("settings")}</p>
+				<div className="user-menu-panel" role="menu">
+					<div className="user-menu-head">
+						<p className="user-menu-name">{user.name || "User"}</p>
+						<p className="user-menu-caption">{t("settings")}</p>
 					</div>
 
-					<div className="py-1">
+					<div className="user-menu-body">
 						<Link
 							href="/student-card"
-							className="flex items-center gap-3 px-4 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-active)] hover:text-[var(--foreground)] transition-colors"
+							className="user-menu-item"
+							role="menuitem"
 							onClick={() => setIsOpen(false)}
 						>
 							<LayoutList className="w-4 h-4" aria-hidden="true" />
@@ -128,7 +121,8 @@ export default function UserDropdown({ user }: UserDropdownProps) {
 						</Link>
 						<Link
 							href="/settings"
-							className="flex items-center gap-3 px-4 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-active)] hover:text-[var(--foreground)] transition-colors"
+							className="user-menu-item"
+							role="menuitem"
 							onClick={() => setIsOpen(false)}
 						>
 							<Settings className="w-4 h-4" aria-hidden="true" />
@@ -137,60 +131,56 @@ export default function UserDropdown({ user }: UserDropdownProps) {
 
 						<Link
 							href="/api"
-							className="flex items-center gap-3 px-4 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-active)] hover:text-[var(--foreground)] transition-colors"
+							className="user-menu-item"
+							role="menuitem"
 							onClick={() => setIsOpen(false)}
 						>
 							<Code2 className="w-4 h-4" aria-hidden="true" />
 							<span>{t("apiPlayground")}</span>
 						</Link>
 
-						{/* Theme Toggle */}
-						<button
-							onClick={cycleTheme}
-							className="w-full flex items-center gap-3 px-4 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-active)] hover:text-[var(--foreground)] transition-colors"
-						>
+						<button type="button" onClick={cycleTheme} className="user-menu-item" role="menuitem">
 							{getThemeIcon()}
 							<span className="flex-1 text-left">
 								{t("theme")}: {mounted ? (theme === "system" ? t("system") : theme === "dark" ? t("dark") : t("light")) : "..."}
 							</span>
 						</button>
 
-						{/* Language Toggle */}
-						<div className="flex items-center gap-3 px-4 py-2">
+						<div className="user-menu-locale">
 							<Languages className="w-4 h-4 text-[var(--text-tertiary)] shrink-0" aria-hidden="true" />
-							<span className="text-sm text-[var(--text-secondary)] flex-1">{t("language")}:</span>
-							<div className="flex rounded-lg overflow-hidden border border-border-strong">
+							<span className="user-menu-locale-label">{t("language")}:</span>
+							<div className="user-menu-locale-switch">
 								<button
+									type="button"
 									onClick={() => handleLocaleSwitch("en")}
-									className={`px-2.5 py-1 text-xs font-medium transition-colors ${locale === "en"
-										? "bg-[var(--accent-blue)] text-white"
-										: "text-[var(--text-secondary)] hover:bg-[var(--bg-active)]"
-										}`}
+									className={locale === "en" ? "is-active" : undefined}
+									aria-pressed={locale === "en"}
+									aria-label="English"
 								>
 									EN
 								</button>
 								<button
+									type="button"
 									onClick={() => handleLocaleSwitch("zh-HK")}
-									className={`px-2.5 py-1 text-xs font-medium transition-colors border-l border-border-strong ${locale === "zh-HK"
-										? "bg-[var(--accent-blue)] text-white"
-										: "text-[var(--text-secondary)] hover:bg-[var(--bg-active)]"
-										}`}
+									className={locale === "zh-HK" ? "is-active" : undefined}
+									aria-pressed={locale === "zh-HK"}
+									aria-label="繁體中文"
 								>
 									繁體
 								</button>
 							</div>
 						</div>
 
-						{/* Divider */}
-						<div className="my-1 border-t border-border" />
+						<div className="user-menu-divider" />
 
-						{/* Logout */}
 						<button
+							type="button"
 							onClick={async () => {
 								await signOut();
 								window.location.href = "/";
 							}}
-							className="w-full flex items-center gap-3 px-4 py-2 text-sm text-[var(--error)] hover:bg-[var(--error-bg)] transition-colors"
+							className="user-menu-item is-danger"
+							role="menuitem"
 						>
 							<LogOut className="w-4 h-4" aria-hidden="true" />
 							<span>{t("logout")}</span>

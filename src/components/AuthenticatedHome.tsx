@@ -24,14 +24,12 @@ import TimetableWeek from "@/components/TimetableWeek";
 import NextClassCard from "@/components/NextClassCard";
 import MoodleTodoCard from "@/components/MoodleTodoCard";
 import CalendarTopActions from "@/components/CalendarTopActions";
-import MobileBottomNav from "@/components/MobileBottomNav";
 import DashboardOverview from "@/components/DashboardOverview";
 import UserDropdown from "@/components/UserDropdown";
 import { jumpMonthForSemester } from "@/lib/semester";
 import { getDateArray, getSemestersToSync } from "@/lib/utils";
 import { CalendarEvent } from "@/types/timetable";
 import { createEvents, EventAttributes } from "ics";
-import { useRouter } from "@/lib/navigation";
 import { useSession } from "@/lib/auth-client";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -63,7 +61,6 @@ export default function AuthenticatedHome() {
     const tc = useTranslations("calendar");
     const tTour = useTranslations("tour");
     const tDash = useTranslations("dashboard");
-    const router = useRouter();
     const locale = useLocale();
 
     // Auth state
@@ -489,6 +486,7 @@ export default function AuthenticatedHome() {
             <TopNavbar
                 onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
                 sidebarOpen={sidebarOpen}
+                user={session.user}
             />
 
             {/* Body: Sidebar + Main */}
@@ -530,7 +528,10 @@ export default function AuthenticatedHome() {
                                 discordId={session.user.discordId}
                                 onRefresh={handleRefreshCalendar}
                             />
-                            <UserDropdown user={session.user} />
+                            {/* Desktop only — phone avatar sits in the top bar. */}
+                            <div className="campus-header-account">
+                                <UserDropdown user={session.user} />
+                            </div>
                         </>
                     }
                 />
@@ -737,13 +738,6 @@ export default function AuthenticatedHome() {
                     )
                 )}
             </main>
-
-            <MobileBottomNav
-                active="calendar"
-                onCalendar={() => setDate(new Date())}
-                onAttendance={() => router.push("/attendance")}
-                onMore={() => setSidebarOpen(true)}
-            />
 
             {/* Sync Modal */}
             <SyncModal

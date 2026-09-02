@@ -65,7 +65,11 @@ export default function AppShell({ children, attendance, footer }: AppShellProps
 
 	return (
 		<div className="dashboard-shell h-screen flex flex-col bg-background overflow-hidden">
-			<TopNavbar onSidebarToggle={() => setSidebarOpen(!sidebarOpen)} sidebarOpen={sidebarOpen} />
+			<TopNavbar
+				onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
+				sidebarOpen={sidebarOpen}
+				user={session?.user}
+			/>
 
 			<div className="flex-1 flex overflow-hidden">
 				<button
@@ -98,7 +102,13 @@ export default function AppShell({ children, attendance, footer }: AppShellProps
 						<CampusHeader
 							events={events}
 							userName={session?.user?.name}
-							headerActions={session?.user ? <UserDropdown user={session.user} /> : null}
+							headerActions={
+								session?.user ? (
+									<div className="campus-header-account">
+										<UserDropdown user={session.user} />
+									</div>
+								) : null
+							}
 						/>
 						{children}
 						<footer className="campus-footer">{footer}</footer>
