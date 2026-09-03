@@ -3747,13 +3747,15 @@ body {
 	box-sizing: border-box;
 }
 
-/* Flex and grid children default to `min-width: auto`, so one that cannot
-   shrink to the viewport — a nowrap button row, a select sized by its longest
-   option, a long feed URL — widens the whole column instead. `.dashboard-main`
-   then clips it with `overflow-x: hidden` and the right edge of the page is
-   simply gone on a phone. Letting these shrink is what keeps the cards inside
-   the screen; anything that genuinely needs its width scrolls on its own
-   (`.campus-month-scroll`), which this does not affect. */
+/* Flex and grid items default to `min-width: auto`, which floors them at their
+   min-content width. A `truncate` box holds nowrap text, so its min-content is
+   the whole untruncated string: on /tools a 408px feed URL floored the card at
+   484px inside a 450px viewport, and `.dashboard-main` clipped the difference
+   with `overflow-x: hidden` — the right edge of the page simply went missing.
+   `min-w-0` on the card itself does the same for that grid item. Content that
+   genuinely needs its width scrolls on its own (`.campus-month-scroll`), which
+   sits deeper and is unaffected. */
+.calendar-workspace-content,
 .calendar-workspace-content > * {
 	min-width: 0;
 }

@@ -98,7 +98,7 @@ export default function CalendarToolsPage() {
 
 			<div className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]">
 				{/* Subscription feed */}
-				<section className="rounded-4xl border border-border bg-card p-5 sm:p-7">
+				<section className="min-w-0 rounded-4xl border border-border bg-card p-5 sm:p-7">
 					<div className="flex items-start gap-4">
 						<span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
 							<CalendarDays className="size-6" aria-hidden="true" />
@@ -183,7 +183,7 @@ export default function CalendarToolsPage() {
 				</section>
 
 				{/* Quick setup */}
-				<section className="rounded-4xl border border-border bg-card p-5 sm:p-7">
+				<section className="min-w-0 rounded-4xl border border-border bg-card p-5 sm:p-7">
 					<p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("setupEyebrow")}</p>
 					<h2 className="mt-1 text-xl font-black text-card-foreground">{t("setupTitle")}</h2>
 					<div className="mt-5 flex flex-col gap-3">
