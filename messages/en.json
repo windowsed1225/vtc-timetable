@@ -570,8 +570,8 @@
       "upcoming": "Upcoming",
       "cancelled": "Cancelled",
       "ongoing": "Ongoing",
-      "awaiting": "等待回傳（需要明天）",
-      "noRecord": "尚無紀錄"
+      "awaiting": "Awaiting record (tomorrow)",
+      "noRecord": "No record"
     }
   },
   "attendancePage": {
