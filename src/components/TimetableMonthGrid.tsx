@@ -1,6 +1,6 @@
 "use client";
 
-import { isSameDay } from "@/lib/week";
+import { isSameDay, isWeekend } from "@/lib/week";
 import { useNow } from "@/lib/use-now";
 import type { CalendarEvent } from "@/types/timetable";
 import { useLocale, useTranslations } from "next-intl";
@@ -12,6 +12,8 @@ interface TimetableMonthGridProps {
 	/** Any date inside the month to render. */
 	date: Date;
 	onSelectEvent?: (event: CalendarEvent) => void;
+	/** The class the details modal is open on, outlined so the source card stays findable. */
+	selectedEvent?: CalendarEvent | null;
 	/** True while the first load is still resolving. */
 	isLoading?: boolean;
 	/** Set when loading failed, so the grid says so instead of showing an empty month. */
@@ -43,7 +45,7 @@ function monthCells(date: Date): Array<{ day: Date; inMonth: boolean }> {
  * whose cells hold the same compact class cards the week strip uses. Deadlines
  * are left to the calendar's other views so each cell stays a list of classes.
  */
-export default function TimetableMonthGrid({ events, date, onSelectEvent, isLoading, error }: TimetableMonthGridProps) {
+export default function TimetableMonthGrid({ events, date, onSelectEvent, selectedEvent, isLoading, error }: TimetableMonthGridProps) {
 	const t = useTranslations("calendar");
 	const locale = useLocale();
 	const now = useNow();
@@ -120,7 +122,7 @@ export default function TimetableMonthGrid({ events, date, onSelectEvent, isLoad
 								aria-current={isToday ? "date" : undefined}
 								className={`min-h-32 border-b border-r border-border p-2 sm:min-h-40 ${
 									cell.inMonth ? (isToday ? "bg-primary/5" : "") : "bg-muted/20"
-								}`}
+								} ${isWeekend(cell.day) ? "calendar-weekend" : ""}`}
 							>
 								{cell.inMonth && (
 									<>
@@ -142,6 +144,7 @@ export default function TimetableMonthGrid({ events, date, onSelectEvent, isLoad
 													now={now}
 													timeLabel={timeLabel}
 													onSelect={onSelectEvent}
+													isSelected={event === selectedEvent}
 												/>
 											))}
 										</div>

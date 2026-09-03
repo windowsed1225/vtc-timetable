@@ -24,6 +24,8 @@ interface TimetableSessionCardProps {
 	now: Date;
 	timeLabel: Intl.DateTimeFormat;
 	onSelect?: (event: CalendarEvent) => void;
+	/** True for the class the details modal is currently open on. */
+	isSelected?: boolean;
 }
 
 /**
@@ -31,7 +33,7 @@ interface TimetableSessionCardProps {
  * attendance state. Shared by the week strip and the month grid so a class
  * reads the same wherever it appears.
  */
-export default function TimetableSessionCard({ event, now, timeLabel, onSelect }: TimetableSessionCardProps) {
+export default function TimetableSessionCard({ event, now, timeLabel, onSelect, isSelected = false }: TimetableSessionCardProps) {
 	const t = useTranslations("week");
 	const state = sessionState(
 		{ start: event.start, end: event.end, status: event.resource?.status, attendanceStatusCode: event.resource?.attendanceStatusCode },
@@ -46,10 +48,11 @@ export default function TimetableSessionCard({ event, now, timeLabel, onSelect }
 			type="button"
 			onClick={() => onSelect?.(event)}
 			disabled={!onSelect}
+			aria-current={isSelected ? "true" : undefined}
 			aria-label={`${title} ${timeLabel.format(event.start)}-${timeLabel.format(event.end)}`}
 			className={`w-full min-w-0 max-w-full rounded-xl border border-border bg-secondary/70 p-2 text-left transition hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-default ${
 				state === "cancelled" ? "opacity-60" : ""
-			}`}
+			} ${isSelected ? "outline-2 outline-offset-2 outline-accent-blue" : ""}`}
 		>
 			<span className="flex min-w-0 items-start gap-2">
 				<span aria-hidden="true" className="mt-0.5 h-8 w-1 shrink-0 rounded-full" style={{ background: color } as CSSProperties} />

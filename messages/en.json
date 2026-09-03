@@ -561,7 +561,7 @@
     "weeklyTitle": "Weekly timetable",
     "thisWeek": "This week",
     "weekOf": "Week of {range}",
-    "subtitle": "Monday to Friday · {range}",
+    "subtitle": "Monday to Sunday · {range}",
     "weekBadge": "Week {week}",
     "noClasses": "No classes",
     "state": {

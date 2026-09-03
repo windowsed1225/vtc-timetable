@@ -1,7 +1,7 @@
 "use client";
 
 import { useNow } from "@/lib/use-now";
-import { isSameDay, isoWeekNumber, weekdaysOf } from "@/lib/week";
+import { isSameDay, isWeekend, isoWeekNumber, weekdaysOf } from "@/lib/week";
 import TimetableSessionCard from "./TimetableSessionCard";
 import type { CalendarEvent } from "@/types/timetable";
 import { useLocale, useTranslations } from "next-intl";
@@ -12,6 +12,8 @@ interface TimetableWeekProps {
 	/** Any date inside the week to render. Follows the calendar below it. */
 	date: Date;
 	onSelectEvent?: (event: CalendarEvent) => void;
+	/** The class the details modal is open on, outlined so the source card stays findable. */
+	selectedEvent?: CalendarEvent | null;
 	/** True while the first load is still resolving. */
 	isLoading?: boolean;
 	/** Set when loading the week failed, so the grid can say so instead of showing nothing. */
@@ -19,11 +21,11 @@ interface TimetableWeekProps {
 }
 
 /**
- * Monday-to-Friday strip of the week containing `date`, built from the signed-in
+ * Monday-to-Sunday strip of the week containing `date`, built from the signed-in
  * user's synced classes. Deadlines live in the calendar below and are excluded
  * here so each column stays a list of taught classes.
  */
-export default function TimetableWeek({ events, date, onSelectEvent, isLoading, error }: TimetableWeekProps) {
+export default function TimetableWeek({ events, date, onSelectEvent, selectedEvent, isLoading, error }: TimetableWeekProps) {
 	const t = useTranslations("week");
 	const locale = useLocale();
 	const now = useNow();
@@ -42,13 +44,14 @@ export default function TimetableWeek({ events, date, onSelectEvent, isLoading, 
 		return days.map((day) => ({
 			day,
 			isToday: isSameDay(day, now),
+			isWeekend: isWeekend(day),
 			sessions: classes
 				.filter((event) => isSameDay(event.start, day))
 				.sort((a, b) => a.start.getTime() - b.start.getTime()),
 		}));
 	}, [days, events, now]);
 
-	const rangeLabel = `${dateLabel.format(days[0])} – ${dateLabel.format(days[4])}`;
+	const rangeLabel = `${dateLabel.format(days[0])} – ${dateLabel.format(days[days.length - 1])}`;
 	const weekNumber = isoWeekNumber(days[0]);
 	const isCurrentWeek = columns.some((column) => column.isToday);
 
@@ -71,7 +74,7 @@ export default function TimetableWeek({ events, date, onSelectEvent, isLoading, 
 					{error}
 				</p>
 			) : isLoading ? (
-				<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5" aria-hidden="true">
+				<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7" aria-hidden="true">
 					{days.map((day) => (
 						<div key={day.toISOString()} className="rounded-2xl bg-muted/50 p-3">
 							<div className="mb-3 h-3 w-20 animate-pulse rounded-full bg-muted" />
@@ -80,13 +83,13 @@ export default function TimetableWeek({ events, date, onSelectEvent, isLoading, 
 					))}
 				</div>
 			) : (
-				<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+				<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7">
 					{columns.map((column) => (
 						<div
 							key={column.day.toISOString()}
 							className={`min-w-0 rounded-2xl p-3 ${
 								column.isToday ? "bg-primary/10 ring-1 ring-primary/45" : "bg-muted/50"
-							}`}
+							} ${column.isWeekend ? "calendar-weekend" : ""}`}
 							aria-current={column.isToday ? "date" : undefined}
 						>
 							<p
@@ -108,6 +111,7 @@ export default function TimetableWeek({ events, date, onSelectEvent, isLoading, 
 											now={now}
 											timeLabel={timeLabel}
 											onSelect={onSelectEvent}
+											isSelected={event === selectedEvent}
 										/>
 									))
 								)}

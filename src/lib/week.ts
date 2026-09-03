@@ -1,4 +1,4 @@
-// Week-strip helpers for the Monday-to-Friday timetable grid.
+// Week-strip helpers for the Monday-to-Sunday timetable grid.
 // Dates are handled in local time; the calendar stores events as local Date
 // objects built from VTC's Asia/Hong_Kong timestamps.
 
@@ -19,10 +19,16 @@ export function startOfWeek(date: Date): Date {
 	return new Date(day.getTime() + offset * DAY_MS);
 }
 
-/** The five weekdays (Mon-Fri) of the week containing `date`. */
+/** The seven days (Mon-Sun) of the week containing `date`. */
 export function weekdaysOf(date: Date): Date[] {
 	const monday = startOfWeek(date);
-	return Array.from({ length: 5 }, (_, index) => new Date(monday.getTime() + index * DAY_MS));
+	return Array.from({ length: 7 }, (_, index) => new Date(monday.getTime() + index * DAY_MS));
+}
+
+/** Saturday and Sunday, which the grids tint apart from the teaching week. */
+export function isWeekend(date: Date): boolean {
+	const weekday = date.getDay();
+	return weekday === 0 || weekday === 6;
 }
 
 export function isSameDay(a: Date, b: Date): boolean {

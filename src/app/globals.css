@@ -81,6 +81,10 @@
 	--calendar-time-bg: oklch(0.965 0.012 200);
 	--calendar-offrange: oklch(0.955 0.012 200);
 	--grid-line: oklch(0.24 0.03 220 / 0.07);
+	/* Weekend cells hover to the grey a session card is filled with
+	   (`bg-secondary/70`), flattened onto the card ground so it stays opaque
+	   over grid lines. Derived, so it follows whichever theme is active. */
+	--calendar-weekend-hover: color-mix(in srgb, var(--secondary) 70%, var(--card));
 
 	/* ── Radius scale (reference: --radius 1.25rem) ── */
 	--radius: 1.25rem;
@@ -938,6 +942,16 @@ body {
 .rbc-today {
 	background: color-mix(in srgb, var(--calendar-today) 7%, transparent) !important;
 }
+/* Weekend cells keep their resting fill and only pick the tint up on hover.
+   `!important` is here to clear `.rbc-today`, which sets its own background
+   the same way, so hovering today's column still reads as a hover. */
+.calendar-weekend {
+	transition: background-color 0.15s ease;
+}
+.calendar-weekend:hover {
+	background-color: var(--calendar-weekend-hover) !important;
+}
+
 /* Dim off-range (previous/next month) days */
 .rbc-off-range-bg {
 	background-color: var(--calendar-offrange) !important;
@@ -3976,8 +3990,14 @@ body {
 @media (max-width: 768px) {
 	.settings-page-header-inner { height: 60px; padding: 0 14px; }
 	.settings-page-logo { width: 34px; height: 34px; }
-	.settings-layout {
+	/* Same 14px gutter as the strip and the cards below it. */
+	.settings-heading { padding: 22px 14px 16px; }
+	.settings-heading h1 { font-size: 20px; }
+	.settings-layout,
+	.settings-heading + .settings-layout {
 		display: block;
+		/* The sticky pill strip is the first thing in here, so it has to start
+		   flush under the heading; the desktop 24px top gutter left it floating. */
 		padding: 0 14px 36px;
 	}
 	.settings-nav {
@@ -3992,17 +4012,21 @@ body {
 		margin: 0 -14px 18px;
 		padding: 9px 14px;
 		overflow-x: auto;
+		/* A scrollbar under seven pills eats most of the strip's height on any
+		   platform that reserves room for one. */
+		scrollbar-width: none;
 		background: color-mix(in srgb, var(--background) 93%, transparent);
 		border-bottom: 1px solid var(--border-default);
 		backdrop-filter: blur(14px);
 	}
+	.settings-nav::-webkit-scrollbar { display: none; }
 	/* The strip is a scrolling row of pills; the "Settings" caption only eats
 	   the width they need. */
 	.settings-nav-label { display: none; }
 	.settings-nav a {
 		flex: 0 0 auto;
 		padding: 8px 11px;
-		border-color: var(--border-default);
+		border: 1px solid var(--border-default);
 		background: var(--bg-subtle);
 	}
 	.settings-section-body { padding: 16px; }

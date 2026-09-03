@@ -599,6 +599,7 @@ export default function AuthenticatedHome({ mode = "home" }: AuthenticatedHomePr
                                     onViewChange={setView}
                                     onNavigate={setDate}
                                     onSelectEvent={(event) => setSelectedEvent(event)}
+                                    selectedEvent={selectedEvent}
                                     locale={locale}
                                 />
                             </>
@@ -608,6 +609,7 @@ export default function AuthenticatedHome({ mode = "home" }: AuthenticatedHomePr
                                 events={filteredEvents}
                                 date={date}
                                 onSelectEvent={(event) => setSelectedEvent(event)}
+                                selectedEvent={selectedEvent}
                             />
                         )}
                     </>

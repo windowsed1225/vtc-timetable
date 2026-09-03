@@ -13,6 +13,8 @@ interface TimetableAgendaProps {
 	/** Any date inside the month to list. */
 	date: Date;
 	onSelectEvent?: (event: CalendarEvent) => void;
+	/** The class the details modal is open on, outlined so the source card stays findable. */
+	selectedEvent?: CalendarEvent | null;
 	/** True while the first load is still resolving. */
 	isLoading?: boolean;
 	/** Set when loading failed, so the list says so instead of reading as empty. */
@@ -24,7 +26,7 @@ interface TimetableAgendaProps {
  * day. Unlike the month grid this keeps deadlines, so the agenda stays the one
  * view that shows classes and coursework side by side.
  */
-export default function TimetableAgenda({ events, date, onSelectEvent, isLoading, error }: TimetableAgendaProps) {
+export default function TimetableAgenda({ events, date, onSelectEvent, selectedEvent, isLoading, error }: TimetableAgendaProps) {
 	const t = useTranslations("calendar");
 	const locale = useLocale();
 	const now = useNow();
@@ -102,6 +104,7 @@ export default function TimetableAgenda({ events, date, onSelectEvent, isLoading
 											now={now}
 											timeLabel={timeLabel}
 											onSelect={onSelectEvent}
+											isSelected={event === selectedEvent}
 										/>
 									),
 								)}

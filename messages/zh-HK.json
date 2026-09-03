@@ -334,7 +334,7 @@
     "apiPlayground": "API 測試台",
     "apiPlaygroundDescription": "用已儲存的 token 發送 VTC 請求並查看 JSON。",
     "openApiPlayground": "開啟測試台",
-    "gracePeriodTitle": "出席及格比率",
+    "gracePeriodTitle": "出席率",
     "gracePeriodNavDescription": "用於出席警告及缺課計算器的百分比。",
     "gracePeriodDescription": "當已出席時數達到已進行課堂時數的此百分比或以上，即視為達標。預設為 80%。更改此值不會改寫已儲存的出席紀錄。",
     "gracePeriodCurrent": "目前數值",
@@ -561,7 +561,7 @@
     "weeklyTitle": "每週時間表",
     "thisWeek": "本週",
     "weekOf": "{range} 那一週",
-    "subtitle": "星期一至五 · {range}",
+    "subtitle": "星期一至日 · {range}",
     "weekBadge": "第 {week} 週",
     "noClasses": "沒有課堂",
     "state": {
