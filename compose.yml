@@ -1,10 +1,14 @@
 # Production self-hosting stack: app + Redis.
 # MongoDB Atlas is used for the database — set MONGODB_URI in .env.
 #
-# Copy .env.example to .env, set secrets, then:
+# Copy .env.example to .env, then create the proxy network once and start:
+#   docker network create dokploy-network   # already exists on a Dokploy host
 #   docker compose up -d --build
 #
-# Redis stays on the internal network. Only the app port is published.
+# Redis stays on the internal network. The app additionally joins
+# `dokploy-network`, which is where Dokploy runs Traefik: a service that is not
+# on that network is unreachable from the outside, so the domain answers 502
+# even while the container is healthy.
 
 services:
   app:
@@ -44,6 +48,7 @@ services:
       start_period: 25s
     networks:
       - internal
+      - dokploy-network
 
   redis:
     image: redis:7-alpine
@@ -67,3 +72,6 @@ volumes:
 
 networks:
   internal:
+  # Created by the Dokploy installer; Traefik and every routed app share it.
+  dokploy-network:
+    external: true
