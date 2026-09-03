@@ -46,6 +46,23 @@ export function isoWeekNumber(date: Date): number {
 	return 1 + Math.round((target.getTime() - firstThursday.getTime()) / (7 * DAY_MS));
 }
 
+/**
+ * Week number within the academic year: the week holding 1 September is week 1.
+ * The dashboard badge reads this, so September starts the year at week 1 rather
+ * than ISO week 36. The calendar keeps `isoWeekNumber`.
+ *
+ * The turnover is measured in whole weeks, not by month, so a late-August
+ * Monday that shares its week with 1 September counts as week 1 too.
+ */
+export function academicWeekNumber(date: Date): number {
+	const weekStart = startOfWeek(date);
+	let anchor = startOfWeek(new Date(date.getFullYear(), 8, 1));
+	if (weekStart.getTime() < anchor.getTime()) {
+		anchor = startOfWeek(new Date(date.getFullYear() - 1, 8, 1));
+	}
+	return 1 + Math.round((weekStart.getTime() - anchor.getTime()) / (7 * DAY_MS));
+}
+
 /** One step of calendar navigation, sized to the view currently on screen. */
 export function stepCalendarDate(
 	date: Date,

@@ -2,7 +2,7 @@
 
 import CampusHeader from "@/components/CampusHeader";
 import { getAcademicYear } from "@/lib/utils";
-import { isoWeekNumber } from "@/lib/week";
+import { academicWeekNumber } from "@/lib/week";
 import type { CalendarEvent } from "@/types/timetable";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
@@ -35,7 +35,7 @@ export default function DashboardOverview({ weekDate, ...header }: DashboardOver
 						<p>{t("pageSubtitle")}</p>
 					</div>
 					<span className="campus-week-badge">
-						{t("yearWeekBadge", { year: getAcademicYear(weekDate), week: isoWeekNumber(weekDate) })}
+						{t("yearWeekBadge", { year: getAcademicYear(weekDate), week: academicWeekNumber(weekDate) })}
 					</span>
 				</div>
 			</div>
