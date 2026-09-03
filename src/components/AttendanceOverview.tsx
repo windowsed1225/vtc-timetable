@@ -32,6 +32,7 @@ export default function AttendanceOverview({ onStatsLoaded }: AttendanceOverview
 	const [isRefreshing, setIsRefreshing] = useState(false);
 	const [entryOpen, setEntryOpen] = useState(false);
 	const [entryCourse, setEntryCourse] = useState<HybridAttendanceStats | null>(null);
+	const [coursesOpen, setCoursesOpen] = useState(true);
 	// Kept in the URL so browser Back from a course returns to the same semester.
 	const [semester, setSemester] = useState<string | null>(() => {
 		if (typeof window === "undefined") return null;
@@ -238,12 +239,19 @@ export default function AttendanceOverview({ onStatsLoaded }: AttendanceOverview
 						</div>
 					</section>
 
-					<div className="attendance-section-heading">
+					<button
+						type="button"
+						className="attendance-section-heading"
+						aria-expanded={coursesOpen}
+						aria-controls="attendance-course-grid"
+						onClick={() => setCoursesOpen((open) => !open)}
+					>
 						<h2>{t("courseAttendance")}</h2>
 						<span>{t("courseCount", { count: rows.length })}</span>
-					</div>
+						<ChevronDown className="attendance-section-chevron" aria-hidden="true" />
+					</button>
 
-					<div className="attendance-card-grid">
+					<div id="attendance-course-grid" className="attendance-card-grid" hidden={!coursesOpen}>
 						{rows.map((row) => (
 							<Link
 								key={row.course.courseCode}

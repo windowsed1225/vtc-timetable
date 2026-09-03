@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/auth";
+import { auth as betterAuth } from "@/lib/auth";
 import { getAuthenticatedUser } from "@/lib/authenticated-user";
 import { invalidateUserCaches } from "@/lib/cache";
 import connectDB from "@/lib/db";
@@ -15,8 +16,26 @@ import {
 import Attendance from "@/models/Attendance";
 import Event from "@/models/Event";
 import User from "@/models/User";
-import bcrypt from "bcryptjs";
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+
+/**
+ * Credential sign-in reads the password from better-auth's `account` row, not
+ * from `users.password`, so it has to be written through better-auth. An
+ * existing row is updated in place because this form resets the password
+ * without asking for the current one.
+ */
+async function writeCredentialPassword(userId: string, password: string): Promise<void> {
+    const ctx = await betterAuth.$context;
+    const account = await ctx.internalAdapter.findCredentialAccount(userId);
+    if (!account) {
+        await betterAuth.api.setPassword({ body: { newPassword: password }, headers: await headers() });
+        return;
+    }
+    await ctx.internalAdapter.updateAccount(account.id, {
+        password: await ctx.password.hash(password),
+    });
+}
 
 /**
  * Update user's email and password for credentials-based login
@@ -50,17 +69,14 @@ export async function updateEmailPassword(
             return { success: false, error: "Email already in use by another account." };
         }
 
-        // Hash password
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        // Update user
         const user = await User.findOne({ discordId: session.user.discordId });
         if (!user) {
             return { success: false, error: "User not found." };
         }
 
+        await writeCredentialPassword(session.user.id, password);
+
         user.email = email;
-        user.password = hashedPassword;
 
         // Add credentials to authProvider array if not already present
         if (!user.authProvider.includes("credentials")) {
@@ -108,11 +124,14 @@ export async function getUserSettings(): Promise<{
         await connectDB();
 
         const user = await User.findOne({ discordId: session.user.discordId })
-            .select("email password authProvider discordUsername vtcStudentId gracePeriodThreshold")
+            .select("email authProvider discordUsername vtcStudentId gracePeriodThreshold")
             .lean();
         if (!user) {
             return { success: false, error: "User not found." };
         }
+
+        const ctx = await betterAuth.$context;
+        const credentialAccount = await ctx.internalAdapter.findCredentialAccount(session.user.id);
 
         const override = storedGracePeriodOverride(user.gracePeriodThreshold);
 
@@ -120,7 +139,7 @@ export async function getUserSettings(): Promise<{
             success: true,
             data: {
                 email: user.email,
-                hasPassword: !!user.password,
+                hasPassword: Boolean(credentialAccount?.password),
                 authProviders: user.authProvider || ["discord"],
                 discordUsername: user.discordUsername,
                 vtcStudentId: user.vtcStudentId,

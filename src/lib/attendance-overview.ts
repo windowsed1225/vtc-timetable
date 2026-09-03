@@ -59,12 +59,14 @@ export function buildAttendanceOverview(
 		for (const key of Object.keys(course.semesterBreakdowns ?? {})) semesterSet.add(key);
 	}
 
+	// Listed oldest first so the picker reads SEM 1 → SEM n; the default below
+	// still lands on the most recent active semester.
 	const semesters = [...semesterSet].sort(
-		(a, b) => (SEMESTER_ORDER[b] || 0) - (SEMESTER_ORDER[a] || 0),
+		(a, b) => (SEMESTER_ORDER[a] || 0) - (SEMESTER_ORDER[b] || 0),
 	);
 	const activeSemester =
 		(requestedSemester && semesters.includes(requestedSemester) ? requestedSemester : null) ??
-		semesters.find((semester) =>
+		semesters.toReversed().find((semester) =>
 			tracked.some(
 				(course) =>
 					course.status === "ACTIVE" &&
@@ -72,7 +74,7 @@ export function buildAttendanceOverview(
 						(course.displaySemester || course.semester) === semester),
 			),
 		) ??
-		semesters[0] ??
+		semesters[semesters.length - 1] ??
 		null;
 
 	const rows: AttendanceOverviewRow[] = activeSemester

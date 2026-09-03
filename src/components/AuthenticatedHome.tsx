@@ -23,7 +23,6 @@ import TimetableCalendar from "@/components/TimetableCalendar";
 import TimetableWeek from "@/components/TimetableWeek";
 import NextClassCard from "@/components/NextClassCard";
 import MoodleTodoCard from "@/components/MoodleTodoCard";
-import CalendarTopActions from "@/components/CalendarTopActions";
 import SemesterCalendarCard from "@/components/SemesterCalendarCard";
 import CalendarHeader from "@/components/CalendarHeader";
 import DashboardOverview from "@/components/DashboardOverview";
@@ -95,7 +94,8 @@ export default function AuthenticatedHome({ mode = "home" }: AuthenticatedHomePr
     const [semesterFilter, setSemesterFilter] = useState<string>("all");
 
     // Data state
-    const [courses, setCourses] = useState<
+    // Loaded for the sync flow; no surface on this route renders the list.
+    const [, setCourses] = useState<
         Array<{ courseCode: string; courseTitle: string; colorIndex: number; semester: string; status: string }>
     >([]);
     // Loaded for the sync flow's benefit; nothing in this route renders it directly.
@@ -532,11 +532,6 @@ export default function AuthenticatedHome({ mode = "home" }: AuthenticatedHomePr
                     onNavigateToDate={setDate}
                     headerActions={
                         <>
-                            <CalendarTopActions
-                                courses={courses}
-                                discordId={session.user.discordId}
-                                onRefresh={handleRefreshCalendar}
-                            />
                             {/* Desktop only — phone avatar sits in the top bar. */}
                             <div className="campus-header-account">
                                 <UserDropdown user={session.user} />
@@ -595,7 +590,6 @@ export default function AuthenticatedHome({ mode = "home" }: AuthenticatedHomePr
                                     date={date}
                                     view={view}
                                     onNavigate={(action) => setDate(stepCalendarDate(date, view, action))}
-                                    onDateSelect={setDate}
                                     onViewChange={setView}
                                 />
                                 <TimetableCalendar
@@ -680,7 +674,7 @@ export default function AuthenticatedHome({ mode = "home" }: AuthenticatedHomePr
                 {notification && (
                     notification.type === "loading" ? (
                         /* ── Vercel-style dark sync pill ── */
-                        <div className="absolute bottom-6 right-6 z-50 animate-toast-enter flex flex-col items-end gap-2">
+                        <div className="fixed bottom-6 right-6 z-50 animate-toast-enter flex flex-col items-end gap-2">
                             {/* Expandable details panel */}
                             {syncProgress && syncProgress.length > 0 && syncDetailsExpanded && (
                                 <div className="w-[260px] bg-surface border border-border rounded-xl shadow-2xl p-2 animate-toast-enter">
@@ -743,7 +737,7 @@ export default function AuthenticatedHome({ mode = "home" }: AuthenticatedHomePr
                     ) : (
                         /* ── Success / Error toast ── */
                         <div
-                            className={`absolute bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg animate-toast-enter ${
+                            className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg animate-toast-enter ${
                                 notification.type === "success"
                                     ? "bg-surface border border-border text-success"
                                     : "bg-surface border border-border text-error"

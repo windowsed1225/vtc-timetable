@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { Link, usePathname } from "@/lib/navigation";
-import { BookOpen, CalendarDays, ClipboardCheck, HelpCircle, LayoutGrid, Loader2, RefreshCw, Settings, Table2 } from "lucide-react";
+import { BookOpen, CalendarClock, CalendarCog, CalendarDays, ClipboardCheck, HelpCircle, LayoutGrid, Loader2, RefreshCw, Settings, Table2 } from "lucide-react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 
@@ -14,6 +14,8 @@ const NAV_ITEMS = [
 	{ href: "/attendance", key: "attendance", en: "Attendance", Icon: ClipboardCheck },
 	{ href: "/attendance-grid", key: "attendanceGrid", en: "Attendance hours", Icon: Table2 },
 	{ href: "/dashboard#moodle", key: "moodle", en: "Moodle", Icon: BookOpen },
+	{ href: "/events", key: "events", en: "Manage Events", Icon: CalendarCog },
+	{ href: "/tools", key: "tools", en: "Calendar Tools", Icon: CalendarClock },
 ] as const;
 
 const SETTINGS_ITEM = { href: "/settings", key: "settings", en: "Settings", Icon: Settings } as const;

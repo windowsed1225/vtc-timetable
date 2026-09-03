@@ -7,10 +7,13 @@ import {
 	MAX_GRACE_PERIOD_THRESHOLD,
 	MIN_GRACE_PERIOD_THRESHOLD,
 } from "@/lib/grace-period";
+import Sidebar from "@/components/Sidebar";
+import { ArrowLeft, Database, HardDrive, LockKeyhole, ShieldCheck, UserRound } from "lucide-react";
 import { motion } from "framer-motion";
-import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
+import { useSession } from "@/lib/auth-client";
 import Link from "next/link";
+import { useRouter } from "@/lib/navigation";
 import { useEffect, useState } from "react";
 
 type PrintQuotaInfo = {
@@ -48,6 +51,8 @@ const itemVariants = {
 
 export default function SettingsPage() {
 	const locale = useLocale();
+	const router = useRouter();
+	const { data: session } = useSession();
 	const t = useTranslations("settings");
 	const [loading, setLoading] = useState(true);
 	const [settings, setSettings] = useState<{
@@ -262,35 +267,37 @@ export default function SettingsPage() {
 	}
 
 	return (
-		<div className="settings-page min-h-screen bg-[var(--background)]">
-			{/* Header */}
-			<header className="settings-page-header border-b" style={{ borderColor: "var(--border-default)", background: "var(--bg-subtle)" }}>
-				<div className="settings-page-header-inner">
-					<div className="flex items-center gap-3 min-w-0">
-						<Link
-							href={`/${locale}`}
-							className="btn-icon"
-							aria-label={t("backToCalendar")}
-						>
-							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-								<path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-							</svg>
-						</Link>
-						<Image src="/vtc-timetable.svg" alt="" width={34} height={34} className="settings-page-logo" />
-						<div className="min-w-0"><h1 className="text-lg font-semibold tracking-tight">{t("title")}</h1><p className="settings-page-subtitle">VTC Timetable</p></div>
-					</div>
+		<div className="settings-page flex h-screen overflow-hidden bg-[var(--background)]">
+			{/* Same rail as every other route, as in the reference settings page. */}
+			<Sidebar
+				onSyncClick={() => router.push(`/${locale}?sync=1`)}
+				isSyncing={false}
+				vtcUrl=""
+				user={session?.user}
+			/>
+
+			<div className="settings-shell min-w-0 flex-1 overflow-y-auto">
+			{/* Back arrow beside the title, matching the reference header. */}
+			<header className="settings-heading">
+				<Link href={`/${locale}`} className="settings-back" aria-label={t("backToCalendar")}>
+					<ArrowLeft className="size-5" aria-hidden="true" />
+				</Link>
+				<div className="min-w-0">
+					<p className="settings-heading-eyebrow">VTC Timetable</p>
+					<h1>{t("title")}</h1>
 				</div>
 			</header>
 
 			{/* Content */}
 			<div className="settings-layout">
 				<aside className="settings-nav" aria-label={t("title")}>
-					<a href="#account"><strong>{t("account")}</strong><span>{t("accountDescription")}</span></a>
-					<a href="#connection"><strong>{t("vtcConnection")}</strong><span>{t("vtcConnectionDescription")}</span></a>
-					<Link href={`/${locale}/api`}><strong>{t("apiPlayground")}</strong><span>{t("apiPlaygroundDescription")}</span></Link>
-					<a href="#attendance"><strong>{t("gracePeriodTitle")}</strong><span>{t("gracePeriodNavDescription")}</span></a>
-					<a href="#security"><strong>{t("loginSecurity")}</strong><span>{t("loginSecurityDescription")}</span></a>
-					<a href="#data"><strong>{t("storedData")}</strong><span>{t("storedDataDescription")}</span></a>
+					<p className="settings-nav-label">{t("title")}</p>
+					<a href="#account">{t("account")}</a>
+					<a href="#connection">{t("vtcConnection")}</a>
+					<Link href={`/${locale}/api`}>{t("apiPlayground")}</Link>
+					<a href="#attendance">{t("gracePeriodTitle")}</a>
+					<a href="#security">{t("loginSecurity")}</a>
+					<a href="#data">{t("storedData")}</a>
 				</aside>
 			<motion.main
 				className="settings-content space-y-6"
@@ -301,8 +308,11 @@ export default function SettingsPage() {
 				{/* ── Account Information ────────────────── */}
 				<motion.div id="account" className="settings-section scroll-mt-24" variants={itemVariants}>
 					<div className="settings-section-header">
-						<h2>{t("account")}</h2>
-						<p>{t("accountDescription")}</p>
+						<span className="settings-section-icon" aria-hidden="true"><UserRound /></span>
+						<div className="min-w-0">
+							<h2>{t("account")}</h2>
+							<p>{t("accountDescription")}</p>
+						</div>
 					</div>
 					<div className="settings-section-body">
 						<div className="settings-row">
@@ -314,11 +324,19 @@ export default function SettingsPage() {
 								{settings?.discordUsername || "N/A"}
 							</span>
 						</div>
+					</div>
+				</motion.div>
 
-						<div id="connection" className="settings-subsection-heading scroll-mt-24">
-							<h3>{t("vtcConnection")}</h3>
+				{/* ── VTC Connection ─────────────────────── */}
+				<motion.div id="connection" className="settings-section scroll-mt-24" variants={itemVariants}>
+					<div className="settings-section-header">
+						<span className="settings-section-icon" aria-hidden="true"><Database /></span>
+						<div className="min-w-0">
+							<h2>{t("vtcConnection")}</h2>
 							<p>{t("vtcConnectionDescription")}</p>
 						</div>
+					</div>
+					<div className="settings-section-body">
 
 						<div className="settings-row">
 							<span className="settings-row-label">VTC Student ID</span>
@@ -494,8 +512,11 @@ export default function SettingsPage() {
 
 				<motion.div id="attendance" className="settings-section scroll-mt-24" variants={itemVariants}>
 					<div className="settings-section-header">
-						<h2>{t("gracePeriodTitle")}</h2>
-						<p>{t("gracePeriodDescription")}</p>
+						<span className="settings-section-icon" aria-hidden="true"><ShieldCheck /></span>
+						<div className="min-w-0">
+							<h2>{t("gracePeriodTitle")}</h2>
+							<p>{t("gracePeriodDescription")}</p>
+						</div>
 					</div>
 					<div className="settings-section-body space-y-4">
 						<div className="settings-row">
@@ -510,6 +531,29 @@ export default function SettingsPage() {
 								{settings?.gracePeriodDefault ?? DEFAULT_GRACE_PERIOD_THRESHOLD}{t("gracePeriodUnit")}
 							</span>
 						</div>
+						{/* Reference slider. Bound to the same field the form saves, so the
+						    value is still committed explicitly rather than on drag. */}
+						<div className="settings-slider">
+							<div className="settings-slider-head">
+								<span>{t("gracePeriodInputLabel")}</span>
+								<strong>{gracePeriodInput || DEFAULT_GRACE_PERIOD_THRESHOLD}{t("gracePeriodUnit")}</strong>
+							</div>
+							<input
+								type="range"
+								aria-label={t("gracePeriodInputLabel")}
+								min={settings?.gracePeriodMin ?? MIN_GRACE_PERIOD_THRESHOLD}
+								max={settings?.gracePeriodMax ?? MAX_GRACE_PERIOD_THRESHOLD}
+								step="1"
+								value={Number(gracePeriodInput) || DEFAULT_GRACE_PERIOD_THRESHOLD}
+								onChange={(event) => setGracePeriodInput(event.target.value)}
+								className="accent-primary w-full cursor-pointer"
+							/>
+							<div className="settings-slider-scale">
+								<span>{settings?.gracePeriodMin ?? MIN_GRACE_PERIOD_THRESHOLD}{t("gracePeriodUnit")}</span>
+								<span>{settings?.gracePeriodMax ?? MAX_GRACE_PERIOD_THRESHOLD}{t("gracePeriodUnit")}</span>
+							</div>
+						</div>
+
 						<p className="text-sm text-[var(--text-secondary)]">
 							{t("gracePeriodRange", {
 								min: settings?.gracePeriodMin ?? MIN_GRACE_PERIOD_THRESHOLD,
@@ -559,12 +603,15 @@ export default function SettingsPage() {
 				{/* ── Security ────────────────────────────── */}
 				<motion.div id="security" className="settings-section scroll-mt-24" variants={itemVariants}>
 					<div className="settings-section-header">
+						<span className="settings-section-icon" aria-hidden="true"><LockKeyhole /></span>
+						<div className="min-w-0">
 						<h2>{t("loginSecurity")}</h2>
 						<p>
 							{settings?.hasPassword
 								? "Update your email and password for credential-based login."
 								: "Set an email and password to enable an alternative login method alongside Discord."}
 						</p>
+						</div>
 					</div>
 					<div className="settings-section-body">
 						<form onSubmit={handleEmailPasswordSubmit} className="space-y-4">
@@ -650,8 +697,11 @@ export default function SettingsPage() {
 					variants={itemVariants}
 				>
 					<div className="settings-section-header" style={{ borderBottomColor: "rgba(245, 83, 83, 0.10)" }}>
-						<h2 className="text-[var(--error)]">{t("storedData")}</h2>
-						<p>{t("storedDataDescription")}</p>
+						<span className="settings-section-icon" aria-hidden="true"><HardDrive /></span>
+						<div className="min-w-0">
+							<h2 className="text-[var(--error)]">{t("storedData")}</h2>
+							<p>{t("storedDataDescription")}</p>
+						</div>
 					</div>
 					<div className="settings-section-body">
 						<div className="flex items-center justify-between gap-4">
@@ -688,6 +738,7 @@ export default function SettingsPage() {
 					</div>
 				</motion.div>
 			</motion.main>
+			</div>
 			</div>
 		</div>
 	);

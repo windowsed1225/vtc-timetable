@@ -1453,8 +1453,29 @@ body {
 	box-shadow: var(--shadow-md);
 }
 .settings-section-header {
+	display: flex;
+	align-items: center;
+	gap: 12px;
 	padding: 20px 24px;
-	border-bottom: 1px solid var(--border-subtle);
+	border-bottom: 1px solid var(--border-default);
+}
+
+/* Reference section headers lead with a rounded tile holding the section icon. */
+.settings-section-icon {
+	display: flex;
+	flex: none;
+	width: 40px;
+	height: 40px;
+	align-items: center;
+	justify-content: center;
+	border-radius: var(--radius-2xl);
+	background: var(--secondary);
+	color: var(--secondary-foreground);
+}
+
+.settings-section-icon svg {
+	width: 20px;
+	height: 20px;
 }
 .settings-section-header h2 {
 	font-family: var(--font-display);
@@ -1471,12 +1492,20 @@ body {
 .settings-section-body {
 	padding: 24px;
 }
+
+/* A body that is nothing but rows sits flush under the divider, so the rows
+   carry the rhythm on their own as they do in the reference. */
+.settings-section-body:not(:has(> :not(.settings-row))) {
+	padding: 0 24px;
+}
 .settings-row {
 	display: flex;
+	min-height: 64px;
 	align-items: center;
 	justify-content: space-between;
+	gap: 16px;
 	padding: 12px 0;
-	border-bottom: 1px solid var(--border-subtle);
+	border-bottom: 1px solid var(--border-default);
 	font-size: 14px;
 }
 .settings-row:last-child {
@@ -1490,6 +1519,7 @@ body {
 	font-weight: 500;
 	color: var(--foreground);
 }
+/* Shared sticky bar for /api and /student-card. */
 .settings-page-header {
 	position: sticky;
 	top: 0;
@@ -1505,46 +1535,96 @@ body {
 }
 .settings-page-logo { width: 40px; height: 40px; padding: 6px; border-radius: var(--radius-md); background: var(--accent); }
 .settings-page-subtitle { color: var(--text-tertiary); font-size: 10px; }
+
+/* The settings route's own header: back arrow beside the title, per the reference. */
+.settings-heading {
+	display: flex;
+	max-width: 1152px;
+	margin: 0 auto;
+	align-items: center;
+	gap: 12px;
+	padding: 36px 32px 0;
+}
+
+.settings-heading h1 {
+	font-family: var(--font-display);
+	font-size: 24px;
+	font-weight: 900;
+	letter-spacing: -0.02em;
+}
+
+.settings-heading-eyebrow { color: var(--muted-foreground); font-size: 12px; font-weight: 500; }
+
+.settings-back {
+	display: flex;
+	flex: none;
+	width: 40px;
+	height: 40px;
+	align-items: center;
+	justify-content: center;
+	border: 1px solid var(--border-default);
+	border-radius: var(--radius-2xl);
+	background: var(--card);
+	color: var(--muted-foreground);
+	transition: background 0.15s ease, color 0.15s ease;
+}
+
+.settings-back:hover {
+	background: var(--highlight);
+	color: var(--foreground);
+}
+
+/* The heading already carries the top gutter. */
+.settings-heading + .settings-layout { padding-top: 24px; }
 .vtc-api-playground,
 .vtc-api-playground > * {
 	min-height: calc(100vh - 66px);
 }
 .settings-layout {
 	display: grid;
-	grid-template-columns: 250px minmax(0, 720px);
-	gap: 34px;
+	grid-template-columns: 190px minmax(0, 1fr);
+	gap: 20px;
 	max-width: 1152px;
 	margin: 0 auto;
-	padding: 36px 28px 60px;
+	padding: 36px 32px 60px;
 }
 .settings-nav {
 	position: sticky;
-	top: 102px;
+	/* Offset inside .settings-shell, which is now the scroll container. */
+	top: 24px;
 	align-self: start;
 	display: grid;
 	gap: 5px;
 }
+.settings-nav-label {
+	margin-bottom: 12px;
+	color: var(--muted-foreground);
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+}
+
 .settings-nav a {
 	display: block;
-	padding: 12px 14px;
-	border: 1px solid transparent;
-	border-radius: var(--radius-md);
-	transition: background 0.15s ease, border-color 0.15s ease;
+	padding: 8px 12px;
+	border-radius: var(--radius-lg);
+	color: var(--muted-foreground);
+	font-size: 14px;
+	transition: background 0.15s ease, color 0.15s ease;
 }
-.settings-nav a:hover { border-color: var(--border-default); background: var(--bg-subtle); }
-.settings-nav strong,
-.settings-nav span { display: block; }
-.settings-nav strong { font-size: 12px; }
-.settings-nav span { margin-top: 2px; color: var(--text-tertiary); font-size: 10px; line-height: 1.35; }
-.settings-content { min-width: 0; }
-.settings-subsection-heading {
-	margin: 4px -20px 0;
-	padding: 18px 20px 10px;
-	border-top: 1px solid var(--border-subtle);
-}
-.settings-subsection-heading h3 { font-size: 13px; font-weight: 700; }
-.settings-subsection-heading p { margin-top: 3px; color: var(--text-tertiary); font-size: 11px; }
 
+.settings-nav a:hover {
+	background: var(--card);
+	color: var(--foreground);
+}
+.settings-slider { padding: 4px 0 8px; }
+.settings-slider-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.settings-slider-head span { color: var(--muted-foreground); font-size: 14px; }
+.settings-slider-head strong { color: var(--primary); font-family: var(--font-mono); font-size: 20px; font-weight: 700; }
+.settings-slider-scale { display: flex; justify-content: space-between; margin-top: 8px; color: var(--muted-foreground); font-size: 12px; }
+
+.settings-content { min-width: 0; }
 /* ============================================
    HKIIT / VTC student card replica
    Plastic ID stays light in both app themes.
@@ -3302,10 +3382,23 @@ body {
 /* ── Course grid ───────────────────────────── */
 .attendance-section-heading {
 	display: flex;
+	width: 100%;
 	align-items: center;
-	justify-content: space-between;
 	gap: 12px;
 	margin-bottom: 16px;
+	text-align: left;
+}
+
+.attendance-section-chevron {
+	flex: none;
+	width: 18px;
+	height: 18px;
+	color: var(--text-tertiary);
+	transition: transform 0.15s ease;
+}
+
+.attendance-section-heading[aria-expanded="false"] .attendance-section-chevron {
+	transform: rotate(-90deg);
 }
 
 .attendance-section-heading h2 {
@@ -3317,6 +3410,7 @@ body {
 
 .attendance-section-heading > span {
 	flex: none;
+	margin-left: auto;
 	padding: 4px 12px;
 	border-radius: 999px;
 	background: var(--secondary);
@@ -3324,6 +3418,8 @@ body {
 	font-size: 12px;
 	font-weight: 600;
 }
+
+.attendance-card-grid[hidden] { display: none; }
 
 .attendance-card-grid {
 	display: grid;
@@ -3688,7 +3784,6 @@ body {
 	justify-self: end;
 	gap: 9px;
 }
-.calendar-mobile-dates { display: none; }
 .calendar-title {
 	font-size: 18px;
 	font-weight: 650;
@@ -3743,102 +3838,6 @@ body {
 	width: 1rem;
 	height: 1rem;
 	flex-shrink: 0;
-}
-
-.upcoming-classes {
-	margin-bottom: 20px;
-	border: 1px solid var(--border-default);
-	border-radius: var(--radius-card);
-	padding: 20px;
-	background: var(--bg-surface);
-}
-
-@media (min-width: 640px) {
-	.upcoming-classes { padding: 24px; }
-}
-.upcoming-classes.is-empty {
-	display: flex;
-	min-height: 56px;
-	align-items: center;
-	justify-content: space-between;
-	gap: 12px;
-	border-style: dashed;
-	color: var(--text-tertiary);
-	font-size: 13px;
-}
-.upcoming-classes.is-empty strong { color: var(--text-secondary); font-size: 14px; font-weight: 700; }
-.upcoming-classes.is-empty small { color: var(--text-tertiary); font-size: 12px; }
-.upcoming-classes-heading {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 12px;
-	margin-bottom: 20px;
-}
-.upcoming-classes-heading h2 {
-	color: var(--foreground);
-	font-family: var(--font-display);
-	font-size: 18px;
-	font-weight: 900;
-	letter-spacing: -0.02em;
-}
-.upcoming-classes-heading span {
-	flex: none;
-	border-radius: var(--radius-pill);
-	padding: 6px 12px;
-	background: var(--secondary);
-	color: var(--text-secondary);
-	font-size: 12px;
-	font-weight: 500;
-}
-.upcoming-classes-list {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 10px;
-}
-
-@media (min-width: 640px) {
-	.upcoming-classes-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-.upcoming-class-chip {
-	display: flex;
-	align-items: center;
-	gap: 10px;
-	min-width: 0;
-	padding: 12px;
-	border: 1px solid var(--border-default);
-	border-radius: var(--radius-3xl);
-	background: var(--background);
-	text-align: left;
-	transition: box-shadow 0.15s ease;
-}
-.upcoming-class-chip:hover {
-	box-shadow: var(--shadow-md);
-}
-.upcoming-class-chip time {
-	flex-shrink: 0;
-	color: var(--accent);
-	font-family: var(--font-mono);
-	font-size: 11px;
-	font-weight: 700;
-	white-space: nowrap;
-}
-.upcoming-class-chip strong {
-	min-width: 0;
-	overflow: hidden;
-	color: var(--foreground);
-	font-size: 12px;
-	font-weight: 700;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-.upcoming-class-chip span {
-	margin-left: auto;
-	overflow: hidden;
-	color: var(--text-tertiary);
-	font-size: 11px;
-	text-overflow: ellipsis;
-	white-space: nowrap;
 }
 .mobile-attendance-view { display: none; }
 .top-navbar-hamburger {
@@ -3987,9 +3986,8 @@ body {
 		border-color: var(--border-default);
 		background: var(--bg-subtle);
 	}
-	.settings-nav span { display: none; }
 	.settings-section-body { padding: 16px; }
-	.settings-subsection-heading { margin-left: -16px; margin-right: -16px; padding-left: 16px; padding-right: 16px; }
+	.settings-section-body:not(:has(> :not(.settings-row))) { padding: 0 16px; }
 	.settings-row { align-items: flex-start; gap: 12px; }
 	.top-navbar {
 		position: relative;
@@ -4037,24 +4035,6 @@ body {
 	}
 	.semester-select {
 		min-height: 44px;
-	}
-	.upcoming-classes { margin-bottom: 8px; }
-	.upcoming-classes.is-empty {
-		min-height: 38px;
-		padding: 0 10px;
-	}
-	.upcoming-classes.is-empty small { display: none; }
-	.upcoming-classes-list {
-		display: flex;
-		gap: 8px;
-		overflow-x: auto;
-		scroll-snap-type: x mandatory;
-		padding-bottom: 4px;
-	}
-	.upcoming-class-chip {
-		min-width: min(72vw, 270px);
-		min-height: 44px;
-		scroll-snap-align: start;
 	}
 	.mobile-attendance-view {
 		height: 100%;
@@ -4184,33 +4164,6 @@ body {
 		font-size: 11px !important;
 		text-align: center;
 	}
-	.calendar-mobile-dates {
-		display: grid;
-		grid-template-columns: repeat(5, 1fr);
-		gap: 5px;
-		padding: 7px;
-		border: 1px solid var(--border-default);
-		border-top: 0;
-		border-radius: 0 0 11px 11px;
-		background: var(--bg-subtle);
-	}
-	.calendar-mobile-dates button {
-		display: flex;
-		min-height: 44px;
-		align-items: center;
-		justify-content: center;
-		flex-direction: column;
-		gap: 2px;
-		border-radius: var(--radius-sm);
-		color: var(--text-tertiary);
-	}
-	.calendar-mobile-dates button.is-active {
-		background: color-mix(in srgb, var(--accent-blue) 20%, var(--bg-active));
-		color: var(--foreground);
-	}
-	.calendar-mobile-dates span { font-size: 8px; font-weight: 650; text-transform: uppercase; }
-	.calendar-mobile-dates strong { font-size: 12px; }
-
 	.rbc-event {
 		font-size: 10px !important;
 		padding: 0 !important;

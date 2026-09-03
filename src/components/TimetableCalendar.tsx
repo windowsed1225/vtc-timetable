@@ -12,7 +12,6 @@ import CalendarEventCard from "./CalendarEventCard";
 import TimetableAgenda from "./TimetableAgenda";
 import TimetableMonthGrid from "./TimetableMonthGrid";
 import TimetableWeek from "./TimetableWeek";
-import UpcomingClasses from "./UpcomingClasses";
 
 const localizer = dayjsLocalizer(dayjs);
 
@@ -78,8 +77,6 @@ export default function TimetableCalendar({
 		// The card-grid views size to their content and let the page scroll;
 		// only the time-grid calendar needs to fill the workspace height.
 		<div className={`flex-1 flex flex-col ${isCardGrid ? "" : "h-full"}`}>
-			<UpcomingClasses events={events} onSelect={(event) => onSelectEvent?.(event)} />
-
 			{/* Month and week are plain grids of class cards rather than
 			    react-big-calendar's layouts, which cannot show course code, room and
 			    status per class. Day stays on the time-grid calendar. */}

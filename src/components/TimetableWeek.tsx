@@ -90,7 +90,7 @@ export default function TimetableWeek({ events, date, onSelectEvent, isLoading, 
 							aria-current={column.isToday ? "date" : undefined}
 						>
 							<p
-								className={`mb-3 text-xs font-bold ${
+								className={`mb-3 text-center text-xs font-bold ${
 									column.isToday ? "text-primary" : "text-muted-foreground"
 								}`}
 							>

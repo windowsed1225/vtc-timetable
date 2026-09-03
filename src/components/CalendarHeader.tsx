@@ -2,7 +2,6 @@
 
 import dayjs from "dayjs";
 import "dayjs/locale/zh-hk";
-import { getCalendarDateStrip } from "@/lib/utils";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { Views } from "react-big-calendar";
@@ -13,7 +12,6 @@ interface CalendarHeaderProps {
     date: Date;
     view: ViewType;
     onNavigate: (action: "PREV" | "NEXT" | "TODAY") => void;
-    onDateSelect: (date: Date) => void;
     onViewChange: (view: ViewType) => void;
 }
 
@@ -26,15 +24,13 @@ export default function CalendarHeader({
     date,
     view,
     onNavigate,
-    onDateSelect,
     onViewChange,
 }: CalendarHeaderProps) {
     const t = useTranslations("calendar");
     const locale = useLocale();
     const dayjsLocale = locale === "zh-HK" ? "zh-hk" : "en";
-    const formattedDate = dayjs(date).locale(dayjsLocale).format(
-        view === Views.DAY ? "MMMM D, YYYY" : "MMMM YYYY"
-    );
+    // The selected day is spelled out here now that the mobile date strip is gone.
+    const formattedDate = dayjs(date).locale(dayjsLocale).format("D MMMM YYYY");
 
     const viewOptions: { key: ViewType; label: string }[] = [
         { key: "day", label: t("day") },
@@ -42,11 +38,10 @@ export default function CalendarHeader({
         { key: "month", label: t("month") },
         { key: "agenda", label: t("agenda") },
     ];
-    const mobileDates = getCalendarDateStrip(date);
 
     return (
         <div className="calendar-header-shell">
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-border bg-card p-3">
+            <div className="mb-5 flex flex-wrap items-center justify-center gap-3 rounded-3xl border border-border bg-card p-3 sm:justify-between">
                 <div className="flex gap-1 rounded-2xl bg-muted p-1" role="group" aria-label={t("calendarView")}>
                     {viewOptions.map((option) => (
                         <button
@@ -93,26 +88,6 @@ export default function CalendarHeader({
                         {t("today")}
                     </button>
                 </div>
-            </div>
-
-            <div className="calendar-mobile-dates" role="group" aria-label={t("selectCalendarDate")}>
-                {mobileDates.map((candidate) => {
-                    const localizedDate = dayjs(candidate).locale(dayjsLocale);
-                    const isActive = localizedDate.isSame(date, "day");
-                    return (
-                        <button
-                            type="button"
-                            key={candidate.toISOString()}
-                            className={isActive ? "is-active" : ""}
-                            onClick={() => onDateSelect(candidate)}
-                            aria-pressed={isActive}
-                            aria-label={localizedDate.format("dddd, MMMM D")}
-                        >
-                            <span>{localizedDate.format("ddd")}</span>
-                            <strong>{localizedDate.format("D")}</strong>
-                        </button>
-                    );
-                })}
             </div>
         </div>
     );
