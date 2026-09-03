@@ -131,8 +131,8 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
 	const description = t("metaDescription", { count: shared.events.length });
 	const linkOptions = { month: view === "month" ? month : null, version };
 	const pagePath = ownerView
-		? calendarOwnerViewPath(displayLocale, token, view, linkOptions)
-		: calendarSharePath(displayLocale, token, view, linkOptions);
+		? calendarOwnerViewPath(token, view, linkOptions)
+		: calendarSharePath(token, view, linkOptions);
 	// The preview image carries `?v=` too: Discord caches the image by its own URL,
 	// so a bumped page link would otherwise re-scrape into the same stale picture.
 	const imageUrl = new URL(
@@ -197,8 +197,8 @@ export default async function SharedCalendarPage(props: PageProps) {
 	const days = rangeDays(view, new Date(), month);
 	const activeMonth = month ?? currentCalendarShareMonth(new Date());
 	const monthHref = (target: string) => (ownerView
-		? calendarOwnerViewPath(displayLocale, token, "month", { month: target, version })
-		: calendarSharePath(displayLocale, token, "month", { month: target, version }));
+		? calendarOwnerViewPath(token, "month", { month: target, version })
+		: calendarSharePath(token, "month", { month: target, version }));
 	const firstMonthWeekday = view === "month" && days[0]
 		? new Date(days[0].getTime() + 8 * 60 * 60 * 1_000).getUTCDay()
 		: 0;
@@ -219,8 +219,8 @@ export default async function SharedCalendarPage(props: PageProps) {
 				<nav className="shared-calendar-view-tabs" aria-label={t("title")}>
 					{(["day", "week", "month"] as const).map((option) => {
 						const href = ownerView
-							? calendarOwnerViewPath(displayLocale, token, option, { month, version })
-							: calendarSharePath(displayLocale, token, option, { month, version });
+							? calendarOwnerViewPath(token, option, { month, version })
+							: calendarSharePath(token, option, { month, version });
 						return href ? (
 							<a key={option} href={href} className={view === option ? "is-active" : ""} aria-current={view === option ? "page" : undefined}>
 								{t(`view.${option}`)}

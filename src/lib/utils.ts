@@ -145,14 +145,6 @@ export function getCalendarEventDensity(start: Date, end: Date): CalendarEventDe
     return "full";
 }
 
-export function getCalendarDateStrip(selectedDate: Date): Date[] {
-    return [-2, -1, 0, 1, 2].map((offset) => {
-        const date = new Date(selectedDate);
-        date.setDate(selectedDate.getDate() + offset);
-        return date;
-    });
-}
-
 export function isCalendarActivationKey(key: string): boolean {
     return key === "Enter" || key === " ";
 }

@@ -42,7 +42,7 @@ export default function DemoWeek() {
 
 	return (
 		<motion.div
-			className="rounded-2xl border border-border bg-surface p-5 md:p-6 overflow-hidden"
+			className="landing-demo-card is-clipped"
 			initial={reduceMotion ? false : { opacity: 0, y: 24 }}
 			whileInView={{ opacity: 1, y: 0 }}
 			viewport={{ once: true, margin: "-80px" }}

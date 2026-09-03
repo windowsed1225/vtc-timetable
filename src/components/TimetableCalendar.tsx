@@ -9,8 +9,9 @@ import { useTranslations } from "next-intl";
 import { Calendar, dayjsLocalizer, type View, Views } from "react-big-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import CalendarEventCard from "./CalendarEventCard";
-import CalendarHeader from "./CalendarHeader";
-import UpcomingClasses from "./UpcomingClasses";
+import TimetableAgenda from "./TimetableAgenda";
+import TimetableMonthGrid from "./TimetableMonthGrid";
+import TimetableWeek from "./TimetableWeek";
 
 const localizer = dayjsLocalizer(dayjs);
 
@@ -18,8 +19,6 @@ interface TimetableCalendarProps {
 	events: CalendarEvent[];
 	view: View;
 	date: Date;
-	semesterFilter: string;
-	onSemesterFilterChange: (semester: string) => void;
 	onViewChange: (view: View) => void;
 	onNavigate: (date: Date) => void;
 	onSelectEvent?: (event: CalendarEvent) => void;
@@ -30,8 +29,6 @@ export default function TimetableCalendar({
 	events,
 	view,
 	date,
-	semesterFilter,
-	onSemesterFilterChange,
 	onViewChange,
 	onNavigate,
 	onSelectEvent,
@@ -39,6 +36,7 @@ export default function TimetableCalendar({
 }: TimetableCalendarProps) {
 	const tEvent = useTranslations("event");
 	const dayjsLocale = locale === "zh-HK" ? "zh-hk" : "en";
+	const isCardGrid = view === Views.MONTH || view === Views.AGENDA || view === Views.WORK_WEEK;
 
 	const { defaultDate, minTime, maxTime } = useMemo(
 		() => ({
@@ -48,19 +46,6 @@ export default function TimetableCalendar({
 		}),
 		[events],
 	);
-
-	const handleNavigate = (action: "PREV" | "NEXT" | "TODAY") => {
-		let newDate = date;
-		if (action === "TODAY") {
-			newDate = new Date();
-		} else {
-			const amount = action === "PREV" ? -1 : 1;
-			if (view === Views.MONTH) newDate = dayjs(date).add(amount, "month").toDate();
-			else if (view === Views.WEEK || view === Views.WORK_WEEK) newDate = dayjs(date).add(amount, "week").toDate();
-			else if (view === Views.DAY) newDate = dayjs(date).add(amount, "day").toDate();
-		}
-		onNavigate(newDate);
-	};
 
 	const eventPropGetter = (event: CalendarEvent) => {
 		if (event.resource?.eventType === "deadline") {
@@ -89,18 +74,19 @@ export default function TimetableCalendar({
 	};
 
 	return (
-		<div className="flex-1 flex flex-col h-full">
-			<CalendarHeader
-				date={date}
-				view={view}
-				semesterFilter={semesterFilter}
-				onSemesterFilterChange={onSemesterFilterChange}
-				onNavigate={handleNavigate}
-				onDateSelect={onNavigate}
-				onViewChange={onViewChange}
-			/>
-			<UpcomingClasses events={events} onSelect={(event) => onSelectEvent?.(event)} />
-
+		// The card-grid views size to their content and let the page scroll;
+		// only the time-grid calendar needs to fill the workspace height.
+		<div className={`flex-1 flex flex-col ${isCardGrid ? "" : "h-full"}`}>
+			{/* Month and week are plain grids of class cards rather than
+			    react-big-calendar's layouts, which cannot show course code, room and
+			    status per class. Day stays on the time-grid calendar. */}
+			{view === Views.MONTH ? (
+				<TimetableMonthGrid events={events} date={date} onSelectEvent={onSelectEvent} />
+			) : view === Views.AGENDA ? (
+				<TimetableAgenda events={events} date={date} onSelectEvent={onSelectEvent} />
+			) : view === Views.WORK_WEEK ? (
+				<TimetableWeek events={events} date={date} onSelectEvent={onSelectEvent} />
+			) : (
 			<div className="calendar-surface flex-1 bg-surface overflow-hidden">
 				<Calendar
 					localizer={localizer}
@@ -153,6 +139,7 @@ export default function TimetableCalendar({
 					}}
 				/>
 			</div>
+			)}
 		</div>
 	);
 }

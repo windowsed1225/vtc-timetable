@@ -102,25 +102,25 @@ export function calendarShareQuery(view: CalendarShareView, options: CalendarSha
 	return `?view=${view}${month ? `&month=${month}` : ""}${version ? `&v=${version}` : ""}`;
 }
 
+// Share links carry no locale segment: the recipient's own cookie or
+// Accept-Language decides which language the shared calendar renders in.
 export function calendarSharePath(
-	locale: "en" | "zh-HK",
 	token: string,
 	view: CalendarShareView = "week",
 	options: CalendarShareLinkOptions = {},
 ): string | null {
 	return isValidCalendarShareToken(token)
-		? `/${locale}/share/calendar/${token}${calendarShareQuery(view, options)}`
+		? `/share/calendar/${token}${calendarShareQuery(view, options)}`
 		: null;
 }
 
 export function calendarOwnerViewPath(
-	locale: "en" | "zh-HK",
 	discordId: string,
 	view: CalendarShareView = "week",
 	options: CalendarShareLinkOptions = {},
 ): string | null {
 	return isValidDiscordId(discordId)
-		? `/${locale}/share/calendar/${discordId}${calendarShareQuery(view, options)}`
+		? `/share/calendar/${discordId}${calendarShareQuery(view, options)}`
 		: null;
 }
 

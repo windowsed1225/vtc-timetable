@@ -2,7 +2,7 @@
 
 import dayjs from "dayjs";
 import "dayjs/locale/zh-hk";
-import { getCalendarDateStrip } from "@/lib/utils";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { Views } from "react-big-calendar";
 
@@ -11,132 +11,84 @@ type ViewType = (typeof Views)[keyof typeof Views];
 interface CalendarHeaderProps {
     date: Date;
     view: ViewType;
-    semesterFilter: string;
-    onSemesterFilterChange: (semester: string) => void;
     onNavigate: (action: "PREV" | "NEXT" | "TODAY") => void;
-    onDateSelect: (date: Date) => void;
     onViewChange: (view: ViewType) => void;
 }
 
+/**
+ * Period toolbar above the calendar: view pills on the left, the range label
+ * between the step arrows on the right. The semester filter moved up into the
+ * "My calendar" card, which is where the reference layout carries it.
+ */
 export default function CalendarHeader({
     date,
     view,
-    semesterFilter,
-    onSemesterFilterChange,
     onNavigate,
-    onDateSelect,
     onViewChange,
 }: CalendarHeaderProps) {
     const t = useTranslations("calendar");
     const locale = useLocale();
     const dayjsLocale = locale === "zh-HK" ? "zh-hk" : "en";
-    const formattedDate = dayjs(date).locale(dayjsLocale).format(
-        view === Views.DAY ? "MMMM D, YYYY" : "MMMM YYYY"
-    );
+    // The selected day is spelled out here now that the mobile date strip is gone.
+    const formattedDate = dayjs(date).locale(dayjsLocale).format("D MMMM YYYY");
 
     const viewOptions: { key: ViewType; label: string }[] = [
-        { key: "month", label: t("month") },
-        { key: "work_week", label: t("week") },
         { key: "day", label: t("day") },
+        { key: "work_week", label: t("week") },
+        { key: "month", label: t("month") },
         { key: "agenda", label: t("agenda") },
     ];
-    const mobileDates = getCalendarDateStrip(date);
 
     return (
-		<div className="calendar-header-shell">
-		<header className="calendar-header">
-            {/* Left: Navigation */}
-			<div className="calendar-navigation flex items-center gap-1">
-                <button
-                    onClick={() => onNavigate("PREV")}
-                    className="btn-icon"
-                    aria-label={t("previous")}
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-                    </svg>
-                </button>
-                <button
-                    onClick={() => onNavigate("NEXT")}
-                    className="btn-icon"
-                    aria-label={t("next")}
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                    </svg>
-                </button>
-                <button
-                    onClick={() => onNavigate("TODAY")}
-					className="btn-secondary ml-2 text-sm"
-                >
-                    {t("today")}
-                </button>
-            </div>
+        <div className="calendar-header-shell">
+            <div className="mb-5 flex flex-wrap items-center justify-center gap-3 rounded-3xl border border-border bg-card p-3 sm:justify-between">
+                <div className="flex gap-1 rounded-2xl bg-muted p-1" role="group" aria-label={t("calendarView")}>
+                    {viewOptions.map((option) => (
+                        <button
+                            key={option.key}
+                            type="button"
+                            onClick={() => onViewChange(option.key)}
+                            aria-pressed={view === option.key}
+                            className={`rounded-xl px-4 py-2 text-xs font-bold transition ${
+                                view === option.key
+                                    ? "bg-primary text-primary-foreground"
+                                    : "text-muted-foreground hover:text-foreground"
+                            }`}
+                        >
+                            {option.label}
+                        </button>
+                    ))}
+                </div>
 
-            {/* Center: Date — animates on change */}
-            <h2
-                key={formattedDate}
-				className="calendar-title font-display animate-fadeIn"
-            >
-                {formattedDate}
-            </h2>
-
-            {/* Right: View Switcher */}
-			<div className="calendar-header-tools">
-				<label className="sr-only" htmlFor="calendar-semester-filter">{t("semester")}</label>
-				<select
-					id="calendar-semester-filter"
-					value={semesterFilter}
-					onChange={(event) => onSemesterFilterChange(event.target.value)}
-					className="semester-select"
-				>
-					<option value="all">{t("allSemesters")}</option>
-					<option value="SEM 1">{t("sem1Label")}</option>
-					<option value="SEM 2">{t("sem2Label")}</option>
-					<option value="SEM 3">{t("sem3Label")}</option>
-					<option value="SEM 4">{t("sem4Label")}</option>
-					<option value="SEM 5">{t("sem5Label")}</option>
-					<option value="SEM 6">{t("sem6Label")}</option>
-					<option value="SEM 7">{t("sem7Label")}</option>
-					<option value="SEM 8">{t("sem8Label")}</option>
-					<option value="SEM 9">{t("sem9Label")}</option>
-				</select>
-			<div className="view-switcher" role="group" aria-label={t("calendarView")}>
-                {viewOptions.map((v) => (
+                <div className="flex items-center gap-2">
                     <button
-                        key={v.key}
-                        onClick={() => onViewChange(v.key)}
-						className={`view-switcher-button ${view === v.key
-							? "is-active"
-							: "text-[var(--text-secondary)] hover:text-[var(--foreground)] hover:bg-overlay"
-							}`}
-						aria-pressed={view === v.key}
+                        type="button"
+                        onClick={() => onNavigate("PREV")}
+                        className="rounded-xl border border-border p-2 text-muted-foreground transition hover:bg-muted"
+                        aria-label={t("previous")}
                     >
-                        {v.label}
+                        <ChevronLeft className="size-4" aria-hidden="true" />
                     </button>
-                ))}
+                    <span key={formattedDate} className="animate-fadeIn text-sm font-bold text-card-foreground">
+                        {formattedDate}
+                    </span>
+                    <button
+                        type="button"
+                        onClick={() => onNavigate("NEXT")}
+                        className="rounded-xl border border-border p-2 text-muted-foreground transition hover:bg-muted"
+                        aria-label={t("next")}
+                    >
+                        <ChevronRight className="size-4" aria-hidden="true" />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => onNavigate("TODAY")}
+                        className="rounded-xl bg-secondary px-3 py-2 text-xs font-bold text-secondary-foreground transition hover:bg-accent"
+                    >
+                        {t("today")}
+                    </button>
+                </div>
             </div>
-			</div>
-        </header>
-		<div className="calendar-mobile-dates" role="group" aria-label={t("selectCalendarDate")}>
-			{mobileDates.map((candidate) => {
-				const localizedDate = dayjs(candidate).locale(dayjsLocale);
-				const isActive = localizedDate.isSame(date, "day");
-				return (
-					<button
-						type="button"
-						key={candidate.toISOString()}
-						className={isActive ? "is-active" : ""}
-						onClick={() => onDateSelect(candidate)}
-						aria-pressed={isActive}
-						aria-label={localizedDate.format("dddd, MMMM D")}
-					>
-						<span>{localizedDate.format("ddd")}</span>
-						<strong>{localizedDate.format("D")}</strong>
-					</button>
-				);
-			})}
-		</div>
-		</div>
+        </div>
     );
 }
