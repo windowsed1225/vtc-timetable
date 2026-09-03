@@ -2578,14 +2578,14 @@ body {
 		display: block;
 	}
 }
-/* Brand mark sits on a teal tile, matching the reference's sidebar logo. */
+/* Brand mark. No padding or background: the SVG carries its own rounded badge,
+   and an accent plate behind it just reads as a ring. Matches
+   `.sidebar-brand img`. */
 .top-navbar-logo {
 	width: 44px;
 	height: 44px;
 	flex-shrink: 0;
-	padding: 6px;
 	border-radius: var(--radius-2xl);
-	background: var(--accent);
 }
 .top-navbar-title,
 .top-navbar-subtitle {
@@ -3997,7 +3997,6 @@ body {
 	.top-navbar-logo {
 		width: 32px;
 		height: 32px;
-		padding: 5px;
 	}
 	.user-menu-trigger {
 		width: 40px;
