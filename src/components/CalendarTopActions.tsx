@@ -2,8 +2,7 @@
 
 import { exportSemesterIcs } from "@/app/actions";
 import { getDefaultSemester, getSemesterDisplayLabel, getSemesterLabel } from "@/lib/utils";
-import { Link } from "@/lib/navigation";
-import { CalendarCog, Download, Table2 } from "lucide-react";
+import { CalendarCog, Download } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import ManageEventsModal from "./ManageEventsModal";
@@ -36,7 +35,6 @@ const filenames: Record<number, string> = {
 
 export default function CalendarTopActions({ courses, discordId, onRefresh }: CalendarTopActionsProps) {
 	const t = useTranslations("calendar");
-	const tAttendanceGrid = useTranslations("attendanceGrid");
 	const [manageOpen, setManageOpen] = useState(false);
 	const [semester, setSemester] = useState(getDefaultSemester());
 	const [exporting, setExporting] = useState(false);
@@ -101,11 +99,6 @@ export default function CalendarTopActions({ courses, discordId, onRefresh }: Ca
 					</summary>
 					<div className="calendar-tools-popover">
 						<div className="calendar-tools-list">
-							<Link href="/attendance-grid" className="calendar-tools-row">
-								<Table2 aria-hidden="true" />
-								<span>{tAttendanceGrid("navLabel")}</span>
-								<span className="calendar-tools-row-chevron" aria-hidden="true">→</span>
-							</Link>
 							{discordId && (
 								<>
 									<SubscribeButton discordId={discordId} />

@@ -44,6 +44,8 @@
   },
   "calendar": {
     "myCalendars": "My Calendars",
+    "myCalendar": "My calendar",
+    "calendarSummary": "{subjects, plural, one {# subject} other {# subjects}} · {hours} hours",
     "noCoursesYet": "No courses synced yet",
     "refreshCalendar": "Refresh calendar from database",
     "month": "Month",
@@ -127,7 +129,10 @@
     "shareCalendarOwnerDiscordIdLabel": "Discord user ID",
     "shareCalendarOwnerDiscordIdPlaceholder": "Discord ID",
     "shareCalendarOwnerView": "View calendar",
-    "shareCalendarOwnerInvalidDiscordId": "Enter a valid Discord user ID."
+    "shareCalendarOwnerInvalidDiscordId": "Enter a valid Discord user ID.",
+    "monthSubtitle": "Monthly timetable",
+    "monthClasses": "{count} classes",
+    "agendaSubtitle": "Classes and deadlines this month"
   },
   "attendance": {
     "attendance": "Attendance",
@@ -178,7 +183,6 @@
     "noMatches": "No matching entries"
   },
   "courseDetail": {
-    "back": "Back",
     "courseLabel": "Course",
     "subtitle": "Attendance breakdown",
     "totalTime": "Total Time",
@@ -189,15 +193,31 @@
     "showHours": "Show hours",
     "showMinutes": "Show minutes",
     "breakdownTitle": "Daily breakdown",
-    "colDay": "Day",
-    "colHours": "Hours",
     "noRecords": "No attended classes recorded for this course yet.",
     "loadFailed": "Could not load this course.",
     "loadFailedHint": "Something went wrong fetching the hours breakdown. Try again in a moment.",
     "notFoundTitle": "Course not found",
     "notFoundHint": "No synced course matches {code}.",
     "backToAttendance": "Back to attendance",
-    "viewCourse": "View course details for {code} {name}"
+    "viewCourse": "View course details for {code} {name}",
+    "pill": "Course details",
+    "closeDetails": "Close details",
+    "futureClasses": "Future classes",
+    "hoursRemaining": "Hours remaining",
+    "totalScheduled": "Total scheduled",
+    "totalScheduledValue": "{classes} classes · {hours} hours",
+    "howManySkip": "How many classes will you skip?",
+    "currentRate": "Current: {rate}%",
+    "safeToSkipRemaining": "Safe to skip. {count} classes remain available.",
+    "upcomingClasses": "Upcoming classes",
+    "noUpcomingClasses": "No upcoming classes are scheduled for this course.",
+    "moreClasses": "+{count} more classes",
+    "attendedClasses": "Attended classes",
+    "requiredAt": "Required at {threshold}%",
+    "requiredAtUnknown": "Required classes",
+    "requiredClassesValue": "{count} classes",
+    "skippingTitle": "Skipping calculator",
+    "projectedFinalRate": "Projected final rate"
   },
   "event": {
     "date": "Date",
@@ -528,6 +548,7 @@
   "nav": {
     "label": "Main navigation",
     "home": "Home",
+    "timetable": "Timetable",
     "attendance": "Attendance",
     "attendanceGrid": "Attendance hours",
     "studentCard": "Student card",
@@ -537,6 +558,7 @@
   },
   "week": {
     "regionLabel": "This week's timetable",
+    "weeklyTitle": "Weekly timetable",
     "thisWeek": "This week",
     "weekOf": "Week of {range}",
     "subtitle": "Monday to Friday · {range}",

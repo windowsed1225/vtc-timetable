@@ -2,7 +2,7 @@
 
 import { useNow } from "@/lib/use-now";
 import type { CalendarEvent } from "@/types/timetable";
-import { ArrowUpRight, Clock, MapPin } from "lucide-react";
+import { ArrowUpRight, Clock, GraduationCap, MapPin } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useMemo } from "react";
 
@@ -68,6 +68,7 @@ export default function NextClassCard({ events, onSelectEvent, onNavigateToDate 
 	const sessionName = next.title && next.title !== heading ? next.title : null;
 	const subtitle = [sessionName, code].filter(Boolean).join(" · ");
 	const location = next.resource?.location;
+	const lessonType = next.resource?.lessonType;
 
 	return (
 		<section className="next-class-card" aria-label={t("nextClassLabel")}>
@@ -87,6 +88,12 @@ export default function NextClassCard({ events, onSelectEvent, onNavigateToDate 
 						<Clock aria-hidden="true" />
 						{timeLabel.format(next.start)} – {timeLabel.format(next.end)}
 					</span>
+					{lessonType ? (
+						<span>
+							<GraduationCap aria-hidden="true" />
+							{lessonType}
+						</span>
+					) : null}
 					{location ? (
 						<span>
 							<MapPin aria-hidden="true" />

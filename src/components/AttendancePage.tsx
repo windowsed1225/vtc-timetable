@@ -1,13 +1,11 @@
 "use client";
 
-import type { HybridAttendanceStats } from "@/app/actions";
 import AppShell from "@/components/AppShell";
 import AttendanceOverview from "@/components/AttendanceOverview";
 import SessionSplash from "@/components/SessionSplash";
 import SignInModal from "@/components/SignInModal";
 import { useSession } from "@/lib/auth-client";
 import { useTranslations } from "next-intl";
-import { useCallback, useState } from "react";
 
 /**
  * /attendance route. Attendance used to live in a scrollable panel inside the
@@ -17,9 +15,6 @@ export default function AttendancePage() {
 	const { data: session, isPending } = useSession();
 	const t = useTranslations("attendancePage");
 	const tDash = useTranslations("dashboard");
-	const [stats, setStats] = useState<HybridAttendanceStats[]>([]);
-
-	const handleStatsLoaded = useCallback((next: HybridAttendanceStats[]) => setStats(next), []);
 
 	if (isPending) return <SessionSplash />;
 
@@ -36,8 +31,8 @@ export default function AttendancePage() {
 	}
 
 	return (
-		<AppShell attendance={stats} footer={tDash("footer")}>
-			<AttendanceOverview onStatsLoaded={handleStatsLoaded} />
+		<AppShell footer={tDash("footer")}>
+			<AttendanceOverview />
 		</AppShell>
 	);
 }

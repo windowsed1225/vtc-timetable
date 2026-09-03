@@ -45,3 +45,20 @@ export function isoWeekNumber(date: Date): number {
 	firstThursday.setDate(firstThursday.getDate() - firstDayNumber + 3);
 	return 1 + Math.round((target.getTime() - firstThursday.getTime()) / (7 * DAY_MS));
 }
+
+/** One step of calendar navigation, sized to the view currently on screen. */
+export function stepCalendarDate(
+	date: Date,
+	view: "month" | "week" | "work_week" | "day" | "agenda",
+	action: "PREV" | "NEXT" | "TODAY",
+): Date {
+	if (action === "TODAY") return new Date();
+	const amount = action === "PREV" ? -1 : 1;
+	if (view === "month") {
+		// Step from the 1st so a 31st never overflows a shorter month and skips it
+		// (31 Aug + 1 month would otherwise land on 1 Oct).
+		return new Date(date.getFullYear(), date.getMonth() + amount, 1);
+	}
+	const days = view === "day" ? 1 : 7;
+	return new Date(date.getTime() + amount * days * 24 * 60 * 60 * 1000);
+}

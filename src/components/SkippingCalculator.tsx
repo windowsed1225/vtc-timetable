@@ -1,9 +1,9 @@
 "use client";
 
 import { HybridAttendanceStats } from "@/app/actions";
-import { gracePeriodRatio, thresholdOf } from "@/lib/grace-period";
+import { skipProjection } from "@/lib/skip-projection";
 import { useTranslations } from "next-intl";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 interface SkippingCalculatorProps {
 	course: HybridAttendanceStats;
@@ -14,27 +14,8 @@ export default function SkippingCalculator({ course }: SkippingCalculatorProps) 
 	const [skipClassesInput, setSkipClassesInput] = useState<string>("0");
 	const skipClasses = parseInt(skipClassesInput) || 0;
 
-	// Get class count values from course
-	const attendedCount = course.attended || 0;
-	const totalClasses = course.calendarTotalClasses || 0;
-	const remainingClasses = course.calendarRemainingClasses || 0;
-	const currentRate = course.minutesAttendanceRate ?? course.currentAttendanceRate ?? 0;
-	const threshold = thresholdOf(course);
-	const ratio = gracePeriodRatio(threshold);
-
-	// Calculate projected rate based on class count
-	const projectedRate = useMemo(() => {
-		if (totalClasses === 0) return 0;
-		// If skipping X classes from remaining, calculate new attended count
-		const projectedAttended = attendedCount + Math.max(0, remainingClasses - skipClasses);
-		return (projectedAttended / totalClasses) * 100;
-	}, [attendedCount, totalClasses, remainingClasses, skipClasses]);
-
-	const isSafe = projectedRate >= threshold;
-	const safeToSkipClasses = course.safeToSkipCount || 0;
-
-	// Slider max: remaining classes, at least 5 for usability
-	const sliderMax = Math.max(remainingClasses, 5);
+	// Same projection rules the course-detail page reads from.
+	const { attendedCount, remainingClasses, currentRate, threshold, projectedRate, isSafe, safeToSkipCount: safeToSkipClasses, requiredClasses, sliderMax } = skipProjection(course, skipClasses);
 
 	const handleSkipClassesChange = (val: string) => {
 		if (val === "") {
@@ -112,7 +93,7 @@ export default function SkippingCalculator({ course }: SkippingCalculatorProps) 
 					<div className="p-3 bg-overlay rounded-md border border-border">
 						<p className="text-[10px] text-text-tertiary mb-0.5">{t("requiredThreshold", { threshold })}</p>
 						<p className="text-xs font-bold">
-							{Math.ceil(totalClasses * ratio)} {t("classes")}
+							{requiredClasses} {t("classes")}
 						</p>
 					</div>
 					<div className="p-3 bg-overlay rounded-md border border-border">

@@ -6,10 +6,9 @@ describe("attendance entry navigation", () => {
 	const sidebar = readFileSync(new URL("./Sidebar.tsx", import.meta.url), "utf8");
 	const page = readFileSync(new URL("./AuthenticatedHome.tsx", import.meta.url), "utf8");
 
-  test("lives in Calendar Tools instead of the desktop Sidebar", () => {
-    expect(topActions).toContain('href="/attendance-grid"');
-    expect(topActions).toContain('useTranslations("attendanceGrid")');
-		expect(sidebar).not.toContain('href="/attendance-grid"');
+	test("lives in the Sidebar nav instead of Calendar Tools", () => {
+		expect(sidebar).toContain('href: "/attendance-grid"');
+		expect(topActions).not.toContain("/attendance-grid");
 	});
 
 	test("is available when the signed-in user has no courses", () => {
@@ -26,7 +25,6 @@ describe("calendar subscription navigation", () => {
 	test("is owned by Calendar Tools instead of the desktop Sidebar", () => {
 		expect(topActions).toContain('import SubscribeButton from "./SubscribeButton"');
 		expect(topActions).toMatch(/\{discordId && \([\s\S]*?<SubscribeButton discordId=\{discordId\} \/>[\s\S]*?\)\}/);
-		expect(topActions.indexOf('href="/attendance-grid"')).toBeLessThan(topActions.indexOf("<SubscribeButton"));
 		expect(topActions.indexOf("<SubscribeButton")).toBeLessThan(topActions.indexOf('aria-label={t("semester")}'));
 		expect(sidebar).not.toContain("SubscribeButton");
 	});

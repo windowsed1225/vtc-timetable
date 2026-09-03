@@ -1765,11 +1765,29 @@ body {
 	overflow-y: auto;
 }
 
-/* The week strip keeps its intrinsic height so the calendar below it takes the
-   remaining space instead of being squashed. */
-.campus-week {
+/* The card-grid views size to their content. Without this the workspace's
+   min-height:0 flex column shrinks them and their own overflow:hidden clips
+   whole week rows off the bottom of the month. */
+.campus-week,
+.campus-month,
+.campus-agenda {
 	flex: none;
 	margin-bottom: 24px;
+}
+
+/* Phones cannot fit seven readable columns. Rather than crush every card to an
+   ellipsis, the month scrolls sideways with columns kept at the width the
+   desktop grid uses (~150px), so course names and rooms still read in full. */
+@media (max-width: 1050px) {
+	.campus-month-scroll {
+		overflow-x: auto;
+		overscroll-behavior-x: contain;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	.campus-month-scroll > * {
+		min-width: 1050px;
+	}
 }
 
 /* ── Greeting header ────────────────────────────
@@ -3585,6 +3603,8 @@ body {
 	padding: 12px 20px 18px;
 }
 .sidebar-footer {
+	/* The course list used to fill the gap; keep the footer pinned to the bottom. */
+	margin-top: auto;
 	padding: 16px 20px 18px;
 	background: color-mix(in srgb, var(--sidebar-bg) 92%, var(--background));
 }
@@ -4529,152 +4549,6 @@ body {
 
 @keyframes spin {
 	to { transform: rotate(360deg); }
-}
-
-/* ============================================
-   COURSE DETAIL PAGE
-   Adapted from the reference course-details layout.
-   ============================================ */
-
-.course-detail-main {
-	max-width: 1024px;
-	margin: 0 auto;
-	padding: 20px 16px 48px;
-	display: flex;
-	flex-direction: column;
-	gap: 16px;
-}
-
-@media (min-width: 640px) {
-	.course-detail-main { padding: 32px 32px 48px; }
-}
-
-.course-detail-header {
-	display: flex;
-	align-items: flex-start;
-	gap: 12px;
-	border: 1px solid var(--border-default);
-	border-radius: var(--radius-card);
-	padding: 20px;
-	background: var(--bg-surface);
-	box-shadow: var(--shadow-sm);
-}
-
-@media (min-width: 640px) {
-	.course-detail-header { padding: 28px; }
-}
-
-.course-detail-dot {
-	flex: none;
-	width: 12px;
-	height: 12px;
-	margin-top: 8px;
-	border-radius: var(--radius-pill);
-	background: var(--accent);
-}
-
-.course-detail-code {
-	color: var(--accent);
-	font-family: var(--font-mono);
-	font-size: 12px;
-	font-weight: 700;
-	letter-spacing: 0.1em;
-	text-transform: uppercase;
-}
-
-.course-detail-header h1 {
-	margin: 4px 0;
-	font-family: var(--font-display);
-	font-size: 24px;
-	font-weight: 900;
-	letter-spacing: -0.025em;
-	line-height: 1.2;
-	text-wrap: balance;
-}
-
-@media (min-width: 640px) {
-	.course-detail-header h1 { font-size: 30px; }
-}
-
-.course-detail-lede {
-	color: var(--text-tertiary);
-	font-size: 14px;
-}
-
-.course-detail-stat {
-	border: 1px solid var(--border-default);
-	border-radius: var(--radius-card);
-	padding: 20px;
-	background: var(--bg-subtle);
-}
-
-@media (min-width: 640px) {
-	.course-detail-stat { padding: 24px; }
-}
-
-.course-detail-value {
-	margin-top: 6px;
-	color: var(--accent);
-	font-family: var(--font-mono);
-	font-size: clamp(30px, 4vw, 40px);
-	font-weight: 700;
-	font-variant-numeric: tabular-nums;
-	letter-spacing: -0.04em;
-	line-height: 1.05;
-}
-
-.course-detail-value span {
-	color: var(--text-secondary);
-	font-size: 0.58em;
-	font-weight: 600;
-}
-
-.course-detail-table {
-	overflow: hidden;
-	border: 1px solid var(--border-default);
-	border-radius: var(--radius-card);
-	background: var(--bg-surface);
-	box-shadow: var(--shadow-sm);
-}
-
-.course-detail-table table {
-	width: 100%;
-	border-collapse: collapse;
-	font-size: 14px;
-}
-
-.course-detail-table thead th {
-	border-bottom: 1px solid var(--border-default);
-	padding: 16px 22px;
-	background: color-mix(in oklab, var(--secondary) 60%, transparent);
-	color: var(--text-tertiary);
-	font-size: 11px;
-	font-weight: 700;
-	letter-spacing: 0.05em;
-	text-transform: uppercase;
-}
-
-.course-detail-table tbody td {
-	border-bottom: 1px solid var(--border-subtle);
-	padding: 16px 22px;
-}
-
-.course-detail-table tbody tr:last-child td { border-bottom: 0; }
-.course-detail-table tbody tr:hover td { background: var(--bg-subtle); }
-
-.course-detail-table tfoot td {
-	border-top: 1px solid var(--border-default);
-	padding: 16px 22px;
-	background: color-mix(in oklab, var(--secondary) 40%, transparent);
-	font-weight: 600;
-}
-
-@media (max-width: 640px) {
-	.course-detail-header,
-	.course-detail-stat { padding: 18px; }
-	.course-detail-table thead th,
-	.course-detail-table tbody td,
-	.course-detail-table tfoot td { padding-inline: 15px; }
 }
 
 /* ============================================

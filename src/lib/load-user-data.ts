@@ -250,6 +250,25 @@ export async function loadMoodleDeadlines(user: AuthenticatedUser): Promise<Cale
 				api.getMoodleTimetable(1, nextMonth, nextYear),
 			]);
 
+			console.log("[moodle] raw timetable", {
+				current: {
+					year,
+					month,
+					isSuccess: res1.isSuccess,
+					errorCode: res1.errorCode,
+					count: res1.payload?.length ?? 0,
+					payload: res1.payload ?? [],
+				},
+				next: {
+					year: nextYear,
+					month: nextMonth,
+					isSuccess: res2.isSuccess,
+					errorCode: res2.errorCode,
+					count: res2.payload?.length ?? 0,
+					payload: res2.payload ?? [],
+				},
+			});
+
 			const seen = new Set<number>();
 			const allItems = [
 				...(res1.isSuccess ? res1.payload ?? [] : []),
@@ -260,7 +279,7 @@ export async function loadMoodleDeadlines(user: AuthenticatedUser): Promise<Cale
 				return true;
 			});
 
-			return allItems.map((item) => {
+			const mapped = allItems.map((item) => {
 				const start = new Date(item.timeStart * 1000);
 				const end =
 					item.timeEnd && item.timeEnd > item.timeStart
@@ -280,9 +299,36 @@ export async function loadMoodleDeadlines(user: AuthenticatedUser): Promise<Cale
 					},
 				} satisfies CalendarEvent;
 			});
+
+			console.log("[moodle] mapped deadlines", {
+				count: mapped.length,
+				items: mapped.map((event) => ({
+					title: event.title,
+					start: event.start.toISOString(),
+					end: event.end.toISOString(),
+					courseCode: event.resource?.courseCode,
+					courseTitle: event.resource?.courseTitle,
+					actionUrl: event.resource?.actionUrl,
+					courseUrl: event.resource?.courseUrl,
+				})),
+			});
+
+			return mapped;
 		},
 	);
-	return reviveCalendarEvents(cached);
+	const revived = reviveCalendarEvents(cached);
+	console.log("[moodle] served deadlines", {
+		count: revived.length,
+		items: revived.map((event) => ({
+			title: event.title,
+			start: event.start instanceof Date ? event.start.toISOString() : event.start,
+			end: event.end instanceof Date ? event.end.toISOString() : event.end,
+			courseCode: event.resource?.courseCode,
+			actionUrl: event.resource?.actionUrl,
+			courseUrl: event.resource?.courseUrl,
+		})),
+	});
+	return revived;
 }
 
 export async function loadPrintQuota(user: AuthenticatedUser): Promise<PrintQuotaPayload | null> {

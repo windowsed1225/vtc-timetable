@@ -44,6 +44,8 @@
   },
   "calendar": {
     "myCalendars": "我的行事曆",
+    "myCalendar": "我的日曆",
+    "calendarSummary": "{subjects} 個科目 · {hours} 小時",
     "noCoursesYet": "尚未同步任何課程",
     "refreshCalendar": "從資料庫重新整理行事曆",
     "month": "月",
@@ -127,7 +129,10 @@
     "shareCalendarOwnerDiscordIdLabel": "Discord 用戶 ID",
     "shareCalendarOwnerDiscordIdPlaceholder": "Discord ID",
     "shareCalendarOwnerView": "檢視課表",
-    "shareCalendarOwnerInvalidDiscordId": "請輸入有效的 Discord 用戶 ID。"
+    "shareCalendarOwnerInvalidDiscordId": "請輸入有效的 Discord 用戶 ID。",
+    "monthSubtitle": "每月時間表",
+    "monthClasses": "{count} 堂",
+    "agendaSubtitle": "本月課堂及功課限期"
   },
   "attendance": {
     "attendance": "出席率",
@@ -178,7 +183,6 @@
     "noMatches": "沒有符合的紀錄"
   },
   "courseDetail": {
-    "back": "返回",
     "courseLabel": "科目",
     "subtitle": "出席時數明細",
     "totalTime": "總時數",
@@ -189,15 +193,31 @@
     "showHours": "顯示小時",
     "showMinutes": "顯示分鐘",
     "breakdownTitle": "每日明細",
-    "colDay": "日期",
-    "colHours": "小時",
     "noRecords": "此科目尚未有出席課堂紀錄。",
     "loadFailed": "無法載入此科目。",
     "loadFailedHint": "擷取時數明細時出錯，請稍後再試。",
     "notFoundTitle": "找不到科目",
     "notFoundHint": "沒有已同步的科目符合 {code}。",
     "backToAttendance": "返回出席紀錄",
-    "viewCourse": "查看 {code} {name} 的課程詳情"
+    "viewCourse": "查看 {code} {name} 的課程詳情",
+    "pill": "課程詳情",
+    "closeDetails": "關閉詳情",
+    "futureClasses": "未來課堂",
+    "hoursRemaining": "剩餘時數",
+    "totalScheduled": "已編排總數",
+    "totalScheduledValue": "{classes} 堂 · {hours} 小時",
+    "howManySkip": "您將缺席多少堂課？",
+    "currentRate": "目前：{rate}%",
+    "safeToSkipRemaining": "可安全缺席，尚餘 {count} 堂可缺席。",
+    "upcomingClasses": "即將上課",
+    "noUpcomingClasses": "此科目沒有即將舉行的課堂。",
+    "moreClasses": "另有 {count} 堂",
+    "attendedClasses": "已出席課堂",
+    "requiredAt": "{threshold}% 要求",
+    "requiredAtUnknown": "要求出席堂數",
+    "requiredClassesValue": "{count} 堂",
+    "skippingTitle": "缺課計算器",
+    "projectedFinalRate": "預計最終出席率"
   },
   "event": {
     "date": "日期",
@@ -528,6 +548,7 @@
   "nav": {
     "label": "主要導覽",
     "home": "主頁",
+    "timetable": "時間表",
     "attendance": "出席紀錄",
     "attendanceGrid": "出席時數",
     "studentCard": "學生證",
@@ -537,6 +558,7 @@
   },
   "week": {
     "regionLabel": "本週課表",
+    "weeklyTitle": "每週時間表",
     "thisWeek": "本週",
     "weekOf": "{range} 那一週",
     "subtitle": "星期一至五 · {range}",

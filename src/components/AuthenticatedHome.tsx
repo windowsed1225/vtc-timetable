@@ -24,10 +24,13 @@ import TimetableWeek from "@/components/TimetableWeek";
 import NextClassCard from "@/components/NextClassCard";
 import MoodleTodoCard from "@/components/MoodleTodoCard";
 import CalendarTopActions from "@/components/CalendarTopActions";
+import SemesterCalendarCard from "@/components/SemesterCalendarCard";
+import CalendarHeader from "@/components/CalendarHeader";
 import DashboardOverview from "@/components/DashboardOverview";
 import UserDropdown from "@/components/UserDropdown";
 import { jumpMonthForSemester } from "@/lib/semester";
 import { getDateArray, getSemestersToSync } from "@/lib/utils";
+import { stepCalendarDate } from "@/lib/week";
 import { CalendarEvent } from "@/types/timetable";
 import { createEvents, EventAttributes } from "ics";
 import { useSession } from "@/lib/auth-client";
@@ -56,7 +59,17 @@ interface SemesterSyncProgress {
     newEvents?: number;
 }
 
-export default function AuthenticatedHome() {
+interface AuthenticatedHomeProps {
+    /**
+     * Which workspace this route is. "home" is the at-a-glance dashboard;
+     * "timetable" is the full calendar with the view switcher. Both share this
+     * component so the synced-events fetch and the sync modals live in one place.
+     */
+    mode?: "home" | "timetable";
+}
+
+export default function AuthenticatedHome({ mode = "home" }: AuthenticatedHomeProps) {
+    const isTimetable = mode === "timetable";
     const t = useTranslations("sync");
     const tc = useTranslations("calendar");
     const tTour = useTranslations("tour");
@@ -76,7 +89,7 @@ export default function AuthenticatedHome() {
     const [hasSavedToken, setHasSavedToken] = useState(false);
 
     // Calendar state
-    const [view, setView] = useState<View>(Views.WORK_WEEK);
+    const [view, setView] = useState<View>(mode === "timetable" ? Views.MONTH : Views.WORK_WEEK);
     const [date, setDate] = useState(new Date());
     const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [semesterFilter, setSemesterFilter] = useState<string>("all");
@@ -85,12 +98,13 @@ export default function AuthenticatedHome() {
     const [courses, setCourses] = useState<
         Array<{ courseCode: string; courseTitle: string; colorIndex: number; semester: string; status: string }>
     >([]);
-    const [attendance, setAttendance] = useState<HybridAttendanceStats[]>([]);
+    // Loaded for the sync flow's benefit; nothing in this route renders it directly.
+    const [, setAttendance] = useState<HybridAttendanceStats[]>([]);
 
     // UI state
     const [vtcUrl, setVtcUrl] = useState("");
     const [isSyncing, setIsSyncing] = useState(false);
-    const [isRefreshingCalendar, setIsRefreshingCalendar] = useState(false);
+    const [, setIsRefreshingCalendar] = useState(false);
     const [showSyncModal, setShowSyncModal] = useState(false);
     const [showSignInModal, setShowSignInModal] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
@@ -498,13 +512,8 @@ export default function AuthenticatedHome() {
             />
             {/* Sidebar */}
             <Sidebar
-                courses={courses}
-                events={events}
-                attendance={attendance}
                 onSyncClick={() => { if (session) { setShowSyncModal(true); } else { setShowSignInModal(true); } setSidebarOpen(false); }}
-                onRefreshCalendar={handleRefreshCalendar}
                 isSyncing={isSyncing}
-                isRefreshingCalendar={isRefreshingCalendar}
                 vtcUrl={vtcUrl}
                 user={session?.user}
                 sidebarOpen={sidebarOpen}
@@ -563,32 +572,50 @@ export default function AuthenticatedHome() {
                 )}
                 {events.length > 0 ? (
                     <>
-                        <div className="home-top-grid">
-                            <NextClassCard
-                                events={filteredEvents}
-                                onSelectEvent={(event) => setSelectedEvent(event)}
-                                onNavigateToDate={setDate}
-                            />
-                            <div id="moodle" className="home-moodle-slot scroll-mt-6">
-                                <MoodleTodoCard limit={5} />
+                        {!isTimetable && (
+                            <div className="home-top-grid">
+                                <NextClassCard
+                                    events={filteredEvents}
+                                    onSelectEvent={(event) => setSelectedEvent(event)}
+                                    onNavigateToDate={setDate}
+                                />
+                                <div id="moodle" className="home-moodle-slot scroll-mt-6">
+                                    <MoodleTodoCard limit={5} />
+                                </div>
                             </div>
-                        </div>
-                        <TimetableWeek
-                            events={filteredEvents}
-                            date={date}
-                            onSelectEvent={(event) => setSelectedEvent(event)}
-                        />
-                        <TimetableCalendar
-                            events={filteredEvents}
-                            view={view}
-                            date={date}
-                            semesterFilter={semesterFilter}
-                            onSemesterFilterChange={handleSemesterFilterChange}
-                            onViewChange={setView}
-                            onNavigate={setDate}
-                            onSelectEvent={(event) => setSelectedEvent(event)}
-                            locale={locale}
-                        />
+                        )}
+                        {isTimetable ? (
+                            <>
+                                <SemesterCalendarCard
+                                    events={events}
+                                    semesterFilter={semesterFilter}
+                                    onSemesterFilterChange={handleSemesterFilterChange}
+                                />
+                                <CalendarHeader
+                                    date={date}
+                                    view={view}
+                                    onNavigate={(action) => setDate(stepCalendarDate(date, view, action))}
+                                    onDateSelect={setDate}
+                                    onViewChange={setView}
+                                />
+                                <TimetableCalendar
+                                    events={filteredEvents}
+                                    view={view}
+                                    date={date}
+                                    onViewChange={setView}
+                                    onNavigate={setDate}
+                                    onSelectEvent={(event) => setSelectedEvent(event)}
+                                    locale={locale}
+                                />
+                            </>
+                        ) : (
+                            /* Home shows this week at a glance; the full calendar lives on /timetable. */
+                            <TimetableWeek
+                                events={filteredEvents}
+                                date={date}
+                                onSelectEvent={(event) => setSelectedEvent(event)}
+                            />
+                        )}
                     </>
                 ) : (
                     /* ── Authenticated, no data yet ── */
