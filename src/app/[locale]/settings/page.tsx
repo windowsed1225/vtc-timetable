@@ -1,19 +1,19 @@
 "use client";
 
 import { clearVtcData, getUserSettings, resetGracePeriodThreshold, updateEmailPassword, updateGracePeriodThreshold } from "@/app/actions/settings";
-import { checkStoredToken, getPrintQuota, getProgrammeInfo } from "@/app/actions/user";
+import { checkStoredToken, getPrintQuota, getProgrammeInfo, saveUserLocale } from "@/app/actions/user";
 import {
 	DEFAULT_GRACE_PERIOD_THRESHOLD,
 	MAX_GRACE_PERIOD_THRESHOLD,
 	MIN_GRACE_PERIOD_THRESHOLD,
 } from "@/lib/grace-period";
 import Sidebar from "@/components/Sidebar";
-import { ArrowLeft, Database, HardDrive, LockKeyhole, ShieldCheck, UserRound } from "lucide-react";
+import { ArrowLeft, Database, HardDrive, Languages, LockKeyhole, ShieldCheck, UserRound } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLocale, useTranslations } from "next-intl";
 import { useSession } from "@/lib/auth-client";
-import Link from "next/link";
-import { useRouter } from "@/lib/navigation";
+import { Link, useRouter } from "@/lib/navigation";
+import { writeLocaleCookie } from "@/lib/locale-cookie";
 import { useEffect, useState } from "react";
 
 type PrintQuotaInfo = {
@@ -48,10 +48,17 @@ const itemVariants = {
 	},
 };
 
+// Language names stay in their own language, the usual convention for a
+// language picker — they are not translated per locale.
+const LOCALE_OPTIONS = [
+	{ value: "zh-HK", label: "繁體中文" },
+	{ value: "en", label: "English" },
+] as const;
+
 
 export default function SettingsPage() {
-	const locale = useLocale();
 	const router = useRouter();
+	const locale = useLocale();
 	const { data: session } = useSession();
 	const t = useTranslations("settings");
 	const [loading, setLoading] = useState(true);
@@ -266,11 +273,20 @@ export default function SettingsPage() {
 		);
 	}
 
+	// Locale is a cookie, so switching keeps the current path and just
+	// re-renders it on the server.
+	const handleLocaleSwitch = (next: (typeof LOCALE_OPTIONS)[number]["value"]) => {
+		if (next === locale) return;
+		saveUserLocale(next).catch(console.error);
+		writeLocaleCookie(next);
+		router.refresh();
+	};
+
 	return (
 		<div className="settings-page flex h-screen overflow-hidden bg-[var(--background)]">
 			{/* Same rail as every other route, as in the reference settings page. */}
 			<Sidebar
-				onSyncClick={() => router.push(`/${locale}?sync=1`)}
+				onSyncClick={() => router.push("/?sync=1")}
 				isSyncing={false}
 				vtcUrl=""
 				user={session?.user}
@@ -279,7 +295,7 @@ export default function SettingsPage() {
 			<div className="settings-shell min-w-0 flex-1 overflow-y-auto">
 			{/* Back arrow beside the title, matching the reference header. */}
 			<header className="settings-heading">
-				<Link href={`/${locale}`} className="settings-back" aria-label={t("backToCalendar")}>
+				<Link href="/" className="settings-back" aria-label={t("backToCalendar")}>
 					<ArrowLeft className="size-5" aria-hidden="true" />
 				</Link>
 				<div className="min-w-0">
@@ -293,8 +309,9 @@ export default function SettingsPage() {
 				<aside className="settings-nav" aria-label={t("title")}>
 					<p className="settings-nav-label">{t("title")}</p>
 					<a href="#account">{t("account")}</a>
+					<a href="#language">{t("language")}</a>
 					<a href="#connection">{t("vtcConnection")}</a>
-					<Link href={`/${locale}/api`}>{t("apiPlayground")}</Link>
+					<Link href="/api">{t("apiPlayground")}</Link>
 					<a href="#attendance">{t("gracePeriodTitle")}</a>
 					<a href="#security">{t("loginSecurity")}</a>
 					<a href="#data">{t("storedData")}</a>
@@ -323,6 +340,35 @@ export default function SettingsPage() {
 								</svg>
 								{settings?.discordUsername || "N/A"}
 							</span>
+						</div>
+					</div>
+				</motion.div>
+
+				{/* ── Language ───────────────────────────── */}
+				<motion.div id="language" className="settings-section scroll-mt-24" variants={itemVariants}>
+					<div className="settings-section-header">
+						<span className="settings-section-icon" aria-hidden="true"><Languages /></span>
+						<div className="min-w-0">
+							<h2>{t("language")}</h2>
+							<p>{t("languageDescription")}</p>
+						</div>
+					</div>
+					<div className="settings-section-body">
+						<div className="settings-row">
+							<span className="settings-row-label">{t("language")}</span>
+							<div className="flex gap-2">
+								{LOCALE_OPTIONS.map((option) => (
+									<button
+										key={option.value}
+										type="button"
+										onClick={() => handleLocaleSwitch(option.value)}
+										aria-pressed={locale === option.value}
+										className={locale === option.value ? "btn-primary text-xs" : "btn-secondary text-xs"}
+									>
+										{option.label}
+									</button>
+								))}
+							</div>
 						</div>
 					</div>
 				</motion.div>
@@ -371,7 +417,7 @@ export default function SettingsPage() {
 
 						<div className="settings-row">
 							<span className="settings-row-label">{t("apiPlayground")}</span>
-							<Link href={`/${locale}/api`} className="btn-secondary text-xs">
+							<Link href="/api" className="btn-secondary text-xs">
 								{t("openApiPlayground")}
 							</Link>
 						</div>

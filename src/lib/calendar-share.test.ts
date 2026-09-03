@@ -46,18 +46,18 @@ describe("calendar sharing", () => {
 
 	test("builds a locale-aware public calendar path", () => {
 		const token = "a".repeat(32);
-		expect(calendarSharePath("zh-HK", token, "month")).toBe(`/zh-HK/share/calendar/${token}?view=month`);
-		expect(calendarSharePath("en", "bad/token")).toBeNull();
+		expect(calendarSharePath(token, "month")).toBe(`/share/calendar/${token}?view=month`);
+		expect(calendarSharePath("bad/token")).toBeNull();
 	});
 
 	test("accepts Discord IDs only for the owner-only viewer path", () => {
 		expect(isValidDiscordId("123456789012345678")).toBe(true);
 		expect(isValidDiscordId("1234")).toBe(false);
 		expect(isValidDiscordId("12345678901234567x")).toBe(false);
-		expect(calendarOwnerViewPath("en", "123456789012345678", "day")).toBe(
-			"/en/share/calendar/123456789012345678?view=day",
+		expect(calendarOwnerViewPath("123456789012345678", "day")).toBe(
+			"/share/calendar/123456789012345678?view=day",
 		);
-		expect(calendarOwnerViewPath("en", "not-an-id", "week")).toBeNull();
+		expect(calendarOwnerViewPath("not-an-id", "week")).toBeNull();
 	});
 
 	test("gates Discord ID calendar loading behind the configured owner", () => {
@@ -107,35 +107,35 @@ describe("calendar sharing", () => {
 
 	test("carries a chosen month across every view link", () => {
 		const token = "a".repeat(32);
-		expect(calendarSharePath("en", token, "month", { month: "2026-12" })).toBe(
-			`/en/share/calendar/${token}?view=month&month=2026-12`,
+		expect(calendarSharePath(token, "month", { month: "2026-12" })).toBe(
+			`/share/calendar/${token}?view=month&month=2026-12`,
 		);
-		expect(calendarSharePath("en", token, "week", { month: "2026-12" })).toBe(
-			`/en/share/calendar/${token}?view=week&month=2026-12`,
+		expect(calendarSharePath(token, "week", { month: "2026-12" })).toBe(
+			`/share/calendar/${token}?view=week&month=2026-12`,
 		);
-		expect(calendarSharePath("en", token, "month")).toBe(`/en/share/calendar/${token}?view=month`);
-		expect(calendarSharePath("en", token, "month", { month: "2026-13" })).toBe(
-			`/en/share/calendar/${token}?view=month`,
+		expect(calendarSharePath(token, "month")).toBe(`/share/calendar/${token}?view=month`);
+		expect(calendarSharePath(token, "month", { month: "2026-13" })).toBe(
+			`/share/calendar/${token}?view=month`,
 		);
-		expect(calendarOwnerViewPath("en", "123456789012345678", "month", { month: "2026-12" })).toBe(
-			"/en/share/calendar/123456789012345678?view=month&month=2026-12",
+		expect(calendarOwnerViewPath("123456789012345678", "month", { month: "2026-12" })).toBe(
+			"/share/calendar/123456789012345678?view=month&month=2026-12",
 		);
 	});
 
 	test("appends the Discord cache buster last", () => {
 		const token = "a".repeat(32);
-		expect(calendarSharePath("en", token, "month", { month: "2026-12", version: "2" })).toBe(
-			`/en/share/calendar/${token}?view=month&month=2026-12&v=2`,
+		expect(calendarSharePath(token, "month", { month: "2026-12", version: "2" })).toBe(
+			`/share/calendar/${token}?view=month&month=2026-12&v=2`,
 		);
-		expect(calendarSharePath("en", token, "week", { version: "abc-1_9" })).toBe(
-			`/en/share/calendar/${token}?view=week&v=abc-1_9`,
+		expect(calendarSharePath(token, "week", { version: "abc-1_9" })).toBe(
+			`/share/calendar/${token}?view=week&v=abc-1_9`,
 		);
 		expect(normalizeCalendarShareVersion(" 2 ")).toBe("2");
 		expect(normalizeCalendarShareVersion("a".repeat(17))).toBeNull();
 		expect(normalizeCalendarShareVersion("bad value")).toBeNull();
 		expect(normalizeCalendarShareVersion("")).toBeNull();
-		expect(calendarSharePath("en", token, "week", { version: "bad value" })).toBe(
-			`/en/share/calendar/${token}?view=week`,
+		expect(calendarSharePath(token, "week", { version: "bad value" })).toBe(
+			`/share/calendar/${token}?view=week`,
 		);
 	});
 

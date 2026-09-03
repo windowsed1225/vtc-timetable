@@ -329,6 +329,7 @@
     "dark": "Dark",
     "system": "System",
     "language": "Language",
+    "languageDescription": "Interface language for labels, dates and times.",
     "logout": "Logout",
     "apiPlayground": "API playground",
     "apiPlaygroundDescription": "Try VTC requests with your saved token and inspect the JSON.",

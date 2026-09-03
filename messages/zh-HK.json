@@ -329,6 +329,7 @@
     "dark": "深色",
     "system": "系統",
     "language": "語言",
+    "languageDescription": "介面標籤、日期與時間所用的語言。",
     "logout": "登出",
     "apiPlayground": "API 測試台",
     "apiPlaygroundDescription": "用已儲存的 token 發送 VTC 請求並查看 JSON。",

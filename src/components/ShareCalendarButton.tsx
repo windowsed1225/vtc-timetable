@@ -13,13 +13,12 @@ import {
 	currentCalendarShareMonth,
 	type CalendarShareView,
 } from "@/lib/calendar-share";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 export default function ShareCalendarButton() {
 	const t = useTranslations("calendar");
-	const locale = useLocale() === "zh-HK" ? "zh-HK" : "en";
 	const [origin, setOrigin] = useState("");
 	const [open, setOpen] = useState(false);
 	const [state, setState] = useState<CalendarShareState | null>(null);
@@ -38,7 +37,7 @@ export default function ShareCalendarButton() {
 
 	const sharedMonth = view === "month" ? month : null;
 	const sharePath = state?.token
-		? calendarSharePath(locale, state.token, view, { month: sharedMonth, version })
+		? calendarSharePath(state.token, view, { month: sharedMonth, version })
 		: null;
 	const shareUrl = origin && sharePath ? `${origin}${sharePath}` : "";
 
@@ -102,7 +101,7 @@ export default function ShareCalendarButton() {
 	};
 
 	const openOwnerCalendar = () => {
-		const ownerPath = calendarOwnerViewPath(locale, ownerDiscordId.trim(), view, { month: sharedMonth, version });
+		const ownerPath = calendarOwnerViewPath(ownerDiscordId.trim(), view, { month: sharedMonth, version });
 		if (!ownerPath || !origin) {
 			setError(t("shareCalendarOwnerInvalidDiscordId"));
 			return;

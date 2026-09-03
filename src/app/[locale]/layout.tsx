@@ -1,9 +1,8 @@
 import Providers from "@/components/Providers";
 import { NextIntlClientProvider } from "next-intl";
 import { notFound } from "next/navigation";
+import { isLocale } from "../../../i18n/routing";
 import "../globals.css";
-
-const locales = ["en", "zh-HK"] as const;
 
 // [locale] layout — wraps pages with i18n and theme providers.
 // Does NOT include <html> or <body> — those are in app/layout.tsx.
@@ -16,8 +15,9 @@ export default async function LocaleLayout({
 }) {
     const { locale } = await params;
 
-    // Validate locale
-    if (!locales.includes(locale as (typeof locales)[number])) {
+    // The middleware rewrites unprefixed paths onto this segment, so anything
+    // else reaching it is a bad internal route rather than a visitor URL.
+    if (!isLocale(locale)) {
         notFound();
     }
 

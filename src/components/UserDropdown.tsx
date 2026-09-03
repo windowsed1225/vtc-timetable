@@ -1,7 +1,8 @@
 "use client";
 
 import { saveUserLocale } from "@/app/actions";
-import { Link } from "@/lib/navigation";
+import { Link, useRouter } from "@/lib/navigation";
+import { writeLocaleCookie } from "@/lib/locale-cookie";
 import { signOut } from "@/lib/auth-client";
 import { useLocale, useTranslations } from "next-intl";
 import {
@@ -32,6 +33,7 @@ export default function UserDropdown({ user }: UserDropdownProps) {
 	const [mounted, setMounted] = useState(false);
 	const t = useTranslations("settings");
 	const locale = useLocale();
+	const router = useRouter();
 
 	useEffect(() => {
 		setMounted(true);
@@ -54,13 +56,13 @@ export default function UserDropdown({ user }: UserDropdownProps) {
 		setTheme(themes[(currentIndex + 1) % themes.length]);
 	};
 
-	const handleLocaleSwitch = async (newLocale: "en" | "zh-HK") => {
+	// The locale lives in a cookie, so the path never changes: write the
+	// cookie, then re-render the current route through the server.
+	const handleLocaleSwitch = (newLocale: "en" | "zh-HK") => {
 		if (newLocale === locale) return;
 		saveUserLocale(newLocale).catch(console.error);
-		// Strip the current locale prefix from the path, then navigate
-		const currentPath = window.location.pathname;
-		const stripped = currentPath.replace(/^\/(en|zh-HK)/, "") || "/";
-		window.location.href = `/${newLocale}${stripped}`;
+		writeLocaleCookie(newLocale);
+		router.refresh();
 	};
 
 	const getThemeIcon = () => {
