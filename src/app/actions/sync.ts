@@ -3,6 +3,7 @@
 import { auth } from "@/auth";
 import { invalidateUserCaches } from "@/lib/cache";
 import { getColorIndex } from "@/lib/colors";
+import { isLockedSession } from "@/lib/session-state";
 import connectDB from "@/lib/db";
 import {
 	academicYearStartYear,
@@ -145,6 +146,13 @@ async function upsertAttendanceAdjustedEvent({ cls, vtcStudentId, semester, cour
 			const closestDelta = Math.abs(new Date(closest.startTime).getTime() - actualStart.getTime()) + Math.abs(new Date(closest.endTime).getTime() - actualEnd.getTime());
 			return candidateDelta < closestDelta ? candidate : closest;
 		}, null);
+
+	// A class whose result already landed is settled. Re-writing it would let a
+	// later upstream room or lecturer change overwrite a class the user already
+	// sat, and would let a late API result clobber a locally confirmed outcome.
+	if (matchingEvent && isLockedSession(matchingEvent)) {
+		return matchingEvent;
+	}
 
 	const scheduledStart = matchingEvent?.scheduledStartTime ?? matchingEvent?.startTime ?? actualStart;
 	const scheduledEnd = matchingEvent?.scheduledEndTime ?? matchingEvent?.endTime ?? actualEnd;
@@ -889,13 +897,23 @@ export async function listAttendanceCoursesStored(): Promise<{
 			return { success: true, courses: [] };
 		}
 
-		return {
-			success: true,
-			courses: listResponse.payload.courses.map((c) => ({
-				courseCode: c.courseCode,
-				courseName: c.name?.en || c.courseCode,
-			})),
-		};
+		const courses = listResponse.payload.courses.map((c) => ({
+			courseCode: c.courseCode,
+			courseName: c.name?.en || c.courseCode,
+		}));
+
+		// Drop courses with nothing left to resolve, so a settled course is never
+		// fetched again and an upstream room or lecturer change cannot reach a
+		// class the user already sat.
+		const unresolved = await Event.distinct("courseCode", {
+			vtcStudentId: ctx.vtcStudentId,
+			courseCode: { $in: courses.map((c) => c.courseCode) },
+			status: { $nin: ["ABSENT", "CANCELED"] },
+			$or: [{ attendanceStatusCode: null }, { attendanceStatusCode: { $exists: false } }],
+		});
+		const pending = new Set<string>(unresolved as string[]);
+
+		return { success: true, courses: courses.filter((c) => pending.has(c.courseCode)) };
 	} catch (error) {
 		return { success: false, error: error instanceof Error ? error.message : "Failed to list courses" };
 	}

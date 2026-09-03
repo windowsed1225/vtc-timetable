@@ -568,7 +568,10 @@
       "attended": "已出席",
       "absent": "缺席",
       "upcoming": "即將開始",
-      "cancelled": "已取消"
+      "cancelled": "已取消",
+      "ongoing": "進行中",
+      "awaiting": "等待回傳（需要明天）",
+      "noRecord": "尚無紀錄"
     }
   },
   "attendancePage": {

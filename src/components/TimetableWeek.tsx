@@ -71,7 +71,7 @@ export default function TimetableWeek({ events, date, onSelectEvent, isLoading, 
 					{error}
 				</p>
 			) : isLoading ? (
-				<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5" aria-hidden="true">
+				<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5" aria-hidden="true">
 					{days.map((day) => (
 						<div key={day.toISOString()} className="rounded-2xl bg-muted/50 p-3">
 							<div className="mb-3 h-3 w-20 animate-pulse rounded-full bg-muted" />
@@ -80,11 +80,11 @@ export default function TimetableWeek({ events, date, onSelectEvent, isLoading, 
 					))}
 				</div>
 			) : (
-				<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+				<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
 					{columns.map((column) => (
 						<div
 							key={column.day.toISOString()}
-							className={`rounded-2xl p-3 ${
+							className={`min-w-0 rounded-2xl p-3 ${
 								column.isToday ? "bg-primary/10 ring-1 ring-primary/45" : "bg-muted/50"
 							}`}
 							aria-current={column.isToday ? "date" : undefined}

@@ -568,7 +568,10 @@
       "attended": "Attended",
       "absent": "Absent",
       "upcoming": "Upcoming",
-      "cancelled": "Cancelled"
+      "cancelled": "Cancelled",
+      "ongoing": "Ongoing",
+      "awaiting": "等待回傳（需要明天）",
+      "noRecord": "尚無紀錄"
     }
   },
   "attendancePage": {
