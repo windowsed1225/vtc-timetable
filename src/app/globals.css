@@ -3746,6 +3746,17 @@ body {
 	padding: 24px 16px;
 	box-sizing: border-box;
 }
+
+/* Flex and grid children default to `min-width: auto`, so one that cannot
+   shrink to the viewport — a nowrap button row, a select sized by its longest
+   option, a long feed URL — widens the whole column instead. `.dashboard-main`
+   then clips it with `overflow-x: hidden` and the right edge of the page is
+   simply gone on a phone. Letting these shrink is what keeps the cards inside
+   the screen; anything that genuinely needs its width scrolls on its own
+   (`.campus-month-scroll`), which this does not affect. */
+.calendar-workspace-content > * {
+	min-width: 0;
+}
 @media (min-width: 640px) {
 	.calendar-workspace-content { padding: 24px 24px; }
 }
@@ -3969,7 +3980,10 @@ body {
 	}
 	.settings-nav {
 		position: sticky;
-		top: 60px;
+		/* Pins to the top of `.settings-shell`, which is the scroll container.
+		   The old 60px offset assumed a sticky page header above it and left
+		   the strip hovering over the first card. */
+		top: 0;
 		z-index: 25;
 		display: flex;
 		gap: 6px;
@@ -3980,6 +3994,9 @@ body {
 		border-bottom: 1px solid var(--border-default);
 		backdrop-filter: blur(14px);
 	}
+	/* The strip is a scrolling row of pills; the "Settings" caption only eats
+	   the width they need. */
+	.settings-nav-label { display: none; }
 	.settings-nav a {
 		flex: 0 0 auto;
 		padding: 8px 11px;
