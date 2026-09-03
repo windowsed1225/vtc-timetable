@@ -544,6 +544,7 @@
   },
   "nav": {
     "label": "主要導覽",
+    "closeNavigation": "關閉導覽",
     "home": "主頁",
     "timetable": "時間表",
     "attendance": "出席紀錄",

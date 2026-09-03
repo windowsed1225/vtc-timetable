@@ -8,6 +8,7 @@ import UserDropdown from "@/components/UserDropdown";
 import { useRouter } from "@/lib/navigation";
 import type { CalendarEvent } from "@/types/timetable";
 import { useSession } from "@/lib/auth-client";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 interface AppShellProps {
@@ -25,6 +26,7 @@ interface AppShellProps {
 export default function AppShell({ children, footer }: AppShellProps) {
 	const { data: session } = useSession();
 	const router = useRouter();
+	const tNav = useTranslations("nav");
 	const [sidebarOpen, setSidebarOpen] = useState(false);
 	const [events, setEvents] = useState<CalendarEvent[]>([]);
 
@@ -52,7 +54,7 @@ export default function AppShell({ children, footer }: AppShellProps) {
 				<button
 					type="button"
 					className={`sidebar-overlay ${sidebarOpen ? "active" : ""}`}
-					aria-label="Close navigation"
+					aria-label={tNav("closeNavigation")}
 					onClick={() => setSidebarOpen(false)}
 				/>
 

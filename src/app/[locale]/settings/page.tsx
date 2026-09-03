@@ -8,6 +8,7 @@ import {
 	MIN_GRACE_PERIOD_THRESHOLD,
 } from "@/lib/grace-period";
 import Sidebar from "@/components/Sidebar";
+import TopNavbar from "@/components/TopNavbar";
 import { ArrowLeft, Database, HardDrive, Languages, LockKeyhole, ShieldCheck, UserRound } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLocale, useTranslations } from "next-intl";
@@ -61,6 +62,7 @@ export default function SettingsPage() {
 	const locale = useLocale();
 	const { data: session } = useSession();
 	const t = useTranslations("settings");
+	const tNav = useTranslations("nav");
 	const [loading, setLoading] = useState(true);
 	const [settings, setSettings] = useState<{
 		email?: string;
@@ -94,6 +96,10 @@ export default function SettingsPage() {
 
 	// Student ID visibility state
 	const [isStudentIdVisible, setIsStudentIdVisible] = useState(false);
+
+	// Below 768px the rail is an off-canvas drawer, so it needs the same toggle
+	// the other routes get from AppShell — without it this page has no nav at all.
+	const [sidebarOpen, setSidebarOpen] = useState(false);
 
 	// Clear VTC data (danger zone) state — two-step confirm
 	const [clearConfirm, setClearConfirm] = useState(false);
@@ -283,13 +289,28 @@ export default function SettingsPage() {
 	};
 
 	return (
-		<div className="settings-page flex h-screen overflow-hidden bg-[var(--background)]">
+		<div className="settings-page flex flex-col h-screen overflow-hidden bg-[var(--background)]">
+			<TopNavbar
+				onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
+				sidebarOpen={sidebarOpen}
+				user={session?.user}
+			/>
+
+			<div className="flex-1 flex overflow-hidden">
+			<button
+				type="button"
+				className={`sidebar-overlay ${sidebarOpen ? "active" : ""}`}
+				aria-label={tNav("closeNavigation")}
+				onClick={() => setSidebarOpen(false)}
+			/>
+
 			{/* Same rail as every other route, as in the reference settings page. */}
 			<Sidebar
 				onSyncClick={() => router.push("/?sync=1")}
 				isSyncing={false}
 				vtcUrl=""
 				user={session?.user}
+				sidebarOpen={sidebarOpen}
 			/>
 
 			<div className="settings-shell min-w-0 flex-1 overflow-y-auto">
@@ -784,6 +805,7 @@ export default function SettingsPage() {
 					</div>
 				</motion.div>
 			</motion.main>
+			</div>
 			</div>
 			</div>
 		</div>

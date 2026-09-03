@@ -544,6 +544,7 @@
   },
   "nav": {
     "label": "Main navigation",
+    "closeNavigation": "Close navigation",
     "home": "Home",
     "timetable": "Timetable",
     "attendance": "Attendance",
